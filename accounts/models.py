@@ -51,5 +51,5 @@ class OtpCode(models.Model):
     created_date = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
 
     def __str__(self):
-        return f'{self.phone_number} - {self.code} - {self.created_date}'
+        return f'{self.phone_number} - {self.code} '
     
