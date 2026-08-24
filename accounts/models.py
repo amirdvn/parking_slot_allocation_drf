@@ -45,3 +45,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
+class OtpCode(models.Model):
+    phone_number = models.CharField(max_length=11, verbose_name='شماره تلفن')
+    code = models.PositiveIntegerField(verbose_name='کد تایید')
+    created_date = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+
+    def __str__(self):
+        return f'{self.phone_number} - {self.code} - {self.created_date}'
+    
