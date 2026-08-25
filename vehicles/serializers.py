@@ -22,9 +22,15 @@ class VehicleSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        vehicle_type = attrs['vehicle_type']
-        sub_type = attrs['sub_type']
-        plate_number = attrs['plate_number']
+        vehicle_type = attrs.get(
+            'vehicle_type',
+            self.instance.vehicle_type if self.instance else None)
+        sub_type = attrs.get(
+            'sub_type', 
+            self.instance.sub_type if self.instance else None)
+        plate_number = attrs.get(
+            'plate_number', 
+            self.instance.plate_number if self.instance else None)
 
         if not plate_number:
             raise serializers.ValidationError(
