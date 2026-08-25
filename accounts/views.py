@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-from .serializers import RegisterSerializer, SendLoginOtpSerializer, VerifyLoginOtpSerializer, SendChangePhoneOtpSerializer
+from .serializers import RegisterSerializer, SendLoginOtpSerializer, VerifyLoginOtpSerializer, SendChangePhoneOtpSerializer, VerifyChangePhoneOtpSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
@@ -102,5 +102,28 @@ class SendChangePhoneOtpView(APIView):
             send_otp_code(phone_number=phone_number, code=random_code)
 
             return Response({'message': 'کد تایید ارسال شد'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyChangePhoneOtpView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = VerifyChangePhoneOtpSerializer(data=request.data)
+
+        if serializer.is_valid():
+            
+            phone_number = serializer.validated_data['phone_number']
+            otp_code = serializer.validated_data['otp_code']
+            otp_code.delete()
+
+            request.user.phone_number = phone_number
+            request.user.save(update_fields=['phone_number'])
+            user_serializer = RegisterSerializer(request.user)
+            return Response(
+                {'message': 'شماره تلفن با موفقیت تغییر کرد',
+                 'user': user_serializer.data},
+                status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -8,6 +8,7 @@ urlpatterns = [
     path('login/send_otp/', SendLoginOtpView.as_view(), name='send_login_otp'),
     path('login/verify_otp/', VerifyLoginOtpView.as_view(), name='verify_login_otp'),
     path('logout/', LogoutView.as_view(), name='user_logout'),
-    path('change-phone/send-otp/', SendChangePhoneOtpView.as_view(), name='send-change-phone-otp'),
+    path('change_phone/send_otp/', SendChangePhoneOtpView.as_view(), name='send_change_phone_otp'),
+    path('change_phone/verify_otp/', VerifyChangePhoneOtpView.as_view(), name='verify_change_phone_otp'),
 
 ]
