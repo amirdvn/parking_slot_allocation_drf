@@ -7,6 +7,9 @@ import random
 from utils import send_otp_code
 from .models import OtpCode
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
 
 User = get_user_model()
 
@@ -51,9 +54,14 @@ class VerifyLoginOtpView(APIView):
             otp_code.delete()
             user = User.objects.filter(phone_number=phone_number).first()
             if user:
-                return Response({
+                tokens = RefreshToken.for_user(user)
+                return Response(
+                    {
                     'messages': 'ورود موفق بود',
-                    'is_registered': True},
+                    'is_registered': True,
+                    'tokens': {
+                        'refresh': str(tokens),
+                        'access': str(tokens.access_token)}},
                     status=status.HTTP_200_OK)
             return Response({
                 'messages': 'شماره تایید شد.',
