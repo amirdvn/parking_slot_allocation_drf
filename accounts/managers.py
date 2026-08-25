@@ -3,7 +3,7 @@ from django.contrib.auth.base_user import BaseUserManager
 
 class UserManager(BaseUserManager):
 
-    def create_user(self, phone_number, email, full_name, role, department, password):
+    def create_user(self, phone_number, email, full_name, role, department):
         if not phone_number:
             raise ValueError('کاربر باید شماره تلفن داشته باشد')
         if not email:
@@ -22,7 +22,6 @@ class UserManager(BaseUserManager):
             role=role,
             department=department
         )
-        user.set_password(password)
         user.save(using=self._db)
         return user
 
@@ -31,8 +30,8 @@ class UserManager(BaseUserManager):
             phone_number, email, full_name,
             role=self.model.Role.MANAGER,
             department=self.model.Department.MANAGEMENT,
-            password=password
         )
+        user.set_password(password)
         user.is_active = True
         user.is_staff = True
         user.is_superuser = True
