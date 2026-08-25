@@ -52,3 +52,17 @@ class VerifyLoginOtpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('کد تایید اشتباه است')
         attrs['otp_code'] = otp_code
         return attrs
+
+
+
+class SendChangePhoneOtpSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OtpCode
+        fields = ['phone_number']
+
+    def validate_phone_number(self, value):
+        if User.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError('این شماره تلفن قبلاً ثبت شده است')
+        return value
+
+

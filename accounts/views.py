@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-from .serializers import RegisterSerializer, SendLoginOtpSerializer, VerifyLoginOtpSerializer
+from .serializers import RegisterSerializer, SendLoginOtpSerializer, VerifyLoginOtpSerializer, SendChangePhoneOtpSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
@@ -86,3 +86,21 @@ class LogoutView(APIView):
             return Response(
                 {'message': 'Refresh Token نامعتبر است'},
                 status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class SendChangePhoneOtpView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = SendChangePhoneOtpSerializer(data=request.data)
+
+        if serializer.is_valid():
+            phone_number = serializer.validated_data['phone_number']
+            random_code = random.randint(1000, 9999)
+            OtpCode.objects.create(phone_number=phone_number, code=random_code)
+            send_otp_code(phone_number=phone_number, code=random_code)
+
+            return Response({'message': 'کد تایید ارسال شد'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
