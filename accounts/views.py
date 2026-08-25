@@ -8,7 +8,7 @@ from utils import send_otp_code
 from .models import OtpCode
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from profiles.serializers import ProfileSerializer
 
 
 User = get_user_model()
@@ -120,7 +120,7 @@ class VerifyChangePhoneOtpView(APIView):
 
             request.user.phone_number = phone_number
             request.user.save(update_fields=['phone_number'])
-            user_serializer = RegisterSerializer(request.user)
+            user_serializer = ProfileSerializer(request.user)
             return Response(
                 {'message': 'شماره تلفن با موفقیت تغییر کرد',
                  'user': user_serializer.data},
