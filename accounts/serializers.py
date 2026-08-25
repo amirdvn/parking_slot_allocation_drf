@@ -50,3 +50,19 @@ class SendLoginOtpSerializer(serializers.ModelSerializer):
     class Meta:
         model = OtpCode
         fields = ['phone_number']
+
+
+class VerifyLoginOtpSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OtpCode
+        fields = ['phone_number', 'code']
+
+    def validate(self, attrs):
+        phone_number = attrs['phone_number']
+        code = attrs['code']
+        otp_code=OtpCode.objects.filter(phone_number=phone_number, code=code).first()
+
+        if not otp_code:  
+            raise serializers.ValidationError('کد تایید اشتباه است')
+        attrs['otp_code'] = otp_code
+        return attrs
