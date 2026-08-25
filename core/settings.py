@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     #Local apps
     'accounts.apps.AccountsConfig',
     'profiles.apps.ProfilesConfig',
+    'vehicles.apps.VehiclesConfig',
 
 
     #Third party apps
