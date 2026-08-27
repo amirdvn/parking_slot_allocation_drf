@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'profiles.apps.ProfilesConfig',
     'vehicles.apps.VehiclesConfig',
+    'parkings.apps.ParkingsConfig',
 
 
     #Third party apps
