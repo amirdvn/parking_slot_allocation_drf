@@ -45,8 +45,8 @@ class ParkingSpace(models.Model):
         return f'{self.code} - {self.get_space_type_display()} - {self.get_floor_display()} - {self.get_zone_display()} - توضیحات: {self.description if self.description else "ندارد"}'
 
     def save(self, *args, **kwargs):
-        if not self.code:
-            self.code = f'{self.zone}-{self.floor}-{str(self.id)[:3].upper()}'
+
+        self.code = f'{self.zone}-{self.floor}-{str(self.id)[:3].upper()}'
         if self.zone == self.ZoneChoice.EAST:
             self.requires_permission = True
         return super().save(*args, **kwargs)
