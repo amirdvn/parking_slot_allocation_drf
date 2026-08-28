@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings 
 import uuid
+from vehicles.models import Vehicle
+
 
 class ParkingSpace(models.Model):
 
@@ -50,3 +52,45 @@ class ParkingSpace(models.Model):
         if self.zone == self.ZoneChoice.EAST:
             self.requires_permission = True
         return super().save(*args, **kwargs)
+
+
+class ParkingRequest(models.Model):
+
+    class Meta:
+        verbose_name = 'درخواست پارکینگ'
+        verbose_name_plural = 'درخواست‌های پارکینگ'
+        ordering = ['-id']
+
+    class RequestStatus(models.TextChoices):
+        PENDING = 'PENDING', 'در انتظار بررسی'
+        APPROVED = 'APPROVED', 'تایید شده'
+        REJECTED = 'REJECTED', 'رد شده'
+        CANCELED = 'CANCELED', 'لغو شده '
+        EXPIRED = 'EXPIRED', 'منقضی شده'
+        IN_USE = 'IN_USE', 'در حال استفاده'
+        COMPLETED = 'COMPLETED', 'تکمیل شده'
+        NEEDS_REVIEW = 'NEEDS_REVIEW', 'نیازمند بررسی دستی'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name='کاربر')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.PROTECT, verbose_name='وسیله نقلیه')
+    parking_space = models.ForeignKey('ParkingSpace', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='جایگاه ')
+    
+    start_time = models.DateTimeField(verbose_name='ساعت شروع')
+    end_time = models.DateTimeField(verbose_name='ساعت پایان')
+    
+    status = models.CharField(max_length=20, choices=RequestStatus.choices, default=RequestStatus.PENDING, verbose_name='وضعیت درخواست')
+    description = models.TextField(blank=True, null=True, verbose_name='توضیحات')
+    cancellation_reason = models.TextField(blank=True, null=True, verbose_name='دلیل لغو')
+    created_date = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت')
+    updated_date = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
+    #GUEST
+    is_guest = models.BooleanField(default=False, verbose_name="درخواست مهمان")
+    guest_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="نام مهمان")
+    guest_email = models.EmailField(max_length=150, blank=True, null=True, verbose_name="ایمیل مهمان")
+    guest_phone = models.CharField(max_length=11, blank=True, null=True, verbose_name="شماره تماس مهمان")
+    guest_plate_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="شماره پلاک مهمان")
+    reason = models.TextField(blank=True, null=True, verbose_name="دلیل مراجعه")
+
+
+    def __str__(self):
+        return f'{self.user} - {self.vehicle} - {self.parking_space} - {self.get_status_display()}'
