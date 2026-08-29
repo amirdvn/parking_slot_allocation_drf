@@ -52,7 +52,7 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
         request = self.context.get('request')
 
-        if request.user and request.user.is_authenticated:
+        if request and request.user and request.user.is_authenticated:
             self.fields['vehicle'].queryset = Vehicle.objects.none()
             self.fields['parking_space'].queryset = ParkingSpace.objects.none()
 
@@ -60,7 +60,10 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
             self.fields['vehicle'].queryset = Vehicle.objects.filter(user=user, is_active=True)
 
-            vehicle_id = self.initial_data.get('vehicle')
+            vehicle_id = None
+
+            if hasattr(self, 'initial_data'):
+                vehicle_id = self.initial_data.get('vehicle')
 
             if vehicle_id:
                 vehicle = Vehicle.objects.filter(id=vehicle_id, user=user, is_active=True).first()
@@ -108,3 +111,5 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
             if start_time >= end_time:
                 raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
+
+        return validated_data
