@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ParkingSpace, ParkingRequest
+from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock
 from vehicles.models import Vehicle
 from django.utils import timezone
 
@@ -113,3 +113,27 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
 
         return validated_data
+
+
+class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ParkingSpaceBlock
+        fields = ['id', 'parking_space', 'start_time', 'end_time', 'reason', 'description', 'created_by', 'created_date']
+
+        read_only_fields = ['id', 'created_by', 'created_date']
+
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+
+        start_time = validated_data.get('start_time')
+        end_time = validated_data.get('end_time')
+
+        
+        if start_time < timezone.now():
+            raise serializers.ValidationError({'start_time':'زمان شروع نمی‌تواند در گذشته باشد'})
+        
+        if start_time >= end_time:
+            raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
+        
+        return validated_data
+        

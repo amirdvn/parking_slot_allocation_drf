@@ -94,3 +94,32 @@ class ParkingRequest(models.Model):
 
     def __str__(self):
         return f'{self.user} - {self.vehicle} - {self.parking_space} - {self.get_status_display()}'
+
+
+class ParkingSpaceBlock(models.Model):
+    class Meta:
+        verbose_name = 'انسداد جایگاه'
+        verbose_name_plural = 'انسداد جایگاه ها'
+        ordering = ['-id']
+
+    class ReasonChoice(models.TextChoices):
+        REPAIR = 'REPAIR', 'تعمیرات و نگهداری'
+        EVENT = 'EVENT', 'رویداد سازمانی'
+        CLEANING = 'CLEANING', 'نظافت و شستشوی محوطه'
+        VIP_RESERVE = 'VIP_RESERVE', 'رزرو مقامات یا مهمان ویژه'
+        EQUIPMENT_FAILURE = 'EQUIPMENT_FAILURE', 'خرابی تجهیزات'
+        OTHER = 'OTHER', 'سایر موارد'
+
+
+    parking_space = models.ForeignKey('ParkingSpace', on_delete=models.CASCADE, related_name='blocks', verbose_name='جایگاه')
+
+    start_time = models.DateTimeField(verbose_name='زمان شروع مسدودی')
+    end_time = models.DateTimeField(verbose_name='زمان پایان مسدودی')
+    reason = models.CharField(max_length=255, choices=ReasonChoice.choices, default=ReasonChoice.REPAIR, verbose_name='دلیل مسدودی')
+    description = models.TextField(blank=True, null=True, verbose_name='توضیحات ')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name='ثبت کننده')
+    created_date = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت ')
+
+    def __str__(self):
+        return f'انسداد {self.parking_space.code} ({self.start_time.strftime("%Y-%m-%d %H:%M")} تا {self.end_time.strftime("%Y-%m-%d %H:%M")})'
+
