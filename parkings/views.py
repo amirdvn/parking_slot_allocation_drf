@@ -1,6 +1,6 @@
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .models import ParkingSpace, ParkingRequest
-from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer
+from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock
+from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer
 from .permissions import IsManagerUserOrReadOnly
 from rest_framework.permissions import IsAuthenticated
 
@@ -31,3 +31,21 @@ class ParkingRequestDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     def get_queryset(self):
         return ParkingRequest.objects.filter(user=self.request.user)
+
+
+class ParkingSpaceBlockListCreateView(ListCreateAPIView):
+    serializer_class = ParkingSpaceBlockSerializer
+    permission_classes = [IsManagerUserOrReadOnly]
+
+    def get_queryset(self):
+        return ParkingSpaceBlock.objects.all()
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
+    serializer_class = ParkingSpaceBlockSerializer
+    permission_classes = [IsManagerUserOrReadOnly]
+
+    def get_queryset(self):
+        return ParkingSpaceBlock.objects.all()

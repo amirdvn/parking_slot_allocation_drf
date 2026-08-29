@@ -123,17 +123,15 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_by', 'created_date']
 
     def validate(self, attrs):
-        validated_data = super().validate(attrs)
 
-        start_time = validated_data.get('start_time')
-        end_time = validated_data.get('end_time')
+        start_time = attrs.get('start_time', self.instance.start_time if self.instance else None)
+        end_time = attrs.get('end_time', self.instance.end_time if self.instance else None)
 
-        
         if start_time < timezone.now():
             raise serializers.ValidationError({'start_time':'زمان شروع نمی‌تواند در گذشته باشد'})
         
         if start_time >= end_time:
             raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
         
-        return validated_data
+        return attrs
         
