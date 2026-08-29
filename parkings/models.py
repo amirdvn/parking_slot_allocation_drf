@@ -123,3 +123,23 @@ class ParkingSpaceBlock(models.Model):
     def __str__(self):
         return f'انسداد {self.parking_space.code} ({self.start_time.strftime("%Y-%m-%d %H:%M")} تا {self.end_time.strftime("%Y-%m-%d %H:%M")})'
 
+
+class EntryExitLog(models.Model):
+
+    class Meta:
+        verbose_name=' گزارش ورود و خروج'
+        verbose_name_plural='گزارشات ورود و خروج'
+
+    parking_request = models.ForeignKey('ParkingRequest', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='درخواست')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, blank=True, null=True, verbose_name='وسیله نقلیه')
+
+    entry_time = models.DateTimeField(auto_now_add=True, verbose_name=' زمان ورود')
+    exit_time = models.DateTimeField(null=True, blank=True, verbose_name='زمان خروج ')
+
+    guard = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name='نگهبان')
+    description = models.TextField(blank=True, null=True, verbose_name='توضیحات')
+
+    def __str__(self):
+        if self.vehicle:
+            return f'{self.vehicle.plate_number} - {self.entry_time.strftime("%Y%m%d-%H:%M:%S")}'
+        return f'بدون وسیله نقلیه - {self.entry_time.strftime("%Y%m%d-%H:%M:%S")}'

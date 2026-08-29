@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock
+from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 from vehicles.models import Vehicle
 from django.utils import timezone
 
@@ -153,6 +153,29 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
 
         if overlapping_blocks.exists():
             raise serializers.ValidationError({'parking_space':'این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است'})
+
+        return attrs
+
+class EntryExitLogSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = EntryExitLog
+        fields = ['id', 'parking_request', 'vehicle', 'entry_time', 'exit_time', 'guard', 'description']
+
+        read_only_fields = ['id', 'entry_time', 'guard']
+
+    def validate(self, attrs):
+
+        vehicle = attrs.get('vehicle')
+        parking_request = attrs.get('parking_request')
+        exit_time = attrs.get('exit_time')
+
+        if parking_request and vehicle:
+            if parking_request.vehicle != vehicle:
+                raise serializers.ValidationError({'vehicle': 'این خودرو با خودروی درخواست پارک یکسان نیست'})
+
+        if exit_time and exit_time < timezone.now():
+            raise serializers.ValidationError({'exit_time': 'زمان خروج نمی‌تواند در گذشته باشد'})
 
         return attrs
         
