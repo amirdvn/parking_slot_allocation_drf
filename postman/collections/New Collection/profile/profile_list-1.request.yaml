@@ -1,7 +1,7 @@
 $kind: http-request
-name: vehicle_list
+name: profile_list
 description: ""
-url: http://127.0.0.1:8000/api/vehicle/list/
+url: http://127.0.0.1:8000/api/profile/
 method: GET
 auth:
   type: bearer
@@ -12,4 +12,4 @@ settings:
   followRedirects: true
   disableCookies: false
   maxResponseSize: 52428800
-order: 291316153821
+order: 2433258577291598

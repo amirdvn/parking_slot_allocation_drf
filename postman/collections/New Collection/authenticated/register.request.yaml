@@ -1,4 +1,23 @@
 $kind: http-request
-url: ""
-method: GET
-order: 2023492619303116
+name: register
+description: ""
+url: http://127.0.0.1:8000/api/auth/register/
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "email": "testmanager1@email.com",
+        "phone_number": "09100000000",
+        "full_name": "testmanager1",
+        "department": "MANAGEMENT",
+        "role": "MANAGER",
+        "password": "1234",
+        "password_confirm": "1234"
+    }
+settings:
+  strictSSL: false
+  followRedirects: true
+  disableCookies: false
+  maxResponseSize: 52428800
+order: 4488407013777489

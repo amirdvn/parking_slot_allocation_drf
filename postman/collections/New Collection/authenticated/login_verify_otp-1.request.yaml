@@ -1,0 +1,18 @@
+$kind: http-request
+name: login_verify_otp
+description: ""
+url: http://127.0.0.1:8000/api/auth/login/verify_otp/
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "phone_number": "09120000000",
+        "code": "4403"
+    }
+settings:
+  strictSSL: false
+  followRedirects: true
+  disableCookies: false
+  maxResponseSize: 52428800
+order: 4469410200075294

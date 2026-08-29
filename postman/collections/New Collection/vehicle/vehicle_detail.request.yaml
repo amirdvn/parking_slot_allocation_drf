@@ -1,4 +1,11 @@
 $kind: http-request
-url: ""
+name: vehicle_detail
+description: ""
+url: http://127.0.0.1:8000/api/vehicle/detail/2/
 method: GET
-order: 2770636869842750
+settings:
+  strictSSL: false
+  followRedirects: true
+  disableCookies: false
+  maxResponseSize: 52428800
+order: 1787924882872

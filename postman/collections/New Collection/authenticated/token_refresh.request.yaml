@@ -1,4 +1,19 @@
 $kind: http-request
-url: ""
-method: GET
-order: 4006746232414301
+name: token_refresh
+description: ""
+url: http://127.0.0.1:8000/api/token/refresh/
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc4ODQzNzA2MiwiaWF0IjoxNzg3ODMyMjYyLCJqdGkiOiIwNDE4NmZhODAzMDg0MzY4YWZhNzI3ZTczMGY2MTM0NyIsInVzZXJfaWQiOiIzIn0.UL4hKtGFFp22lT92vWp1_uYP2ccpbNeboxhKKu-SnlU"
+    }
+auth:
+  type: noauth
+settings:
+  strictSSL: false
+  followRedirects: true
+  disableCookies: false
+  maxResponseSize: 52428800
+order: 4498419177356493

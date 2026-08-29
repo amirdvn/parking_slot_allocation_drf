@@ -1,0 +1,15 @@
+$kind: http-request
+name: parking_detail
+description: ""
+url: http://127.0.0.1:8000/api/parking/detail/941b3f2e-d773-4ff8-8bf2-36c069cf08b5/
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzg3ODM0MDU5LCJpYXQiOjE3ODc4MzMxNTksImp0aSI6ImFmYWU0ZTQwNDBkZjQ4ZDM5OGI3ZWVmZWVmZTc4Yzc4IiwidXNlcl9pZCI6IjMifQ.2DFgtTKcBOXkOQjEmRrkYXyE_LT9xuJYum8hQQ6EAY4
+settings:
+  strictSSL: false
+  followRedirects: true
+  disableCookies: false
+  maxResponseSize: 52428800
+order: 2744258773930958

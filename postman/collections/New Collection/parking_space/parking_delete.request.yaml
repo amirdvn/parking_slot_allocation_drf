@@ -1,0 +1,15 @@
+$kind: http-request
+name: parking_delete
+description: ""
+url: http://127.0.0.1:8000/api/parking/delete/941b3f2e-d773-4ff8-8bf2-36c069cf08b5/
+method: DELETE
+auth:
+  type: bearer
+  credentials:
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzg3ODM1ODgwLCJpYXQiOjE3ODc4MzQ5ODAsImp0aSI6ImJkMDMwNmYxOTZkNzRjNDk4ZjNkMTcxZWE3ODQxOTdhIiwidXNlcl9pZCI6IjMifQ.IC0jjxNDpHStGfnrsajURzkXAv0F2uPsZZ_7nUlE6LI
+settings:
+  strictSSL: false
+  followRedirects: true
+  disableCookies: false
+  maxResponseSize: 52428800
+order: 4493555088668586
