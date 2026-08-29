@@ -24,5 +24,8 @@ urlpatterns = [
     path('blocks/put/<int:pk>/', ParkingSpaceBlockDetailView.as_view(), name='parking_space_block_put'),
     path('blocks/patch/<int:pk>/', ParkingSpaceBlockDetailView.as_view(), name='parking_space_block_patch'),
     path('blocks/delete/<int:pk>/', ParkingSpaceBlockDetailView.as_view(), name='parking_space_block_delete'),
-
+    #entry_exit_log
+    path('entry_exit/list/', EntryExitLogListCreateView.as_view(), name='entry_exit_list'),
+    path('entry_exit/create/', EntryExitLogListCreateView.as_view(), name='entry_exit_create'),
+    path('entry_exit/exit/<int:pk>/', VehicleExitView.as_view(), name='vehicle_exit'),
 ]

@@ -17,3 +17,17 @@ class IsManagerUserOrReadOnly(BasePermission):
             and request.user.is_authenticated
             and (request.user.role == request.user.Role.MANAGER
                 or request.user.is_superuser))
+
+
+class IsGuardUserOrReadOnly(BasePermission):
+
+    def has_permission(self, request, view):
+
+        if request.method in ['GET', 'HEAD', 'OPTIONS']:
+            return True
+
+        return (
+            request.user.is_authenticated
+            and (
+                request.user.role == request.user.Role.GUARD
+                or request.user.is_superuser))

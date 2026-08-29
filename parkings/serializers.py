@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 from vehicles.models import Vehicle
 from django.utils import timezone
-
+from profiles.serializers import ProfileSerializer
+from vehicles.serializers import VehicleSerializer
 
 def get_allowed_parking_spaces(vehicle=None, user=None, is_guest=False):
 
@@ -157,12 +158,13 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
         return attrs
 
 class EntryExitLogSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = EntryExitLog
         fields = ['id', 'parking_request', 'vehicle', 'entry_time', 'exit_time', 'guard', 'description']
 
-        read_only_fields = ['id', 'entry_time', 'guard']
+        read_only_fields = ['id', 'entry_time', 'exit_time', 'guard']
+
+        extra_kwargs = {'vehicle': {'required': True}}
 
     def validate(self, attrs):
 
@@ -178,4 +180,5 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'exit_time': 'زمان خروج نمی‌تواند در گذشته باشد'})
 
         return attrs
+
         
