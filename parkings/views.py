@@ -59,14 +59,14 @@ class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
 
 
 class EntryExitLogListCreateView(ListCreateAPIView):
-    serializer_class = EntryExitLogSerializer
     permission_classes = [IsGuardUserOrReadOnly]
+    serializer_class = EntryExitLogSerializer
 
     def get_queryset(self):
         return EntryExitLog.objects.all()
+
     def perform_create(self, serializer):
         serializer.save(guard=self.request.user)
-
 
 class VehicleExitView(UpdateAPIView):
 

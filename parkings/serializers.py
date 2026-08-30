@@ -113,14 +113,21 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
             if start_time >= end_time:
                 raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
 
-        if parking_space:
-            overlapping = ParkingSpaceBlock.objects.filter(parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time)
+        if parking_space and start_time and end_time:
+            is_blocked = ParkingSpaceBlock.objects.filter(parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time)
             if self.instance:
-                overlapping = overlapping.exclude(pk=self.instance.pk)
+                is_blocked = is_blocked.exclude(pk=self.instance.pk)
 
-            if overlapping.exists():
+            if is_blocked.exists():
                 raise serializers.ValidationError({'parking_space': 'این جایگاه در این بازه زمانی قبلاً مسدود شده است'})
 
+        if parking_space and start_time and end_time:
+            overlapping_requests = ParkingRequest.objects.filter(parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time, status__in=[ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE])
+            if self.instance:
+                overlapping_requests = overlapping_requests.exclude(id=self.instance.id)
+            if overlapping_requests.exists():
+                raise serializers.ValidationError({'parking_space': 'این جایگاه در بازه زمانی انتخابی قبلاً درخواست یا رزرو شده است'})
+    
         return validated_data
 
 
@@ -158,11 +165,16 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
         return attrs
 
 class EntryExitLogSerializer(serializers.ModelSerializer):
+
+    vehicle_detail = serializers.SerializerMethodField()
+    parking_request_detail = serializers.SerializerMethodField()
+    guard_detail = serializers.SerializerMethodField()
+
     class Meta:
         model = EntryExitLog
-        fields = ['id', 'parking_request', 'vehicle', 'entry_time', 'exit_time', 'guard', 'description']
+        fields = ['id', 'parking_request', 'parking_request_detail', 'vehicle', 'vehicle_detail', 'entry_time', 'exit_time', 'guard', 'guard_detail', 'description']
 
-        read_only_fields = ['id', 'entry_time', 'exit_time', 'guard']
+        read_only_fields = ['id', 'entry_time', 'exit_time', 'guard', 'vehicle_detail', 'parking_request_detail', 'guard_detail']
 
         extra_kwargs = {'vehicle': {'required': True}}
 
@@ -175,10 +187,46 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
         if parking_request and vehicle:
             if parking_request.vehicle != vehicle:
                 raise serializers.ValidationError({'vehicle': 'این خودرو با خودروی درخواست پارک یکسان نیست'})
+        if parking_request:
+            if parking_request.status != ParkingRequest.RequestStatus.APPROVED:
+                raise serializers.ValidationError({
+                    'parking_request': 'این درخواست هنوز تایید نشده است'})
 
         if exit_time and exit_time < timezone.now():
             raise serializers.ValidationError({'exit_time': 'زمان خروج نمی‌تواند در گذشته باشد'})
 
         return attrs
 
-        
+    def get_vehicle_detail(self, obj):
+        if not obj.vehicle:
+            return None
+
+        return {
+            'id': obj.vehicle.id,
+            'plate_number': obj.vehicle.plate_number,
+            'vehicle_type': obj.vehicle.vehicle_type,
+            'color': obj.vehicle.color,
+        }
+
+    def get_parking_request_detail(self, obj):
+        if not obj.parking_request:
+            return None
+
+        return {
+            'id': obj.parking_request.id,
+            'parking_space': obj.parking_request.parking_space.code,
+            'start_time': obj.parking_request.start_time,
+            'end_time': obj.parking_request.end_time,
+            'status': obj.parking_request.status,
+        }
+
+    def get_guard_detail(self, obj):
+        if not obj.guard:
+            return None
+
+        return {
+            'id': obj.guard.id,
+            'full_name': obj.guard.full_name,
+            'phone_number': obj.guard.phone_number,
+        }
+
