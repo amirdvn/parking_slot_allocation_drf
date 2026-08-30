@@ -66,7 +66,10 @@ class EntryExitLogListCreateView(ListCreateAPIView):
         return EntryExitLog.objects.all()
 
     def perform_create(self, serializer):
-        serializer.save(guard=self.request.user)
+       log = serializer.save(guard=self.request.user)
+       parking_request = log.parking_request
+       parking_request.status = parking_request.RequestStatus.IN_USE
+       parking_request.save(update_fields=['status'])
 
 class VehicleExitView(UpdateAPIView):
 

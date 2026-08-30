@@ -192,8 +192,16 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'parking_request': 'این درخواست هنوز تایید نشده است'})
 
-        if exit_time and exit_time < timezone.now():
-            raise serializers.ValidationError({'exit_time': 'زمان خروج نمی‌تواند در گذشته باشد'})
+
+            if timezone.now() < parking_request.start_time:
+                raise serializers.ValidationError({'parking_request': 'هنوز زمان شروع این درخواست نرسیده است'})
+
+            if timezone.now() > parking_request.end_time:
+                raise serializers.ValidationError({'parking_request': 'زمان این درخواست به پایان رسیده است'})
+
+            active_entry = EntryExitLog.objects.filter(parking_request=parking_request, exit_time__isnull=True).exists()
+            if active_entry:
+                raise serializers.ValidationError({'parking_request': 'برای این درخواست قبلاً ورود ثبت شده است'})
 
         return attrs
 
