@@ -81,6 +81,7 @@ class ParkingRequest(models.Model):
     status = models.CharField(max_length=20, choices=RequestStatus.choices, default=RequestStatus.PENDING, verbose_name='وضعیت درخواست')
     description = models.TextField(blank=True, null=True, verbose_name='توضیحات')
     cancellation_reason = models.TextField(blank=True, null=True, verbose_name='دلیل لغو')
+    rejection_reason = models.TextField( blank=True, null=True, verbose_name='دلیل رد درخواست' )
     created_date = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت')
     updated_date = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
     #GUEST

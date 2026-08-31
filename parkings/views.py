@@ -1,6 +1,9 @@
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
+
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
-from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer
+
+from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer
+
 from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
@@ -128,3 +131,25 @@ class ParkingRequestCancelView(UpdateAPIView):
                 status=status.HTTP_202_ACCEPTED)
             
         return Response( serializer.errors, status=status.HTTP_400_BAD_REQUEST )
+
+class ParkingRequestReviewView(UpdateAPIView): 
+    queryset = ParkingRequest.objects.all() 
+    serializer_class = ParkingRequestReviewSerializer 
+    permission_classes = [IsManagerUserOrReadOnly] 
+    def update(self, request, *args, **kwargs): 
+        parking_request = self.get_object()
+        if parking_request.status not in [ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.NEEDS_REVIEW, ]:
+
+             return Response( { 
+                'detail': 'این درخواست در وضعیت فعلی قابل بررسی نیست.' },
+                status=status.HTTP_400_BAD_REQUEST )
+
+        serializer = self.get_serializer( data=request.data )
+        if serializer.is_valid():
+            parking_request.status = ( serializer.validated_data['status'] )
+            parking_request.save( update_fields=['status', 'updated_date'] ) 
+            return Response( {
+                'detail': 'وضعیت درخواست با موفقیت تغییر کرد',
+                'status': parking_request.status },
+                status=status.HTTP_200_OK )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

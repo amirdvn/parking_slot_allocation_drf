@@ -253,3 +253,23 @@ class ParkingRequestCancelSerializer(serializers.ModelSerializer):
         if not value.strip():
             raise serializers.ValidationError( 'دلیل لغو الزامی است' ) 
         return value
+
+
+class ParkingRequestReviewSerializer(serializers.ModelSerializer): 
+    class Meta: 
+        model = ParkingRequest 
+        fields = ['id', 'status', 'rejection_reason'] 
+        read_only_fields = ['id'] 
+
+    def validate(self, attrs): 
+        status_value = attrs.get('status') 
+        rejection_reason = attrs.get('rejection_reason') 
+
+        if status_value not in [ ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.REJECTED]: 
+            raise serializers.ValidationError({ 'status': 'وضعیت باید تایید یا رد باشد' }) 
+
+        if status_value == ParkingRequest.RequestStatus.REJECTED: 
+            if not rejection_reason or not rejection_reason.strip(): 
+                raise serializers.ValidationError({ 
+                    'rejection_reason': 'دلیل رد درخواست الزامی است'}) 
+        return attrs
