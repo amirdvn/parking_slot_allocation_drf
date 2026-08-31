@@ -284,7 +284,7 @@ class ParkingRequestManagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParkingRequest
 
-        fields = ['id', 'user_detail', 'vehicle_detail', 'parking_space_detail', 'start_time', 'end_time', 'status', 'description', 'rejection_reason', 'created_date']
+        fields = ['id', 'user_detail', 'vehicle_detail', 'parking_space_detail', 'start_time', 'end_time', 'status', 'description', 'rejection_reason', 'cancellation_reason',  'created_date']
 
         read_only_fields = fields
 

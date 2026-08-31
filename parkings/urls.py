@@ -22,6 +22,7 @@ urlpatterns = [
     path('requests/review/<int:pk>/', ParkingRequestReviewView.as_view(),name='parking_request_review'),
     path('requests/approved/', ApprovedParkingRequestListView.as_view(), name='approved_parking_requests'),
     path('requests/needs_review/', NeedsReviewParkingRequestListView.as_view(), name='needs_review_parking_requests'),
+    path('requests/canceled/list/', CanceledParkingRequestListView.as_view(), name='canceled-parking-requests'),
     #block_space
     path('blocks/list/', ParkingSpaceBlockListCreateView.as_view(), name='parking_space_block_list'),
     path('blocks/create/', ParkingSpaceBlockListCreateView.as_view(), name='parking_space_block_create'),
