@@ -2,7 +2,7 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 
-from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer
+from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer
 
 from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly
 from rest_framework.permissions import IsAuthenticated
@@ -156,7 +156,7 @@ class ParkingRequestReviewView(UpdateAPIView):
 
 class ApprovedParkingRequestListView(ListAPIView):
 
-    serializer_class = ParkingRequestSerializer
+    serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUserOrReadOnly]
 
     def get_queryset(self):
@@ -165,8 +165,9 @@ class ApprovedParkingRequestListView(ListAPIView):
 
 class NeedsReviewParkingRequestListView(ListAPIView):
 
-    serializer_class = ParkingRequestSerializer
+    serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUserOrReadOnly]
 
-    def get_queryset(self):
-        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.NEEDS_REVIEW)
+    def get_queryset(self): 
+        return ParkingRequest.objects.filter( 
+        status=ParkingRequest.RequestStatus.NEEDS_REVIEW ).select_related( 'user', 'vehicle', 'parking_space' )

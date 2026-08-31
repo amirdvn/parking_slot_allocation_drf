@@ -273,3 +273,51 @@ class ParkingRequestReviewSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({ 
                     'rejection_reason': 'دلیل رد درخواست الزامی است'}) 
         return attrs
+
+
+class ParkingRequestManagerSerializer(serializers.ModelSerializer):
+
+    user_detail = serializers.SerializerMethodField()
+    vehicle_detail = serializers.SerializerMethodField()
+    parking_space_detail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ParkingRequest
+
+        fields = ['id', 'user_detail', 'vehicle_detail', 'parking_space_detail', 'start_time', 'end_time', 'status', 'description', 'rejection_reason', 'created_date']
+
+        read_only_fields = fields
+
+    def get_user_detail(self, obj):
+        return {
+            'id': obj.user.id,
+            'full_name': obj.user.full_name,
+            'phone_number': obj.user.phone_number,
+        }
+
+    def get_vehicle_detail(self, obj):
+
+        if not obj.vehicle:
+            return None
+
+        return {
+            'id': obj.vehicle.id,
+            'plate_number': obj.vehicle.plate_number,
+            'vehicle_type': obj.vehicle.vehicle_type,
+            'sub_type': obj.vehicle.sub_type,
+            'color': obj.vehicle.color,
+        }
+
+    def get_parking_space_detail(self, obj):
+
+        if not obj.parking_space:
+            return None
+
+        return {
+            'id': obj.parking_space.id,
+            'code': obj.parking_space.code,
+            'space_type': obj.parking_space.space_type,
+            'zone': obj.parking_space.zone,
+            'floor': obj.parking_space.floor,
+        }
+
