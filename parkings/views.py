@@ -27,9 +27,13 @@ class ParkingRequestListCreateView(ListCreateAPIView):
      serializer_class = ParkingRequestSerializer
      permission_classes = [IsAuthenticated]
      def get_queryset(self):
-         return ParkingRequest.objects.filter(user=self.request.user)
+        return ParkingRequest.objects.filter(user=self.request.user)
      def perform_create(self, serializer):
-         serializer.save( user=self.request.user )
+        parking_request = serializer.save( user=self.request.user )
+
+        if parking_request.parking_space.space_type == (ParkingSpace.SpaceType.EMERGENCY):
+            parking_request.status = ( ParkingRequest.RequestStatus.NEEDS_REVIEW )
+            parking_request.save(update_fields=['status'])
 
 
 class ParkingRequestDetailView(RetrieveUpdateDestroyAPIView): 
