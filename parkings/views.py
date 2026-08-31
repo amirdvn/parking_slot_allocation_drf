@@ -1,4 +1,4 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView
 
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 
@@ -153,3 +153,20 @@ class ParkingRequestReviewView(UpdateAPIView):
                 'status': parking_request.status },
                 status=status.HTTP_200_OK )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ApprovedParkingRequestListView(ListAPIView):
+
+    serializer_class = ParkingRequestSerializer
+    permission_classes = [IsManagerUserOrReadOnly]
+
+    def get_queryset(self):
+        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
+
+
+class NeedsReviewParkingRequestListView(ListAPIView):
+
+    serializer_class = ParkingRequestSerializer
+    permission_classes = [IsManagerUserOrReadOnly]
+
+    def get_queryset(self):
+        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.NEEDS_REVIEW)
