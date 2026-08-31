@@ -17,6 +17,7 @@ urlpatterns = [
     path('requests/put/<int:pk>/', ParkingRequestDetailView.as_view(), name='parking_request_put'),
     path('requests/patch/<int:pk>/', ParkingRequestDetailView.as_view(), name='parking_request_patch'),
     path('requests/delete/<int:pk>/', ParkingRequestDetailView.as_view(),name='parking_request_delete'),
+    path('requests/cancel/<int:pk>/', ParkingRequestCancelView.as_view(), name='parkingـrequestـcancel'),
     #block_space
     path('blocks/list/', ParkingSpaceBlockListCreateView.as_view(), name='parking_space_block_list'),
     path('blocks/create/', ParkingSpaceBlockListCreateView.as_view(), name='parking_space_block_create'),

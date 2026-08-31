@@ -238,3 +238,18 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
             'phone_number': obj.guard.phone_number,
         }
 
+
+
+
+class ParkingRequestCancelSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ParkingRequest
+        fields = ['id', 'cancellation_reason']
+        read_only_fields = ['id']
+        extra_kwargs = { 'cancellation_reason': { 'required': True } }
+
+    def validate_cancellation_reason(self, value): 
+        if not value.strip():
+            raise serializers.ValidationError( 'دلیل لغو الزامی است' ) 
+        return value
