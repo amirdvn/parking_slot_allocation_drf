@@ -257,3 +257,46 @@ class GuardVehicleSearchView(ListAPIView):
         return ParkingRequest.objects.filter(
             vehicle__plate_number=plate_number,
             status__in=[ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE])
+
+
+class GuardDashboardView(APIView):
+    permission_classes = [IsGuardUserOrReadOnly]
+
+    def get(self, request):
+
+        now = timezone.now()
+
+        total_spaces = ParkingSpace.objects.filter(
+            is_active=True).count()
+
+        occupied_spaces = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.IN_USE).values('parking_space').distinct().count()
+
+        blocked_spaces = ParkingSpaceBlock.objects.filter(
+            start_time__lte=now, end_time__gt=now).values('parking_space').distinct().count()
+
+        available_spaces = total_spaces - (occupied_spaces + blocked_spaces)
+
+        in_use_vehicles = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.IN_USE).count()
+
+        approved_requests = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.APPROVED).count()
+
+        return Response({
+
+            'parking_spaces': {
+                'total': total_spaces,
+                'occupied': occupied_spaces,
+                'blocked': blocked_spaces,
+                'available': available_spaces,
+            },
+
+            'vehicles': {
+                'in_use': in_use_vehicles,
+            },
+
+            'requests': {
+                'approved': approved_requests,
+            }
+        })

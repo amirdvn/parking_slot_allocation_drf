@@ -41,4 +41,5 @@ urlpatterns = [
     path('requests/approved/guard/',ApprovedParkingRequestGuardListView.as_view(), name='requests_approved_guard'),
     path('space/in_use/list/guard/', InUseParkingListView.as_view(),name='active_parking_space_guard'),
     path('guard/vehicle/search/', GuardVehicleSearchView.as_view(), name='guard_vehicle_search'),
+    path('guard/dashboard/', GuardDashboardView.as_view(), name='guard_dashboard' ),
 ]
