@@ -21,6 +21,9 @@ urlpatterns = [
     path('requests/delete/<int:pk>/', ParkingRequestDetailView.as_view(),name='parking_request_delete'),
     path('requests/cancel/<int:pk>/', ParkingRequestCancelView.as_view(), name='parkingـrequestـcancel'),
     path('user/dashboard/', UserDashboardView.as_view(), name='user_dashboard'),
+    #guest
+    path('requests/guest/create/', GuestParkingRequestListCreateView.as_view(), name='guest_parking_request_create'),
+    path('requests/guest/list/', GuestParkingRequestListCreateView.as_view(), name='guest_parking_request_list'),
 
     #manager
     path('requests/review/<int:pk>/', ParkingRequestReviewView.as_view(),name='parking_request_review'),
@@ -47,4 +50,6 @@ urlpatterns = [
     path('space/in_use/list/guard/', InUseParkingListView.as_view(),name='active_parking_space_guard'),
     path('guard/vehicle/search/', GuardVehicleSearchView.as_view(), name='guard_vehicle_search'),
     path('guard/dashboard/', GuardDashboardView.as_view(), name='guard_dashboard' ),
+
+
 ]

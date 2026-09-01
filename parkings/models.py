@@ -72,7 +72,7 @@ class ParkingRequest(models.Model):
         NEEDS_REVIEW = 'NEEDS_REVIEW', 'نیازمند بررسی دستی'
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name='کاربر')
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.PROTECT, verbose_name='وسیله نقلیه')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.PROTECT, null=True, blank=True, verbose_name='وسیله نقلیه')
     parking_space = models.ForeignKey('ParkingSpace', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='جایگاه ')
     
     start_time = models.DateTimeField(verbose_name='ساعت شروع')

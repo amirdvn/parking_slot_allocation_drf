@@ -1,10 +1,10 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView, CreateAPIView
 from rest_framework.views import APIView
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 
-from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer
+from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer, GuestParkingRequestSerializer, GuestParkingRequestListSerializer
 
-from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly, IsManagerOrGuard
+from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly, IsManagerOrGuard, IsManagerForGetOrAuthenticatedForPost
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.utils import timezone
@@ -345,3 +345,18 @@ class GuardDashboardView(APIView):
                 'approved': approved_requests,
             }
         })
+
+
+#guest
+class GuestParkingRequestListCreateView(ListCreateAPIView):
+    permission_classes = [IsManagerForGetOrAuthenticatedForPost]
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+             return GuestParkingRequestSerializer
+        return GuestParkingRequestListSerializer
+
+    def get_queryset(self):
+        return ParkingRequest.objects.filter( is_guest=True )
+
+    def perform_create(self, serializer):
+        serializer.save( user=self.request.user, vehicle=None, is_guest=True )

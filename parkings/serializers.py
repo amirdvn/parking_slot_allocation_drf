@@ -226,7 +226,7 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'parking_space': 'این جایگاه در این بازه زمانی قبلاً مسدود شده است'})
 
         if parking_space and start_time and end_time:
-            overlapping_requests = ParkingRequest.objects.filter(parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time, status__in=[ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE])
+            overlapping_requests = ParkingRequest.objects.filter(parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time, status__in=[ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE, ParkingRequest.RequestStatus.NEEDS_REVIEW])
             if self.instance:
                 overlapping_requests = overlapping_requests.exclude(id=self.instance.id)
             if overlapping_requests.exists():
@@ -324,4 +324,95 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
             'phone_number': obj.guard.phone_number,
         }
 
+#guest
 
+class GuestParkingRequestSerializer(serializers.ModelSerializer):
+
+    class Meta: 
+        model = ParkingRequest 
+
+        fields = ['id', 'parking_space', 'start_time', 'end_time', 'status', 'description', 'cancellation_reason', 'rejection_reason', 'guest_name', 'guest_email', 'guest_phone', 'guest_plate_number', 'reason', 'created_date', 'updated_date'] 
+
+        read_only_fields = [ 'id', 'status', 'cancellation_reason', 'rejection_reason', 'created_date', 'updated_date', ]
+
+    def validate(self, attrs):
+        start_time = attrs.get('start_time')
+        end_time = attrs.get('end_time')
+        parking_space = attrs.get('parking_space')
+        guest_name = attrs.get('guest_name')
+        guest_phone = attrs.get('guest_phone')
+        guest_email = attrs.get('guest_email')
+        guest_plate_number = attrs.get('guest_plate_number')
+        reason = attrs.get('reason')
+
+
+        if not guest_name or not guest_name.strip():
+            raise serializers.ValidationError({ 'guest_name': 'نام مهمان الزامی است' })
+
+        if not guest_phone or not guest_phone.strip():
+            raise serializers.ValidationError({ 'guest_phone': 'شماره تماس مهمان الزامی است' })
+
+        if not guest_email or not guest_email.strip():
+            raise serializers.ValidationError({ 'guest_email': 'ایمیل مهمان الزامی است' })
+
+        if not guest_plate_number or not guest_plate_number.strip():
+            raise serializers.ValidationError({ 'guest_plate_number': 'پلاک مهمان الزامی است' })
+
+        if not reason or not reason.strip():
+            raise serializers.ValidationError({ 'reason': 'دلیل مراجعه مهمان الزامی است' })
+
+        if start_time and start_time < timezone.now():
+            raise serializers.ValidationError({ 'start_time': 'زمان شروع نمی‌تواند در گذشته باشد' })
+
+        if start_time and end_time and start_time >= end_time:
+            raise serializers.ValidationError({ 'end_time': 'زمان پایان باید بعد از زمان شروع باشد' })
+
+        if parking_space and start_time and end_time:
+
+            is_blocked = ParkingSpaceBlock.objects.filter( parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time)
+
+            if is_blocked.exists(): 
+                raise serializers.ValidationError({ 
+                    'parking_space': 'این جایگاه در بازه زمانی انتخابی مسدود است' })
+
+        if parking_space and start_time and end_time:
+
+            overlapping_requests = ParkingRequest.objects.filter( parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time, status__in=[ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE, ParkingRequest.RequestStatus.NEEDS_REVIEW, ] )
+
+            if overlapping_requests.exists(): 
+                raise serializers.ValidationError({ 
+                    'parking_space': 'این جایگاه در بازه زمانی انتخابی قبلاً درخواست یا رزرو شده است.' })
+
+        return attrs
+
+
+class GuestParkingRequestListSerializer(serializers.ModelSerializer):
+
+    user_detail = serializers.SerializerMethodField()
+    parking_space_detail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ParkingRequest
+
+        fields = ['id', 'parking_space', 'parking_space_detail', 'user_detail', 'start_time', 'end_time', 'status', 'description', 'cancellation_reason', 'rejection_reason', 'guest_name', 'guest_email', 'guest_phone', 'guest_plate_number', 'reason', 'created_date', 'updated_date']
+
+    def get_user_detail(self, obj):
+        if not obj.user:
+            return None
+    
+        return {
+                'id': obj.user.id,
+                'full_name': obj.user.full_name,
+                'phone_number': obj.user.phone_number,
+            }
+    def get_parking_space_detail(self, obj):
+        if not obj.parking_space:
+            return None
+
+        return {
+            'id': obj.parking_space.id,
+            'code': obj.parking_space.code,
+            'floor':obj.parking_space.floor,
+            'zone':obj.parking_space.zone,
+            'status': obj.status,
+        }
