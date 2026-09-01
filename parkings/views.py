@@ -193,7 +193,6 @@ class ApprovedParkingRequestGuardListView(ListAPIView):
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
 
 
-
 class InUseParkingListView(ListAPIView):
 
     serializer_class = ParkingRequestManagerSerializer
@@ -201,3 +200,20 @@ class InUseParkingListView(ListAPIView):
 
     def get_queryset(self):
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.IN_USE)
+
+
+class GuardVehicleSearchView(ListAPIView):
+
+    serializer_class = ParkingRequestManagerSerializer
+    permission_classes = [IsGuardUserOrReadOnly]
+
+    def get_queryset(self):
+
+        plate_number = self.request.query_params.get('plate_number')
+
+        if not plate_number:
+            return ParkingRequest.objects.none()
+
+        return ParkingRequest.objects.filter(
+            vehicle__plate_number=plate_number,
+            status__in=[ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE])
