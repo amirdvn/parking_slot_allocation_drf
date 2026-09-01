@@ -10,7 +10,7 @@ from rest_framework import status
 from django.utils import timezone
 from rest_framework.response import Response
 from django.utils import timezone
-
+from vehicles.models import Vehicle
 
 #Manager
 class ParkingSpaceListCreateView(ListCreateAPIView):
@@ -185,6 +185,51 @@ class ParkingRequestCancelView(UpdateAPIView):
                 status=status.HTTP_202_ACCEPTED)
             
         return Response( serializer.errors, status=status.HTTP_400_BAD_REQUEST )
+
+
+
+class UserDashboardView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        user = request.user
+
+        total_vehicles = Vehicle.objects.filter(user=user).count()
+
+        active_vehicles = Vehicle.objects.filter(user=user, is_active=True).count()
+
+        pending_requests = ParkingRequest.objects.filter(
+            user=user,
+            status=ParkingRequest.RequestStatus.PENDING).count()
+
+        needs_review_requests = ParkingRequest.objects.filter(
+            user=user,
+            status=ParkingRequest.RequestStatus.NEEDS_REVIEW).count()
+
+        approved_requests = ParkingRequest.objects.filter(
+            user=user,
+            status=ParkingRequest.RequestStatus.APPROVED).count()
+
+        rejected_requests = ParkingRequest.objects.filter(
+            user=user,
+            status=ParkingRequest.RequestStatus.REJECTED).count()
+
+        return Response({
+
+            'vehicles': {
+                'total': total_vehicles,
+                'active': active_vehicles,
+            },
+
+            'requests': {
+                'pending': pending_requests,
+                'needs_review': needs_review_requests,
+                'approved': approved_requests,
+                'rejected': rejected_requests,
+            }
+        })
 
 
 #Guard

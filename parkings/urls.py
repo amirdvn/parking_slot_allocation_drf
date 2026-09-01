@@ -10,7 +10,9 @@ urlpatterns = [
     path('detail/<uuid:pk>/', ParkingSpaceDetailView.as_view(), name='parking_space_detail'),
     path('update/<uuid:pk>/', ParkingSpaceDetailView.as_view(), name='parking_space_update'),
     path('delete/<uuid:pk>/', ParkingSpaceDetailView.as_view(), name='parking_space_delete'),
+
     #user_request
+    #user
     path('requests/list/', ParkingRequestListCreateView.as_view(), name='parking_request_list'),
     path('requests/create/', ParkingRequestListCreateView.as_view(), name='parking_request_create'),
     path('requests/detail/<int:pk>/', ParkingRequestDetailView.as_view(), name='parking_request_detail'),
@@ -18,6 +20,8 @@ urlpatterns = [
     path('requests/patch/<int:pk>/', ParkingRequestDetailView.as_view(), name='parking_request_patch'),
     path('requests/delete/<int:pk>/', ParkingRequestDetailView.as_view(),name='parking_request_delete'),
     path('requests/cancel/<int:pk>/', ParkingRequestCancelView.as_view(), name='parkingـrequestـcancel'),
+    path('user/dashboard/', UserDashboardView.as_view(), name='user_dashboard'),
+
     #manager
     path('requests/review/<int:pk>/', ParkingRequestReviewView.as_view(),name='parking_request_review'),
     path('requests/approved/', ApprovedParkingRequestListView.as_view(), name='approved_parking_requests'),
@@ -33,7 +37,8 @@ urlpatterns = [
     path('blocks/put/<int:pk>/', ParkingSpaceBlockDetailView.as_view(), name='parking_space_block_put'),
     path('blocks/patch/<int:pk>/', ParkingSpaceBlockDetailView.as_view(), name='parking_space_block_patch'),
     path('blocks/delete/<int:pk>/', ParkingSpaceBlockDetailView.as_view(), name='parking_space_block_delete'),
-    #entry_exit_log
+
+   #entry_exit_log
     #guard
     path('entry_exit/list/', EntryExitLogListCreateView.as_view(), name='entry_exit_list'),
     path('entry_exit/create/', EntryExitLogListCreateView.as_view(), name='entry_exit_create'),
