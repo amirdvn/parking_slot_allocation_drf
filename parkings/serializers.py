@@ -34,6 +34,8 @@ def get_allowed_parking_spaces(vehicle=None, user=None, is_guest=False):
             return query_set.filter(space_type__in=[ParkingSpace.SpaceType.NORMAL, ParkingSpace.SpaceType.EMERGENCY])
     return ParkingSpace.objects.none()
 
+#Manager
+
 class ParkingSpaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParkingSpace
@@ -41,6 +43,108 @@ class ParkingSpaceSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'code', 'requires_permission', 'is_active']
 
 
+class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ParkingSpaceBlock
+        fields = ['id', 'parking_space', 'start_time', 'end_time', 'reason', 'description', 'created_by', 'created_date']
+
+        read_only_fields = ['id', 'created_by', 'created_date']
+
+    def validate(self, attrs):
+
+        start_time = attrs.get('start_time', self.instance.start_time if self.instance else None)
+        end_time = attrs.get('end_time', self.instance.end_time if self.instance else None)
+        parking_space = attrs.get('parking_space', self.instance.parking_space if self.instance else None)
+
+
+        if start_time < timezone.now():
+            raise serializers.ValidationError({'start_time':'زمان شروع نمی‌تواند در گذشته باشد'})
+        
+        if start_time >= end_time:
+            raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
+
+
+        overlapping_blocks = ParkingSpaceBlock.objects.filter(
+            parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time)
+
+    
+        if self.instance:
+            overlapping_blocks = overlapping_blocks.exclude(id=self.instance.id)
+
+        if overlapping_blocks.exists():
+            raise serializers.ValidationError({'parking_space':'این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است'})
+
+        return attrs
+
+
+class ParkingRequestReviewSerializer(serializers.ModelSerializer): 
+    class Meta: 
+        model = ParkingRequest 
+        fields = ['id', 'status', 'rejection_reason'] 
+        read_only_fields = ['id'] 
+
+    def validate(self, attrs): 
+        status_value = attrs.get('status') 
+        rejection_reason = attrs.get('rejection_reason') 
+
+        if status_value not in [ ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.REJECTED]: 
+            raise serializers.ValidationError({ 'status': 'وضعیت باید تایید یا رد باشد' }) 
+
+        if status_value == ParkingRequest.RequestStatus.REJECTED: 
+            if not rejection_reason or not rejection_reason.strip(): 
+                raise serializers.ValidationError({ 
+                    'rejection_reason': 'دلیل رد درخواست الزامی است'}) 
+        return attrs
+
+
+class ParkingRequestManagerSerializer(serializers.ModelSerializer):
+
+    user_detail = serializers.SerializerMethodField()
+    vehicle_detail = serializers.SerializerMethodField()
+    parking_space_detail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ParkingRequest
+
+        fields = ['id', 'user_detail', 'vehicle_detail', 'parking_space_detail', 'start_time', 'end_time', 'status', 'description', 'rejection_reason', 'cancellation_reason',  'created_date']
+
+        read_only_fields = fields
+
+    def get_user_detail(self, obj):
+        return {
+            'id': obj.user.id,
+            'full_name': obj.user.full_name,
+            'phone_number': obj.user.phone_number,
+        }
+
+    def get_vehicle_detail(self, obj):
+
+        if not obj.vehicle:
+            return None
+
+        return {
+            'id': obj.vehicle.id,
+            'plate_number': obj.vehicle.plate_number,
+            'vehicle_type': obj.vehicle.vehicle_type,
+            'sub_type': obj.vehicle.sub_type,
+            'color': obj.vehicle.color,
+        }
+
+    def get_parking_space_detail(self, obj):
+
+        if not obj.parking_space:
+            return None
+
+        return {
+            'id': obj.parking_space.id,
+            'code': obj.parking_space.code,
+            'space_type': obj.parking_space.space_type,
+            'zone': obj.parking_space.zone,
+            'floor': obj.parking_space.floor,
+        }
+
+
+#User
 class ParkingRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParkingRequest
@@ -131,39 +235,21 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
         return validated_data
 
 
-class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
+class ParkingRequestCancelSerializer(serializers.ModelSerializer):
+
     class Meta:
-        model = ParkingSpaceBlock
-        fields = ['id', 'parking_space', 'start_time', 'end_time', 'reason', 'description', 'created_by', 'created_date']
+        model = ParkingRequest
+        fields = ['id', 'cancellation_reason']
+        read_only_fields = ['id']
+        extra_kwargs = { 'cancellation_reason': { 'required': True } }
 
-        read_only_fields = ['id', 'created_by', 'created_date']
-
-    def validate(self, attrs):
-
-        start_time = attrs.get('start_time', self.instance.start_time if self.instance else None)
-        end_time = attrs.get('end_time', self.instance.end_time if self.instance else None)
-        parking_space = attrs.get('parking_space', self.instance.parking_space if self.instance else None)
-
-
-        if start_time < timezone.now():
-            raise serializers.ValidationError({'start_time':'زمان شروع نمی‌تواند در گذشته باشد'})
-        
-        if start_time >= end_time:
-            raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
+    def validate_cancellation_reason(self, value): 
+        if not value.strip():
+            raise serializers.ValidationError( 'دلیل لغو الزامی است' ) 
+        return value
 
 
-        overlapping_blocks = ParkingSpaceBlock.objects.filter(
-            parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time)
-
-    
-        if self.instance:
-            overlapping_blocks = overlapping_blocks.exclude(id=self.instance.id)
-
-        if overlapping_blocks.exists():
-            raise serializers.ValidationError({'parking_space':'این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است'})
-
-        return attrs
-
+#Guard
 class EntryExitLogSerializer(serializers.ModelSerializer):
 
     vehicle_detail = serializers.SerializerMethodField()
@@ -238,86 +324,4 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
             'phone_number': obj.guard.phone_number,
         }
 
-
-
-
-class ParkingRequestCancelSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ParkingRequest
-        fields = ['id', 'cancellation_reason']
-        read_only_fields = ['id']
-        extra_kwargs = { 'cancellation_reason': { 'required': True } }
-
-    def validate_cancellation_reason(self, value): 
-        if not value.strip():
-            raise serializers.ValidationError( 'دلیل لغو الزامی است' ) 
-        return value
-
-
-class ParkingRequestReviewSerializer(serializers.ModelSerializer): 
-    class Meta: 
-        model = ParkingRequest 
-        fields = ['id', 'status', 'rejection_reason'] 
-        read_only_fields = ['id'] 
-
-    def validate(self, attrs): 
-        status_value = attrs.get('status') 
-        rejection_reason = attrs.get('rejection_reason') 
-
-        if status_value not in [ ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.REJECTED]: 
-            raise serializers.ValidationError({ 'status': 'وضعیت باید تایید یا رد باشد' }) 
-
-        if status_value == ParkingRequest.RequestStatus.REJECTED: 
-            if not rejection_reason or not rejection_reason.strip(): 
-                raise serializers.ValidationError({ 
-                    'rejection_reason': 'دلیل رد درخواست الزامی است'}) 
-        return attrs
-
-
-class ParkingRequestManagerSerializer(serializers.ModelSerializer):
-
-    user_detail = serializers.SerializerMethodField()
-    vehicle_detail = serializers.SerializerMethodField()
-    parking_space_detail = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ParkingRequest
-
-        fields = ['id', 'user_detail', 'vehicle_detail', 'parking_space_detail', 'start_time', 'end_time', 'status', 'description', 'rejection_reason', 'cancellation_reason',  'created_date']
-
-        read_only_fields = fields
-
-    def get_user_detail(self, obj):
-        return {
-            'id': obj.user.id,
-            'full_name': obj.user.full_name,
-            'phone_number': obj.user.phone_number,
-        }
-
-    def get_vehicle_detail(self, obj):
-
-        if not obj.vehicle:
-            return None
-
-        return {
-            'id': obj.vehicle.id,
-            'plate_number': obj.vehicle.plate_number,
-            'vehicle_type': obj.vehicle.vehicle_type,
-            'sub_type': obj.vehicle.sub_type,
-            'color': obj.vehicle.color,
-        }
-
-    def get_parking_space_detail(self, obj):
-
-        if not obj.parking_space:
-            return None
-
-        return {
-            'id': obj.parking_space.id,
-            'code': obj.parking_space.code,
-            'space_type': obj.parking_space.space_type,
-            'zone': obj.parking_space.zone,
-            'floor': obj.parking_space.floor,
-        }
 

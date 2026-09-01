@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 
 
-
+#Manager
 class ParkingSpaceListCreateView(ListCreateAPIView):
     queryset = ParkingSpace.objects.all()
     serializer_class = ParkingSpaceSerializer
@@ -23,27 +23,6 @@ class ParkingSpaceDetailView(RetrieveUpdateDestroyAPIView):
     queryset = ParkingSpace.objects.all()
     serializer_class = ParkingSpaceSerializer
     permission_classes = [IsManagerUserOrReadOnly]
-
-
-
-class ParkingRequestListCreateView(ListCreateAPIView):
-     serializer_class = ParkingRequestSerializer
-     permission_classes = [IsAuthenticated]
-     def get_queryset(self):
-        return ParkingRequest.objects.filter(user=self.request.user)
-     def perform_create(self, serializer):
-        parking_request = serializer.save( user=self.request.user )
-
-        if parking_request.parking_space.space_type == (ParkingSpace.SpaceType.EMERGENCY):
-            parking_request.status = ( ParkingRequest.RequestStatus.NEEDS_REVIEW )
-            parking_request.save(update_fields=['status'])
-
-
-class ParkingRequestDetailView(RetrieveUpdateDestroyAPIView): 
-    serializer_class = ParkingRequestSerializer
-    permission_classes = [IsAuthenticated]
-    def get_queryset(self):
-        return ParkingRequest.objects.filter(user=self.request.user)
 
 
 class ParkingSpaceBlockListCreateView(ListCreateAPIView):
@@ -64,7 +43,111 @@ class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
         return ParkingSpaceBlock.objects.all()
 
 
+class ParkingRequestReviewView(UpdateAPIView): 
+    queryset = ParkingRequest.objects.all() 
+    serializer_class = ParkingRequestReviewSerializer 
+    permission_classes = [IsManagerUserOrReadOnly] 
+    def update(self, request, *args, **kwargs): 
+        parking_request = self.get_object()
+        if parking_request.status not in [ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.NEEDS_REVIEW, ]:
 
+             return Response( { 
+                'detail': 'این درخواست در وضعیت فعلی قابل بررسی نیست' },
+                status=status.HTTP_400_BAD_REQUEST )
+
+        serializer = self.get_serializer( data=request.data )
+        if serializer.is_valid():
+            parking_request.status = ( serializer.validated_data['status'] )
+            if parking_request.status == ParkingRequest.RequestStatus.REJECTED:
+                parking_request.rejection_reason = ( serializer.validated_data['rejection_reason'] )
+
+            parking_request.save( update_fields=['status', 'updated_date', 'rejection_reason'] ) 
+
+            return Response( {
+                'detail': 'وضعیت درخواست با موفقیت تغییر کرد',
+                'status': parking_request.status },
+                status=status.HTTP_200_OK )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class ApprovedParkingRequestListView(ListAPIView):
+    serializer_class = ParkingRequestManagerSerializer
+    permission_classes = [IsManagerUserOrReadOnly]
+
+    def get_queryset(self):
+        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
+
+
+class NeedsReviewParkingRequestListView(ListAPIView):
+    serializer_class = ParkingRequestManagerSerializer
+    permission_classes = [IsManagerUserOrReadOnly]
+
+    def get_queryset(self): 
+        return ParkingRequest.objects.filter( 
+        status=ParkingRequest.RequestStatus.NEEDS_REVIEW ).select_related( 'user', 'vehicle', 'parking_space' )
+
+
+class CanceledParkingRequestListView(ListAPIView):
+    serializer_class = ParkingRequestManagerSerializer
+    permission_classes = [IsManagerUserOrReadOnly]
+
+    def get_queryset(self):
+        return ParkingRequest.objects.filter(status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED]).select_related('user', 'vehicle', 'parking_space')
+
+
+#User
+class ParkingRequestListCreateView(ListCreateAPIView):
+     serializer_class = ParkingRequestSerializer
+     permission_classes = [IsAuthenticated]
+     def get_queryset(self):
+        return ParkingRequest.objects.filter(user=self.request.user)
+     def perform_create(self, serializer):
+        parking_request = serializer.save( user=self.request.user )
+
+        if parking_request.parking_space.space_type == (ParkingSpace.SpaceType.EMERGENCY):
+            parking_request.status = ( ParkingRequest.RequestStatus.NEEDS_REVIEW )
+            parking_request.save(update_fields=['status'])
+
+
+class ParkingRequestDetailView(RetrieveUpdateDestroyAPIView): 
+    serializer_class = ParkingRequestSerializer
+    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        return ParkingRequest.objects.filter(user=self.request.user)
+
+
+class ParkingRequestCancelView(UpdateAPIView):
+    queryset = ParkingRequest.objects.all()
+    serializer_class = ParkingRequestCancelSerializer
+    permission_classes = [IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        parking_request = self.get_object()
+
+        if parking_request.user != request.user:
+            return Response(
+                {'detail': 'شما اجازه لغو این درخواست را ندارید'},
+                status=status.HTTP_403_FORBIDDEN)
+        if parking_request.status not in [ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED]:
+            return Response(
+                {'detail': 'این درخواست در وضعیت فعلی قابل لغو نیست'},
+                status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            parking_request.status = ParkingRequest.RequestStatus.CANCELED
+            parking_request.cancellation_reason = serializer.validated_data['cancellation_reason']
+
+            parking_request.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
+            return Response(
+                {'detail':'در خواست با موفقیت لغو شد'},
+                status=status.HTTP_202_ACCEPTED)
+            
+        return Response( serializer.errors, status=status.HTTP_400_BAD_REQUEST )
+
+
+#Guard
 class EntryExitLogListCreateView(ListCreateAPIView):
     permission_classes = [IsGuardUserOrReadOnly]
     serializer_class = EntryExitLogSerializer
@@ -102,85 +185,3 @@ class VehicleExitView(UpdateAPIView):
         return Response(EntryExitLogSerializer(log).data, status=status.HTTP_200_OK)
 
 
-class ParkingRequestCancelView(UpdateAPIView):
-
-    queryset = ParkingRequest.objects.all()
-    serializer_class = ParkingRequestCancelSerializer
-    permission_classes = [IsAuthenticated]
-
-    def update(self, request, *args, **kwargs):
-        parking_request = self.get_object()
-
-        if parking_request.user != request.user:
-            return Response(
-                {'detail': 'شما اجازه لغو این درخواست را ندارید'},
-                status=status.HTTP_403_FORBIDDEN)
-        if parking_request.status not in [ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED]:
-            return Response(
-                {'detail': 'این درخواست در وضعیت فعلی قابل لغو نیست'},
-                status=status.HTTP_400_BAD_REQUEST)
-        
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            parking_request.status = ParkingRequest.RequestStatus.CANCELED
-            parking_request.cancellation_reason = serializer.validated_data['cancellation_reason']
-
-            parking_request.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
-            return Response(
-                {'detail':'در خواست با موفقیت لغو شد'},
-                status=status.HTTP_202_ACCEPTED)
-            
-        return Response( serializer.errors, status=status.HTTP_400_BAD_REQUEST )
-
-class ParkingRequestReviewView(UpdateAPIView): 
-    queryset = ParkingRequest.objects.all() 
-    serializer_class = ParkingRequestReviewSerializer 
-    permission_classes = [IsManagerUserOrReadOnly] 
-    def update(self, request, *args, **kwargs): 
-        parking_request = self.get_object()
-        if parking_request.status not in [ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.NEEDS_REVIEW, ]:
-
-             return Response( { 
-                'detail': 'این درخواست در وضعیت فعلی قابل بررسی نیست' },
-                status=status.HTTP_400_BAD_REQUEST )
-
-        serializer = self.get_serializer( data=request.data )
-        if serializer.is_valid():
-            parking_request.status = ( serializer.validated_data['status'] )
-            if parking_request.status == ParkingRequest.RequestStatus.REJECTED:
-                parking_request.rejection_reason = ( serializer.validated_data['rejection_reason'] )
-
-            parking_request.save( update_fields=['status', 'updated_date', 'rejection_reason'] ) 
-
-            return Response( {
-                'detail': 'وضعیت درخواست با موفقیت تغییر کرد',
-                'status': parking_request.status },
-                status=status.HTTP_200_OK )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class ApprovedParkingRequestListView(ListAPIView):
-
-    serializer_class = ParkingRequestManagerSerializer
-    permission_classes = [IsManagerUserOrReadOnly]
-
-    def get_queryset(self):
-        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
-
-
-class NeedsReviewParkingRequestListView(ListAPIView):
-
-    serializer_class = ParkingRequestManagerSerializer
-    permission_classes = [IsManagerUserOrReadOnly]
-
-    def get_queryset(self): 
-        return ParkingRequest.objects.filter( 
-        status=ParkingRequest.RequestStatus.NEEDS_REVIEW ).select_related( 'user', 'vehicle', 'parking_space' )
-
-
-class CanceledParkingRequestListView(ListAPIView):
-
-    serializer_class = ParkingRequestManagerSerializer
-    permission_classes = [IsManagerUserOrReadOnly]
-
-    def get_queryset(self):
-        return ParkingRequest.objects.filter(status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED]).select_related('user', 'vehicle', 'parking_space')
