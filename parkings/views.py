@@ -4,7 +4,7 @@ from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLo
 
 from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer
 
-from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly
+from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly, IsManagerOrGuard
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.utils import timezone
@@ -191,3 +191,13 @@ class ApprovedParkingRequestGuardListView(ListAPIView):
 
     def get_queryset(self):
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
+
+
+
+class InUseParkingListView(ListAPIView):
+
+    serializer_class = ParkingRequestManagerSerializer
+    permission_classes = [IsManagerOrGuard]
+
+    def get_queryset(self):
+        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.IN_USE)

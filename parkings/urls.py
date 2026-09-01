@@ -22,7 +22,8 @@ urlpatterns = [
     path('requests/review/<int:pk>/', ParkingRequestReviewView.as_view(),name='parking_request_review'),
     path('requests/approved/', ApprovedParkingRequestListView.as_view(), name='approved_parking_requests'),
     path('requests/needs_review/', NeedsReviewParkingRequestListView.as_view(), name='needs_review_parking_requests'),
-    path('requests/canceled/list/', CanceledParkingRequestListView.as_view(), name='canceled-parking-requests'),
+    path('requests/canceled/list/', CanceledParkingRequestListView.as_view(), name='canceled_parking_requests'),
+    path('space/in_use/list', InUseParkingListView.as_view(),name='active_parking_space'),
     #block_space
     path('blocks/list/', ParkingSpaceBlockListCreateView.as_view(), name='parking_space_block_list'),
     path('blocks/create/', ParkingSpaceBlockListCreateView.as_view(), name='parking_space_block_create'),
@@ -36,4 +37,5 @@ urlpatterns = [
     path('entry_exit/create/', EntryExitLogListCreateView.as_view(), name='entry_exit_create'),
     path('entry_exit/exit/<int:pk>/', VehicleExitView.as_view(), name='vehicle_exit'),
     path('requests/approved/guard/',ApprovedParkingRequestGuardListView.as_view(), name='requests_approved_guard'),
+    path('space/in_use/list/guard/', InUseParkingListView.as_view(),name='active_parking_space_guard'),
 ]
