@@ -185,3 +185,9 @@ class VehicleExitView(UpdateAPIView):
         return Response(EntryExitLogSerializer(log).data, status=status.HTTP_200_OK)
 
 
+class ApprovedParkingRequestGuardListView(ListAPIView):
+    serializer_class = ParkingRequestManagerSerializer
+    permission_classes = [IsGuardUserOrReadOnly]
+
+    def get_queryset(self):
+        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
