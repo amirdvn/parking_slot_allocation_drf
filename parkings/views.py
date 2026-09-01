@@ -1,5 +1,5 @@
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView
-
+from rest_framework.views import APIView
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 
 from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer
@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.utils import timezone
 from rest_framework.response import Response
-
+from django.utils import timezone
 
 
 #Manager
@@ -95,6 +95,46 @@ class CanceledParkingRequestListView(ListAPIView):
     def get_queryset(self):
         return ParkingRequest.objects.filter(status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED]).select_related('user', 'vehicle', 'parking_space')
 
+
+class ManagerDashboardView(APIView):
+
+    permission_classes = [IsManagerUserOrReadOnly]
+
+    def get(self, request):
+
+        now = timezone.now()
+
+        total_spaces = ParkingSpace.objects.filter(
+            is_active=True).count()
+
+        occupied_spaces = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.IN_USE).values('parking_space').distinct().count()
+
+        blocked_spaces = ParkingSpaceBlock.objects.filter( start_time__lte=now, end_time__gt=now).values('parking_space').distinct().count()
+
+        available_spaces = total_spaces - (occupied_spaces + blocked_spaces)
+
+        pending_requests = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.PENDING).count()
+
+        needs_review_requests = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.NEEDS_REVIEW).count()
+
+
+        return Response({
+
+            'parking_spaces': {
+                'total': total_spaces,
+                'occupied': occupied_spaces,
+                'blocked': blocked_spaces,
+                'available': available_spaces,
+            },
+
+            'requests': {
+                'pending': pending_requests,
+                'needs_review': needs_review_requests,
+            }
+        })
 
 #User
 class ParkingRequestListCreateView(ListCreateAPIView):
