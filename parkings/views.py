@@ -11,6 +11,8 @@ from django.utils import timezone
 from rest_framework.response import Response
 from django.utils import timezone
 from vehicles.models import Vehicle
+from django.db.models import Count, Q
+
 
 #Manager
 class ParkingSpaceListCreateView(ListCreateAPIView):
@@ -120,6 +122,12 @@ class ManagerDashboardView(APIView):
         needs_review_requests = ParkingRequest.objects.filter(
             status=ParkingRequest.RequestStatus.NEEDS_REVIEW).count()
 
+        top_parking_spaces = (ParkingSpace.objects.annotate(usage_count=Count(
+            'parking_requests',
+            filter=Q(
+                parking_requests__status__in=[
+                    ParkingRequest.RequestStatus.IN_USE, ParkingRequest.RequestStatus.COMPLETED]))).order_by('-usage_count')[:5])
+        
 
         return Response({
 
@@ -133,7 +141,17 @@ class ManagerDashboardView(APIView):
             'requests': {
                 'pending': pending_requests,
                 'needs_review': needs_review_requests,
-            }
+            },
+
+            'top_parking_spaces': [
+                    {
+                            'id': space.id,
+                            'code': space.code,
+                            'usage_count': space.usage_count,
+                    }
+                        for space in top_parking_spaces
+            ]
+
         })
 
 #User
@@ -360,3 +378,4 @@ class GuestParkingRequestListCreateView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save( user=self.request.user, vehicle=None, is_guest=True )
+
