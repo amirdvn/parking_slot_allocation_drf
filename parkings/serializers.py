@@ -4,6 +4,10 @@ from vehicles.models import Vehicle
 from django.utils import timezone
 from profiles.serializers import ProfileSerializer
 from vehicles.serializers import VehicleSerializer
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
 
 def get_allowed_parking_spaces(vehicle=None, user=None, is_guest=False):
 
@@ -142,6 +146,19 @@ class ParkingRequestManagerSerializer(serializers.ModelSerializer):
             'zone': obj.parking_space.zone,
             'floor': obj.parking_space.floor,
         }
+
+
+class ParkingManagerUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+
+        fields = ['id', 'phone_number', 'email', 'full_name', 'department', 'role', 'is_active', 'is_staff', 'description', 'created_date', 'updated_date']
+
+        read_only_fields = ['id', 'phone_number', 'email', 'full_name', 'department', 'role', 'is_staff', 'created_date', 'updated_date']
+
+
+
 
 
 #User

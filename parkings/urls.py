@@ -32,6 +32,11 @@ urlpatterns = [
     path('requests/canceled/list/', CanceledParkingRequestListView.as_view(), name='canceled_parking_requests'),
     path('space/in_use/list', InUseParkingListView.as_view(),name='active_parking_space'),
     path('manager/dashboard/', ManagerDashboardView.as_view(), name='manager_dashboard'),
+    path('manager/users/list/', ParkingManagerUserListView.as_view(), name='manager_users' ),
+    path('manager/users/detail/<int:pk>/', ParkingManagerUserDetailView.as_view(), name='manager_user_detail' ),
+    path('manager/users/activate/<int:pk>/', ParkingManagerUserDetailView.as_view(), name='manager_user_activate' ),
+    path('manager/users/deactivate/<int:pk>/', ParkingManagerUserDetailView.as_view(), name='manager_user_deactivate' ),
+
 
     #block_space
     path('blocks/list/', ParkingSpaceBlockListCreateView.as_view(), name='parking_space_block_list'),

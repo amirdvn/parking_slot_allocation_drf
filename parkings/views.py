@@ -1,8 +1,8 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView, CreateAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView, CreateAPIView, RetrieveUpdateAPIView
 from rest_framework.views import APIView
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 
-from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer, GuestParkingRequestSerializer, GuestParkingRequestListSerializer
+from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer, GuestParkingRequestSerializer, GuestParkingRequestListSerializer, ParkingManagerUserSerializer
 
 from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly, IsManagerOrGuard, IsManagerForGetOrAuthenticatedForPost
 from rest_framework.permissions import IsAuthenticated
@@ -171,6 +171,22 @@ class ManagerDashboardView(APIView):
             ]
 
     })
+
+
+
+class ParkingManagerUserListView(ListAPIView):
+     serializer_class = ParkingManagerUserSerializer
+     permission_classes = [IsManagerUserOrReadOnly]
+     def get_queryset(self):
+         return User.objects.all().order_by('-created_date')
+
+
+class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
+     serializer_class = ParkingManagerUserSerializer
+     permission_classes = [IsManagerUserOrReadOnly]
+     def get_queryset(self):
+         return User.objects.all()
+
 
 #User
 class ParkingRequestListCreateView(ListCreateAPIView):
