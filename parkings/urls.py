@@ -36,6 +36,10 @@ urlpatterns = [
     path('manager/users/detail/<int:pk>/', ParkingManagerUserDetailView.as_view(), name='manager_user_detail' ),
     path('manager/users/activate/<int:pk>/', ParkingManagerUserDetailView.as_view(), name='manager_user_activate' ),
     path('manager/users/deactivate/<int:pk>/', ParkingManagerUserDetailView.as_view(), name='manager_user_deactivate' ),
+    path('manager/vehicles/list/', ParkingManagerVehicleListView.as_view(), name='manager_vehicle_list'),
+    path('manager/vehicles/detail/<int:pk>/', ParkingManagerVehicleDetailView.as_view(), name='manager_vehicle_detail'),
+    path('manager/vehicles/activate/<int:pk>/', ParkingManagerVehicleDetailView.as_view(), name='manager_vehicle_activate'),
+    path('manager/vehicles/deactivate/<int:pk>/', ParkingManagerVehicleDetailView.as_view(), name='manager_vehicle_deactivate'),
 
 
     #block_space
