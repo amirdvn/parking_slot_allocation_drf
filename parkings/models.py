@@ -71,7 +71,7 @@ class ParkingRequest(models.Model):
         COMPLETED = 'COMPLETED', 'تکمیل شده'
         NEEDS_REVIEW = 'NEEDS_REVIEW', 'نیازمند بررسی دستی'
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name='کاربر')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='parking_requests', verbose_name='کاربر')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.PROTECT, null=True, blank=True, verbose_name='وسیله نقلیه')
     parking_space = models.ForeignKey('ParkingSpace', on_delete=models.SET_NULL, null=True, blank=True, related_name='parking_requests', verbose_name='جایگاه')
     

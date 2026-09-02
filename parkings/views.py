@@ -12,7 +12,9 @@ from rest_framework.response import Response
 from django.utils import timezone
 from vehicles.models import Vehicle
 from django.db.models import Count, Q
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 #Manager
 class ParkingSpaceListCreateView(ListCreateAPIView):
@@ -127,6 +129,12 @@ class ManagerDashboardView(APIView):
             filter=Q(
                 parking_requests__status__in=[
                     ParkingRequest.RequestStatus.IN_USE, ParkingRequest.RequestStatus.COMPLETED]))).order_by('-usage_count')[:5])
+
+        top_users = (User.objects.annotate(request_count=Count(
+            'parking_requests',
+            filter=Q(
+                parking_requests__status__in=[
+                    ParkingRequest.RequestStatus.IN_USE, ParkingRequest.RequestStatus.COMPLETED]))).order_by('-request_count')[:5])
         
 
         return Response({
@@ -150,9 +158,19 @@ class ManagerDashboardView(APIView):
                             'usage_count': space.usage_count,
                     }
                         for space in top_parking_spaces
+            ],
+
+            'top_users': [
+                    {
+                        'id': user.id,
+                        'full_name': user.full_name,
+                        'phone_number': user.phone_number,
+                        'request_count': user.request_count,
+                    }
+                        for user in top_users
             ]
 
-        })
+    })
 
 #User
 class ParkingRequestListCreateView(ListCreateAPIView):
