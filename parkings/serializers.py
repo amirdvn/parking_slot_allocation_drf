@@ -224,6 +224,10 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         validated_data = super().validate(attrs)
 
+        if self.instance:
+            if self.instance.status != ParkingRequest.RequestStatus.PENDING:
+                raise serializers.ValidationError('فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند')
+
         start_time = validated_data.get('start_time')
         end_time = validated_data.get('end_time')
         parking_space = validated_data.get('parking_space')

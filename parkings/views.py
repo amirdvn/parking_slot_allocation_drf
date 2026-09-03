@@ -224,12 +224,20 @@ class ParkingRequestListCreateView(ListCreateAPIView):
             parking_request.save(update_fields=['status'])
 
 
-class ParkingRequestDetailView(RetrieveUpdateDestroyAPIView): 
+class ParkingRequestDetailView(RetrieveUpdateAPIView): 
     serializer_class = ParkingRequestSerializer
     permission_classes = [IsAuthenticated]
     def get_queryset(self):
         return ParkingRequest.objects.filter(user=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.status != ParkingRequest.RequestStatus.PENDING:
+            return Response(
+                {'detail': 'فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        return super().update(request, *args, **kwargs)
 
 class ParkingRequestCancelView(UpdateAPIView):
     queryset = ParkingRequest.objects.all()

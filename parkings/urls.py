@@ -18,7 +18,6 @@ urlpatterns = [
     path('requests/detail/<int:pk>/', ParkingRequestDetailView.as_view(), name='parking_request_detail'),
     path('requests/put/<int:pk>/', ParkingRequestDetailView.as_view(), name='parking_request_put'),
     path('requests/patch/<int:pk>/', ParkingRequestDetailView.as_view(), name='parking_request_patch'),
-    path('requests/delete/<int:pk>/', ParkingRequestDetailView.as_view(),name='parking_request_delete'),
     path('requests/cancel/<int:pk>/', ParkingRequestCancelView.as_view(), name='parkingـrequestـcancel'),
     path('user/dashboard/', UserDashboardView.as_view(), name='user_dashboard'),
     #guest
