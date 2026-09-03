@@ -80,7 +80,7 @@ class ApprovedParkingRequestListView(ListAPIView):
 
     def get_queryset(self): 
         ParkingRequest.expire_pending_requests()
-        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
+        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED).select_related('user', 'vehicle', 'parking_space') 
 
 
 class NeedsReviewParkingRequestListView(ListAPIView):
@@ -363,7 +363,7 @@ class ApprovedParkingRequestGuardListView(ListAPIView):
     permission_classes = [IsManagerOrGuard]
 
     def get_queryset(self):
-        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
+        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED).select_related('user', 'vehicle', 'parking_space') 
 
 
 class InUseParkingListView(ListAPIView):
@@ -372,7 +372,7 @@ class InUseParkingListView(ListAPIView):
     permission_classes = [IsManagerOrGuard]
 
     def get_queryset(self):
-        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.IN_USE)
+        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.IN_USE).select_related('user', 'vehicle', 'parking_space') 
 
 
 class GuardVehicleSearchView(ListAPIView):
@@ -389,7 +389,7 @@ class GuardVehicleSearchView(ListAPIView):
 
         return ParkingRequest.objects.filter(
             vehicle__plate_number=plate_number,
-            status__in=[ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE])
+            status__in=[ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE]).select_related('user', 'vehicle', 'parking_space') 
 
 
 class GuardDashboardView(APIView):

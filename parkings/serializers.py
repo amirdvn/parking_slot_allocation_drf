@@ -185,25 +185,27 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
 
         if request and request.user and request.user.is_authenticated:
-            self.fields['vehicle'].queryset = Vehicle.objects.none()
-            self.fields['parking_space'].queryset = ParkingSpace.objects.none()
 
             user = request.user
 
             self.fields['vehicle'].queryset = Vehicle.objects.filter(user=user, is_active=True)
 
-            vehicle_id = None
+            vehicle = None
+            if self.instance and self.instance.vehicle:
+                vehicle = self.instance.vehicle
+            
+            else:
+                vehicle_id = None
 
-            if hasattr(self, 'initial_data'):
-                vehicle_id = self.initial_data.get('vehicle')
+                if hasattr(self, 'initial_data'):
+                    vehicle_id = self.initial_data.get('vehicle')
 
-            if vehicle_id:
-                vehicle = Vehicle.objects.filter(id=vehicle_id, user=user, is_active=True).first()
+                if vehicle_id:
+                    vehicle = Vehicle.objects.filter(id=vehicle_id, user=user, is_active=True).first()
 
-                if vehicle:
+            if vehicle: 
                     self.fields['parking_space'].queryset = (get_allowed_parking_spaces(vehicle=vehicle, user=user))
-                else:
-                    self.fields['parking_space'].queryset = ParkingSpace.objects.none()
+
             else:
                 self.fields['parking_space'].queryset = ParkingSpace.objects.none()
             
@@ -235,6 +237,9 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
         request = self.context.get('request')
         user = request.user
+
+        if not vehicle:
+            raise serializers.ValidationError({'vehicle': 'انتخاب وسیله نقلیه الزامی است'})
 
         if parking_space and vehicle:
             allowed_spaces = get_allowed_parking_spaces(vehicle=vehicle, user=user)
@@ -318,6 +323,10 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
             active_entry = EntryExitLog.objects.filter(parking_request=parking_request, exit_time__isnull=True).exists()
             if active_entry:
                 raise serializers.ValidationError({'parking_request': 'برای این درخواست قبلاً ورود ثبت شده است'})
+        else:
+            active_log = EntryExitLog.objects.filter(vehicle=vehicle, exit_time__isnull=True).exists()
+            if active_log:
+                raise serializers.ValidationError({'vehicle': 'این خودرو قبلاً وارد شده و هنوز خارج نشده است'})
 
         return attrs
 
