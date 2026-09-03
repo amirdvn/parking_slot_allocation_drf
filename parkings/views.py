@@ -78,7 +78,8 @@ class ApprovedParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUser]
 
-    def get_queryset(self):
+    def get_queryset(self): 
+        ParkingRequest.expire_pending_requests()
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
 
 
@@ -87,6 +88,7 @@ class NeedsReviewParkingRequestListView(ListAPIView):
     permission_classes = [IsManagerUser]
 
     def get_queryset(self): 
+        ParkingRequest.expire_pending_requests()
         return ParkingRequest.objects.filter( 
         status=ParkingRequest.RequestStatus.NEEDS_REVIEW ).select_related( 'user', 'vehicle', 'parking_space' )
 
@@ -104,6 +106,7 @@ class ManagerDashboardView(APIView):
     permission_classes = [IsManagerUser]
 
     def get(self, request):
+        ParkingRequest.expire_pending_requests()
 
         now = timezone.now()
 
@@ -275,6 +278,7 @@ class UserDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        ParkingRequest.expire_pending_requests()
 
         user = request.user
 
@@ -390,6 +394,7 @@ class GuardDashboardView(APIView):
     permission_classes = [IsManagerOrGuard]
 
     def get(self, request):
+        ParkingRequest.expire_pending_requests()
 
         now = timezone.now()
 
@@ -438,6 +443,7 @@ class GuestParkingRequestListCreateView(ListCreateAPIView):
         return GuestParkingRequestListSerializer
 
     def get_queryset(self):
+        ParkingRequest.expire_pending_requests()
         return ParkingRequest.objects.filter( is_guest=True )
 
     def perform_create(self, serializer):
