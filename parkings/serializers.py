@@ -358,9 +358,13 @@ class GuestParkingRequestSerializer(serializers.ModelSerializer):
     class Meta: 
         model = ParkingRequest 
 
-        fields = ['id', 'parking_space', 'start_time', 'end_time', 'status', 'description', 'cancellation_reason', 'rejection_reason', 'guest_name', 'guest_email', 'guest_phone', 'guest_plate_number', 'reason', 'created_date', 'updated_date'] 
+        fields = ['id', 'parking_space', 'start_time', 'end_time', 'status', 'description', 'cancellation_reason', 'rejection_reason', 'is_guest', 'guest_name', 'guest_email', 'guest_phone', 'guest_plate_number', 'reason', 'created_date', 'updated_date'] 
 
-        read_only_fields = [ 'id', 'status', 'cancellation_reason', 'rejection_reason', 'created_date', 'updated_date', ]
+        read_only_fields = [ 'id', 'status', 'is_guest', 'cancellation_reason', 'rejection_reason', 'created_date', 'updated_date', ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['parking_space'].queryset = get_allowed_parking_spaces(is_guest=True)
 
     def validate(self, attrs):
         start_time = attrs.get('start_time')
@@ -408,7 +412,13 @@ class GuestParkingRequestSerializer(serializers.ModelSerializer):
 
             if overlapping_requests.exists(): 
                 raise serializers.ValidationError({ 
-                    'parking_space': 'این جایگاه در بازه زمانی انتخابی قبلاً درخواست یا رزرو شده است.' })
+                    'parking_space': 'این جایگاه در بازه زمانی انتخابی قبلاً درخواست یا رزرو شده است' })
+
+        if parking_space:
+
+            if parking_space.space_type != ParkingSpace.SpaceType.GUEST:
+                raise serializers.ValidationError(
+                    {'parking_space': 'برای درخواست مهمان فقط جایگاه‌های نوع مهمان مجاز است'})
 
         return attrs
 
