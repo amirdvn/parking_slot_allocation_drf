@@ -327,10 +327,11 @@ class EntryExitLogListCreateView(ListCreateAPIView):
         return EntryExitLog.objects.all()
 
     def perform_create(self, serializer):
-       log = serializer.save(guard=self.request.user)
-       parking_request = log.parking_request
-       parking_request.status = parking_request.RequestStatus.IN_USE
-       parking_request.save(update_fields=['status'])
+        log = serializer.save(guard=self.request.user)
+        parking_request = log.parking_request
+        if parking_request:
+            parking_request.status = parking_request.RequestStatus.IN_USE
+            parking_request.save(update_fields=['status'])
 
 class VehicleExitView(UpdateAPIView):
 
@@ -350,8 +351,9 @@ class VehicleExitView(UpdateAPIView):
         log.exit_time = timezone.now()
         log.save(update_fields=['exit_time'])
         parking_request = log.parking_request
-        parking_request.status = parking_request.RequestStatus.COMPLETED
-        parking_request.save(update_fields=['status'])
+        if parking_request:
+            parking_request.status = parking_request.RequestStatus.COMPLETED
+            parking_request.save(update_fields=['status'])
 
         return Response(EntryExitLogSerializer(log).data, status=status.HTTP_200_OK)
 
