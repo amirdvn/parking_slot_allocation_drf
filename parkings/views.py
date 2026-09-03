@@ -222,7 +222,7 @@ class ParkingRequestListCreateView(ListCreateAPIView):
      def perform_create(self, serializer):
         parking_request = serializer.save( user=self.request.user )
 
-        if parking_request.parking_space.space_type == (ParkingSpace.SpaceType.EMERGENCY):
+        if parking_request.parking_space and parking_request.parking_space.space_type == (ParkingSpace.SpaceType.EMERGENCY):
             parking_request.status = ( ParkingRequest.RequestStatus.NEEDS_REVIEW )
             parking_request.save(update_fields=['status'])
 

@@ -58,7 +58,7 @@ class IsManagerForGetOrAuthenticatedForPost(BasePermission):
         if request.method == 'POST':
             return True 
         if request.method == 'GET':
-            return request.user.role == 'MANAGER' or request.user.is_superuser
+            return request.user.role == request.user.Role.MANAGER or request.user.is_superuser
         return False
 
 class IsManagerUser(BasePermission):

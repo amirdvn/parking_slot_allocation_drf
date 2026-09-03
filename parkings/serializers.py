@@ -228,10 +228,10 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
             if self.instance.status != ParkingRequest.RequestStatus.PENDING:
                 raise serializers.ValidationError('فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند')
 
-        start_time = validated_data.get('start_time')
-        end_time = validated_data.get('end_time')
-        parking_space = validated_data.get('parking_space')
-        vehicle = validated_data.get('vehicle')
+        start_time = validated_data.get('start_time', self.instance.start_time if self.instance else None)
+        end_time = validated_data.get('end_time', self.instance.end_time if self.instance else None)
+        parking_space = validated_data.get('parking_space', self.instance.parking_space if self.instance else None)
+        vehicle = validated_data.get('vehicle', self.instance.vehicle if self.instance else None)
 
         request = self.context.get('request')
         user = request.user
@@ -299,7 +299,6 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
 
         vehicle = attrs.get('vehicle')
         parking_request = attrs.get('parking_request')
-        exit_time = attrs.get('exit_time')
 
         if parking_request and vehicle:
             if parking_request.vehicle != vehicle:
