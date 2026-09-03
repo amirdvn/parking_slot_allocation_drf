@@ -9,7 +9,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.utils import timezone
 from rest_framework.response import Response
-from django.utils import timezone
 from vehicles.models import Vehicle
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
@@ -215,6 +214,7 @@ class ParkingRequestListCreateView(ListCreateAPIView):
      serializer_class = ParkingRequestSerializer
      permission_classes = [IsAuthenticated]
      def get_queryset(self):
+        ParkingRequest.expire_pending_requests()
         return ParkingRequest.objects.filter(user=self.request.user)
      def perform_create(self, serializer):
         parking_request = serializer.save( user=self.request.user )

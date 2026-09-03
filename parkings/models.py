@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings 
 import uuid
 from vehicles.models import Vehicle
-
+from django.utils import timezone
 
 class ParkingSpace(models.Model):
 
@@ -47,8 +47,8 @@ class ParkingSpace(models.Model):
         return f'{self.code} - {self.get_space_type_display()} - {self.get_floor_display()} - {self.get_zone_display()} - توضیحات: {self.description if self.description else "ندارد"}'
 
     def save(self, *args, **kwargs):
-
-        self.code = f'{self.zone}-{self.floor}-{str(self.id)[:3].upper()}'
+        if not self.code:
+            self.code = f'{self.zone}-{self.floor}-{str(self.id)[:3].upper()}'
         if self.zone == self.ZoneChoice.EAST:
             self.requires_permission = True
         return super().save(*args, **kwargs)
@@ -95,6 +95,14 @@ class ParkingRequest(models.Model):
 
     def __str__(self):
         return f'{self.user} - {self.vehicle} - {self.parking_space} - {self.get_status_display()}'
+
+
+    @classmethod
+    def expire_pending_requests(cls):
+        time_expire = timezone.now() - timezone.timedelta(minutes=3)
+        return cls.objects.filter(
+            status__in=[cls.RequestStatus.PENDING, cls.RequestStatus.NEEDS_REVIEW],
+            created_date__lt=time_expire).update(status=cls.RequestStatus.EXPIRED)
 
 
 class ParkingSpaceBlock(models.Model):
