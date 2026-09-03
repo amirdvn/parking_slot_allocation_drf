@@ -4,7 +4,7 @@ from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLo
 
 from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer, GuestParkingRequestSerializer, GuestParkingRequestListSerializer, ParkingManagerUserSerializer, ParkingManagerVehicleSerializer
 
-from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly, IsManagerOrGuard, IsManagerForGetOrAuthenticatedForPost
+from .permissions import IsManagerUserOrReadOnly, IsGuardUserOrReadOnly, IsManagerOrGuard, IsManagerForGetOrAuthenticatedForPost, IsManagerUser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.utils import timezone
@@ -49,7 +49,7 @@ class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
 class ParkingRequestReviewView(UpdateAPIView): 
     queryset = ParkingRequest.objects.all() 
     serializer_class = ParkingRequestReviewSerializer 
-    permission_classes = [IsManagerUserOrReadOnly] 
+    permission_classes = [IsManagerUser] 
     def update(self, request, *args, **kwargs): 
         parking_request = self.get_object()
         if parking_request.status not in [ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.NEEDS_REVIEW, ]:
@@ -76,7 +76,7 @@ class ParkingRequestReviewView(UpdateAPIView):
 
 class ApprovedParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
-    permission_classes = [IsManagerUserOrReadOnly]
+    permission_classes = [IsManagerUser]
 
     def get_queryset(self):
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
@@ -84,7 +84,7 @@ class ApprovedParkingRequestListView(ListAPIView):
 
 class NeedsReviewParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
-    permission_classes = [IsManagerUserOrReadOnly]
+    permission_classes = [IsManagerUser]
 
     def get_queryset(self): 
         return ParkingRequest.objects.filter( 
@@ -93,7 +93,7 @@ class NeedsReviewParkingRequestListView(ListAPIView):
 
 class CanceledParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
-    permission_classes = [IsManagerUserOrReadOnly]
+    permission_classes = [IsManagerUser]
 
     def get_queryset(self):
         return ParkingRequest.objects.filter(status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED]).select_related('user', 'vehicle', 'parking_space')
@@ -101,7 +101,7 @@ class CanceledParkingRequestListView(ListAPIView):
 
 class ManagerDashboardView(APIView):
 
-    permission_classes = [IsManagerUserOrReadOnly]
+    permission_classes = [IsManagerUser]
 
     def get(self, request):
 
@@ -175,14 +175,14 @@ class ManagerDashboardView(APIView):
 
 class ParkingManagerUserListView(ListAPIView):
      serializer_class = ParkingManagerUserSerializer
-     permission_classes = [IsManagerUserOrReadOnly]
+     permission_classes = [IsManagerUser]
      def get_queryset(self):
          return User.objects.all().order_by('-created_date')
 
 
 class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
      serializer_class = ParkingManagerUserSerializer
-     permission_classes = [IsManagerUserOrReadOnly]
+     permission_classes = [IsManagerUser]
      def get_queryset(self):
          return User.objects.all()
 
@@ -192,7 +192,7 @@ class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
 class ParkingManagerVehicleListView(ListAPIView):
 
     serializer_class = ParkingManagerVehicleSerializer
-    permission_classes = [IsManagerUserOrReadOnly]
+    permission_classes = [IsManagerUser]
 
     def get_queryset(self):
         return Vehicle.objects.all().order_by('-created_at')
@@ -201,7 +201,7 @@ class ParkingManagerVehicleListView(ListAPIView):
 class ParkingManagerVehicleDetailView(RetrieveUpdateAPIView):
 
     serializer_class = ParkingManagerVehicleSerializer
-    permission_classes = [IsManagerUserOrReadOnly]
+    permission_classes = [IsManagerUser]
 
     def get_queryset(self):
         return Vehicle.objects.all()
@@ -308,7 +308,7 @@ class UserDashboardView(APIView):
 
 #Guard
 class EntryExitLogListCreateView(ListCreateAPIView):
-    permission_classes = [IsGuardUserOrReadOnly]
+    permission_classes = [IsManagerOrGuard]
     serializer_class = EntryExitLogSerializer
 
     def get_queryset(self):
@@ -324,7 +324,7 @@ class VehicleExitView(UpdateAPIView):
 
     queryset = EntryExitLog.objects.all()
     serializer_class = EntryExitLogSerializer
-    permission_classes = [IsGuardUserOrReadOnly]
+    permission_classes = [IsManagerOrGuard]
 
     def update(self, request, *args, **kwargs):
 
@@ -346,7 +346,7 @@ class VehicleExitView(UpdateAPIView):
 
 class ApprovedParkingRequestGuardListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
-    permission_classes = [IsGuardUserOrReadOnly]
+    permission_classes = [IsManagerOrGuard]
 
     def get_queryset(self):
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED)
@@ -364,7 +364,7 @@ class InUseParkingListView(ListAPIView):
 class GuardVehicleSearchView(ListAPIView):
 
     serializer_class = ParkingRequestManagerSerializer
-    permission_classes = [IsGuardUserOrReadOnly]
+    permission_classes = [IsManagerOrGuard]
 
     def get_queryset(self):
 
@@ -379,7 +379,7 @@ class GuardVehicleSearchView(ListAPIView):
 
 
 class GuardDashboardView(APIView):
-    permission_classes = [IsGuardUserOrReadOnly]
+    permission_classes = [IsManagerOrGuard]
 
     def get(self, request):
 
