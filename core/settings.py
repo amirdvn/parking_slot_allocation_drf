@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'profiles.apps.ProfilesConfig',
     'vehicles.apps.VehiclesConfig',
     'parkings.apps.ParkingsConfig',
+    'notifications.apps.NotificationsConfig',
 
 
     #Third party apps

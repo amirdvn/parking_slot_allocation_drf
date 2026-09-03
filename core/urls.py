@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/profile/', include('profiles.urls')),
     path('api/vehicle/', include('vehicles.urls')),
     path('api/parking/', include('parkings.urls')),
+    path('api/notifications/', include('notifications.urls')),
 ]
