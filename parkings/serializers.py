@@ -184,30 +184,37 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
         request = self.context.get('request')
 
-        if request and request.user and request.user.is_authenticated:
+        if not request or not request.user or not request.user.is_authenticated:
 
-            user = request.user
+            self.fields['vehicle'].queryset = Vehicle.objects.none()
+            self.fields['parking_space'].queryset = ParkingSpace.objects.none()
 
-            self.fields['vehicle'].queryset = Vehicle.objects.filter(user=user, is_active=True)
+            return
 
-            vehicle = None
-            if self.instance and self.instance.vehicle:
-                vehicle = self.instance.vehicle
-            
-            else:
-                vehicle_id = None
+        user = request.user
 
-                if hasattr(self, 'initial_data'):
-                    vehicle_id = self.initial_data.get('vehicle')
+        self.fields['vehicle'].queryset = Vehicle.objects.filter(user=user, is_active=True)
 
-                if vehicle_id:
-                    vehicle = Vehicle.objects.filter(id=vehicle_id, user=user, is_active=True).first()
+        vehicle = None
+        vehicle_id = None
 
-            if vehicle: 
-                    self.fields['parking_space'].queryset = (get_allowed_parking_spaces(vehicle=vehicle, user=user))
+        if hasattr(self, 'initial_data') and self.initial_data:
+            vehicle_id = self.initial_data.get('vehicle')
 
-            else:
-                self.fields['parking_space'].queryset = ParkingSpace.objects.none()
+        if vehicle_id:
+
+            vehicle = Vehicle.objects.filter( id=vehicle_id, user=user, is_active=True ).first()
+
+        elif self.instance and getattr(self.instance, 'vehicle', None):
+
+            vehicle = self.instance.vehicle
+
+        if vehicle:
+
+            self.fields['parking_space'].queryset = ( get_allowed_parking_spaces( vehicle=vehicle, user=user ) )
+
+        else:
+            self.fields['parking_space'].queryset = (ParkingSpace.objects.none())
             
 
     def validate_vehicle(self, value):
@@ -240,6 +247,10 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
         if not vehicle:
             raise serializers.ValidationError({'vehicle': 'انتخاب وسیله نقلیه الزامی است'})
+
+        if not parking_space:
+            raise serializers.ValidationError({'parking_space': 'انتخاب جایگاه الزامی است'})
+
 
         if parking_space and vehicle:
             allowed_spaces = get_allowed_parking_spaces(vehicle=vehicle, user=user)
