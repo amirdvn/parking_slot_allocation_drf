@@ -13,24 +13,36 @@ from vehicles.models import Vehicle
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from notifications.models import Notification
-
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 
 User = get_user_model()
 
 #Manager
+@extend_schema_view(
+    get=extend_schema(operation_id="manager_parking_space_list"),
+    post=extend_schema(operation_id="manager_parking_space_create")
+)
 class ParkingSpaceListCreateView(ListCreateAPIView):
     queryset = ParkingSpace.objects.all()
     serializer_class = ParkingSpaceSerializer
     permission_classes = [IsManagerUserOrReadOnly]
 
-
+@extend_schema_view(
+    get=extend_schema(operation_id="manager_parking_space_detail"),
+    put=extend_schema(operation_id="manager_parking_space_put"),
+    patch=extend_schema(operation_id="manager_parking_space_patch"),
+    delete=extend_schema(operation_id="manager_parking_space_delete")
+)
 class ParkingSpaceDetailView(RetrieveUpdateDestroyAPIView):
     queryset = ParkingSpace.objects.all()
     serializer_class = ParkingSpaceSerializer
     permission_classes = [IsManagerUserOrReadOnly]
 
-
+@extend_schema_view(
+    get=extend_schema(operation_id="manager_parking_space_block_list"),
+    post=extend_schema(operation_id="manager_parking_space_block_create")
+)
 class ParkingSpaceBlockListCreateView(ListCreateAPIView):
     serializer_class = ParkingSpaceBlockSerializer
     permission_classes = [IsManagerUserOrReadOnly]
@@ -40,7 +52,12 @@ class ParkingSpaceBlockListCreateView(ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
-
+@extend_schema_view(
+    get=extend_schema(operation_id="manager_parking_space_block_retrieve"),
+    put=extend_schema(operation_id="manager_parking_space_block_put"),
+    patch=extend_schema(operation_id="manager_parking_space_block_patch"),
+    delete=extend_schema(operation_id="manager_parking_space_block_destroy")
+)
 class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = ParkingSpaceBlockSerializer
     permission_classes = [IsManagerUserOrReadOnly]
@@ -48,7 +65,10 @@ class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return ParkingSpaceBlock.objects.all()
 
-
+@extend_schema_view(
+    put=extend_schema(operation_id="manager_parking_request_review_put"),
+    patch=extend_schema(operation_id="manager_parking_request_review_patch")
+)
 class ParkingRequestReviewView(UpdateAPIView): 
     queryset = ParkingRequest.objects.all() 
     serializer_class = ParkingRequestReviewSerializer 
@@ -96,7 +116,7 @@ class ParkingRequestReviewView(UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
+@extend_schema(operation_id="manager_parking_request_approved_list")
 class ApprovedParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUser]
@@ -105,7 +125,7 @@ class ApprovedParkingRequestListView(ListAPIView):
         ParkingRequest.expire_pending_requests()
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED).select_related('user', 'vehicle', 'parking_space') 
 
-
+@extend_schema(operation_id="manager_parking_request_needs_review_list")
 class NeedsReviewParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUser]
@@ -115,7 +135,7 @@ class NeedsReviewParkingRequestListView(ListAPIView):
         return ParkingRequest.objects.filter( 
         status=ParkingRequest.RequestStatus.NEEDS_REVIEW ).select_related( 'user', 'vehicle', 'parking_space' )
 
-
+@extend_schema(operation_id="manager_parking_request_cancel_list")
 class CanceledParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUser]
@@ -123,7 +143,7 @@ class CanceledParkingRequestListView(ListAPIView):
     def get_queryset(self):
         return ParkingRequest.objects.filter(status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED]).select_related('user', 'vehicle', 'parking_space')
 
-
+@extend_schema(operation_id="manager_dashboard")
 class ManagerDashboardView(APIView):
 
     permission_classes = [IsManagerUser]
@@ -198,14 +218,17 @@ class ManagerDashboardView(APIView):
     })
 
 
-
+@extend_schema(operation_id="manager_parking_user_list")
 class ParkingManagerUserListView(ListAPIView):
      serializer_class = ParkingManagerUserSerializer
      permission_classes = [IsManagerUser]
      def get_queryset(self):
          return User.objects.all().order_by('-created_date')
 
-
+@extend_schema_view(
+    get=extend_schema(operation_id="manager_parking_user_retrieve"),
+    patch=extend_schema(operation_id="manager_parking_user_activate_or_deactivate")
+)
 class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
      serializer_class = ParkingManagerUserSerializer
      permission_classes = [IsManagerUser]
@@ -214,7 +237,7 @@ class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
 
 
 
-
+@extend_schema(operation_id="manager_parking_vehicle_list")
 class ParkingManagerVehicleListView(ListAPIView):
 
     serializer_class = ParkingManagerVehicleSerializer
@@ -223,7 +246,10 @@ class ParkingManagerVehicleListView(ListAPIView):
     def get_queryset(self):
         return Vehicle.objects.all().order_by('-created_at')
 
-
+@extend_schema_view(
+    get=extend_schema(operation_id="manager_parking_vehicle_retrieve"),
+    patch=extend_schema(operation_id="manager_parking_vehicle_activate_or_deactivate")
+)
 class ParkingManagerVehicleDetailView(RetrieveUpdateAPIView):
 
     serializer_class = ParkingManagerVehicleSerializer
@@ -236,6 +262,10 @@ class ParkingManagerVehicleDetailView(RetrieveUpdateAPIView):
 
 
 #User
+@extend_schema_view(
+    get=extend_schema(operation_id="user_parking_request_list"),
+    post=extend_schema(operation_id="user_parking_request_create")
+)
 class ParkingRequestListCreateView(ListCreateAPIView):
      serializer_class = ParkingRequestSerializer
      permission_classes = [IsAuthenticated]
@@ -249,7 +279,11 @@ class ParkingRequestListCreateView(ListCreateAPIView):
             parking_request.status = ( ParkingRequest.RequestStatus.NEEDS_REVIEW )
             parking_request.save(update_fields=['status'])
 
-
+@extend_schema_view(
+    get=extend_schema(operation_id="user_parking_request_retrieve"),
+    put=extend_schema(operation_id="user_parking_request_put"),
+    patch=extend_schema(operation_id="user_parking_request_patch")
+)
 class ParkingRequestDetailView(RetrieveUpdateAPIView): 
     serializer_class = ParkingRequestSerializer
     permission_classes = [IsAuthenticated]
@@ -265,6 +299,7 @@ class ParkingRequestDetailView(RetrieveUpdateAPIView):
 
         return super().update(request, *args, **kwargs)
 
+@extend_schema(operation_id="user_parking_request_cancel")
 class ParkingRequestCancelView(UpdateAPIView):
     queryset = ParkingRequest.objects.all()
     serializer_class = ParkingRequestCancelSerializer
@@ -295,7 +330,7 @@ class ParkingRequestCancelView(UpdateAPIView):
         return Response( serializer.errors, status=status.HTTP_400_BAD_REQUEST )
 
 
-
+@extend_schema(operation_id="user_dashboard")
 class UserDashboardView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -342,6 +377,10 @@ class UserDashboardView(APIView):
 
 
 #Guard
+@extend_schema_view(
+    get=extend_schema(operation_id="guard_entry_exit_log_list"),
+    post=extend_schema(operation_id="guard_entry_exit_log_create")
+)
 class EntryExitLogListCreateView(ListCreateAPIView):
     permission_classes = [IsManagerOrGuard]
     serializer_class = EntryExitLogSerializer
@@ -366,6 +405,10 @@ class EntryExitLogListCreateView(ListCreateAPIView):
             except Exception as e:
                 print(f"خطا در ایجاد اعلان: {e}")
 
+@extend_schema_view(
+    put=extend_schema(operation_id="guard_vehicle_exit_put"),
+    patch=extend_schema(operation_id="guard_vehicle_exit_patch")
+)
 class VehicleExitView(UpdateAPIView):
 
     queryset = EntryExitLog.objects.all()
@@ -401,6 +444,7 @@ class VehicleExitView(UpdateAPIView):
         return Response(EntryExitLogSerializer(log).data, status=status.HTTP_200_OK)
 
 
+@extend_schema(operation_id="guard_approved_parking_request_list")
 class ApprovedParkingRequestGuardListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerOrGuard]
@@ -408,7 +452,7 @@ class ApprovedParkingRequestGuardListView(ListAPIView):
     def get_queryset(self):
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED).select_related('user', 'vehicle', 'parking_space') 
 
-
+@extend_schema(operation_id="guard_inuse_parking_space_list")
 class InUseParkingListView(ListAPIView):
 
     serializer_class = ParkingRequestManagerSerializer
@@ -417,7 +461,7 @@ class InUseParkingListView(ListAPIView):
     def get_queryset(self):
         return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.IN_USE).select_related('user', 'vehicle', 'parking_space') 
 
-
+@extend_schema(operation_id="guard_vehicle_search")
 class GuardVehicleSearchView(ListAPIView):
 
     serializer_class = ParkingRequestManagerSerializer
@@ -434,7 +478,7 @@ class GuardVehicleSearchView(ListAPIView):
             vehicle__plate_number=plate_number,
             status__in=[ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE]).select_related('user', 'vehicle', 'parking_space') 
 
-
+@extend_schema(operation_id="guard_dashboard")
 class GuardDashboardView(APIView):
     permission_classes = [IsManagerOrGuard]
 
@@ -480,6 +524,10 @@ class GuardDashboardView(APIView):
 
 
 #guest
+@extend_schema_view(
+    get=extend_schema(operation_id="guest_parking_request_list"),
+    post=extend_schema(operation_id="guest_parking_request_create")
+)
 class GuestParkingRequestListCreateView(ListCreateAPIView):
     permission_classes = [IsManagerForGetOrAuthenticatedForPost]
     def get_serializer_class(self):

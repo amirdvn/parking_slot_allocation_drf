@@ -9,12 +9,12 @@ from .models import OtpCode
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from profiles.serializers import ProfileSerializer
-
+from drf_spectacular.utils import extend_schema
 
 User = get_user_model()
 
 
-
+@extend_schema(auth=[],  request=SendLoginOtpSerializer)
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -27,7 +27,7 @@ class RegisterView(APIView):
                 status=status.HTTP_201_CREATED)
         return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+@extend_schema(auth=[],  request=SendLoginOtpSerializer)
 class SendLoginOtpView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
@@ -42,7 +42,7 @@ class SendLoginOtpView(APIView):
                 status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+@extend_schema(auth=[],  request=SendLoginOtpSerializer)
 class VerifyLoginOtpView(APIView):
     permission_classes = [AllowAny]
 
