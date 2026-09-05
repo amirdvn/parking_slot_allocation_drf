@@ -3,6 +3,9 @@ from django.conf import settings
 import uuid
 from vehicles.models import Vehicle
 from django.utils import timezone
+from notifications.models import Notification
+
+
 
 class ParkingSpace(models.Model):
 
@@ -100,10 +103,19 @@ class ParkingRequest(models.Model):
     @classmethod
     def expire_pending_requests(cls):
         time_expire = timezone.now() - timezone.timedelta(minutes=3)
-        return cls.objects.filter(
+        request_expired = cls.objects.filter(
             status__in=[cls.RequestStatus.PENDING, cls.RequestStatus.NEEDS_REVIEW],
-            created_date__lt=time_expire).update(status=cls.RequestStatus.EXPIRED)
+            created_date__lt=time_expire)
 
+        for parkin_request in request_expired:
+            Notification.objects.create(
+                user=parkin_request.user,
+                type=Notification.Type.REQUEST_STATUS,
+                title='درخواست پارکینگ منقضی شد',
+                message=f'درخواست #{parkin_request.id} به دلیل عدم بررسی به‌موقع منقضی شد',
+                link=f'/api/parking/requests/detail/{parkin_request.id}/',
+            )
+        return request_expired.update(status=cls.RequestStatus.EXPIRED)
 
 class ParkingSpaceBlock(models.Model):
     class Meta:

@@ -12,6 +12,9 @@ from rest_framework.response import Response
 from vehicles.models import Vehicle
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
+from notifications.models import Notification
+
+
 
 User = get_user_model()
 
@@ -62,9 +65,29 @@ class ParkingRequestReviewView(UpdateAPIView):
         if serializer.is_valid():
             parking_request.status = ( serializer.validated_data['status'] )
             if parking_request.status == ParkingRequest.RequestStatus.REJECTED:
-                parking_request.rejection_reason = ( serializer.validated_data['rejection_reason'] )
+                parking_request.rejection_reason = serializer.validated_data.get('rejection_reason')
 
             parking_request.save( update_fields=['status', 'updated_date', 'rejection_reason'] ) 
+
+
+            if parking_request.status == ParkingRequest.RequestStatus.APPROVED:
+                title = 'تایید درخواست پارکینگ'
+                message = (
+                    f'درخواست شما برای جایگاه '
+                    f'{parking_request.parking_space.code if parking_request.parking_space else "تعیین‌شده"} '
+                    f'تایید شد')
+            else:
+                title = 'رد درخواست پارکینگ'
+                message = f'درخواست شما رد شد؛ دلیل: {parking_request.rejection_reason or "تعیین نشده"}'
+            try:
+                Notification.objects.create(
+                    user=parking_request.user,
+                    type=Notification.Type.REQUEST_STATUS,
+                    title=title,
+                    message=message,
+                    link=f'/api/parking/requests/detail/{parking_request.id}/')
+            except Exception as e:
+                print(f"خطا در ایجاد اعلان: {e}")
 
             return Response( {
                 'detail': 'وضعیت درخواست با موفقیت تغییر کرد',
@@ -333,6 +356,16 @@ class EntryExitLogListCreateView(ListCreateAPIView):
             parking_request.status = parking_request.RequestStatus.IN_USE
             parking_request.save(update_fields=['status'])
 
+            try:
+                Notification.objects.create(
+                    user=parking_request.user,
+                    type=Notification.Type.REQUEST_STATUS,
+                    title='ورود خودرو ثبت شد',
+                    message=f'ورود خودرو برای درخواست #{parking_request.id} ثبت شد',
+                    link=f'/api/parking/requests/detail/{parking_request.id}/')
+            except Exception as e:
+                print(f"خطا در ایجاد اعلان: {e}")
+
 class VehicleExitView(UpdateAPIView):
 
     queryset = EntryExitLog.objects.all()
@@ -354,6 +387,16 @@ class VehicleExitView(UpdateAPIView):
         if parking_request:
             parking_request.status = parking_request.RequestStatus.COMPLETED
             parking_request.save(update_fields=['status'])
+
+            try:
+                Notification.objects.create(
+                    user=parking_request.user,
+                    type=Notification.Type.REQUEST_STATUS,
+                    title='خروج خودرو ثبت شد',
+                    message=f'خروج خودرو برای درخواست #{parking_request.id} ثبت شد',
+                    link=f'/api/parking/requests/detail/{parking_request.id}/')
+            except Exception as e:
+                print(f"خطا در ایجاد اعلان: {e}")
 
         return Response(EntryExitLogSerializer(log).data, status=status.HTTP_200_OK)
 
