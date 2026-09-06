@@ -14,7 +14,7 @@ from drf_spectacular.utils import extend_schema
 User = get_user_model()
 
 
-@extend_schema(auth=[],  request=SendLoginOtpSerializer)
+@extend_schema(auth=[],  request=RegisterSerializer)
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -42,7 +42,7 @@ class SendLoginOtpView(APIView):
                 status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@extend_schema(auth=[],  request=SendLoginOtpSerializer)
+@extend_schema(auth=[],  request=VerifyLoginOtpSerializer)
 class VerifyLoginOtpView(APIView):
     permission_classes = [AllowAny]
 
