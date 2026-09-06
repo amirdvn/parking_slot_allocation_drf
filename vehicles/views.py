@@ -23,7 +23,6 @@ class VehicleListCreateView(APIView):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @extend_schema(request=VehicleSerializer, responses={201: VehicleSerializer})
     def post(self, request):
         serializer = VehicleSerializer(data=request.data)
 

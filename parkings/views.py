@@ -81,9 +81,9 @@ class ParkingRequestReviewView(UpdateAPIView):
                 'detail': 'این درخواست در وضعیت فعلی قابل بررسی نیست' },
                 status=status.HTTP_400_BAD_REQUEST )
 
-        serializer = self.get_serializer( data=request.data )
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            parking_request.status = ( serializer.validated_data['status'] )
+            parking_request.status = serializer.validated_data['status']
             if parking_request.status == ParkingRequest.RequestStatus.REJECTED:
                 parking_request.rejection_reason = serializer.validated_data.get('rejection_reason')
 
@@ -273,7 +273,7 @@ class ParkingRequestListCreateView(ListCreateAPIView):
         ParkingRequest.expire_pending_requests()
         return ParkingRequest.objects.filter(user=self.request.user)
      def perform_create(self, serializer):
-        parking_request = serializer.save( user=self.request.user )
+        parking_request = serializer.save(user=self.request.user)
 
         if parking_request.parking_space and parking_request.parking_space.space_type == (ParkingSpace.SpaceType.EMERGENCY):
             parking_request.status = ( ParkingRequest.RequestStatus.NEEDS_REVIEW )
@@ -537,8 +537,8 @@ class GuestParkingRequestListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         ParkingRequest.expire_pending_requests()
-        return ParkingRequest.objects.filter( is_guest=True )
+        return ParkingRequest.objects.filter(is_guest=True)
 
     def perform_create(self, serializer):
-        serializer.save( user=self.request.user, vehicle=None, is_guest=True )
+        serializer.save(user=self.request.user, vehicle=None, is_guest=True)
 

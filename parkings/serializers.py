@@ -78,6 +78,21 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
         if overlapping_blocks.exists():
             raise serializers.ValidationError({'parking_space':'این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است'})
 
+        overlapping_requests = ParkingRequest.objects.filter(
+            parking_space=parking_space,
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+            status__in=[
+                ParkingRequest.RequestStatus.PENDING,
+                ParkingRequest.RequestStatus.APPROVED,
+                ParkingRequest.RequestStatus.IN_USE,
+                ParkingRequest.RequestStatus.NEEDS_REVIEW])
+
+        if overlapping_requests.exists():
+            raise serializers.ValidationError({
+                    'parking_space':
+                    'این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است و نمی‌توان آن را مسدود کرد'})
+
         return attrs
 
 
@@ -211,7 +226,7 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
         if vehicle:
 
-            self.fields['parking_space'].queryset = ( get_allowed_parking_spaces( vehicle=vehicle, user=user ) )
+            self.fields['parking_space'].queryset = get_allowed_parking_spaces(vehicle=vehicle, user=user)
 
         else:
             self.fields['parking_space'].queryset = (ParkingSpace.objects.none())
