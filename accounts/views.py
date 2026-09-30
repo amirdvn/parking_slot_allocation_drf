@@ -3,15 +3,10 @@ from .serializers import RegisterSerializer, SendLoginOtpSerializer, VerifyLogin
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
-import random
-from utils import send_otp_code
-from .models import OtpCode
-from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
 from profiles.serializers import ProfileSerializer
 from drf_spectacular.utils import extend_schema
+from .services import OtpService, UserService, AuthService
 
-User = get_user_model()
 
 
 @extend_schema(auth=[],  request=RegisterSerializer)
@@ -20,27 +15,48 @@ class RegisterView(APIView):
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            UserService.register(serializer.validated_data)
             return Response(
-                {'messages': 'ثبت نام با موفقیت انجام شد'}, 
-                status=status.HTTP_201_CREATED)
-        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                {
+                    'messages': 'ثبت نام با موفقیت انجام شد'
+                }, 
+                status=status.HTTP_201_CREATED
+            )
+        
+        except ValueError as e:
+            return Response(
+                {
+                    'error':str(e)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 @extend_schema(auth=[],  request=SendLoginOtpSerializer)
 class SendLoginOtpView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
         serializer = SendLoginOtpSerializer(data=request.data)
-        if serializer.is_valid():
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            
             phone_number = serializer.validated_data['phone_number']
-            random_code = random.randint(1000, 9999)
-            OtpCode.objects.create(phone_number=phone_number, code=random_code)
-            send_otp_code(phone_number=phone_number, code=random_code)
+            OtpService.send_otp(phone_number)
             return Response(
-                {'messages':'کد تایید ارسال شد'},
+                {
+                    'messages':'کد تایید ارسال شد'
+                },
                 status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+       
+        except ValueError as e:
+            return Response(
+                {
+                    'error': str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST)
 
 @extend_schema(auth=[],  request=VerifyLoginOtpSerializer)
 class VerifyLoginOtpView(APIView):
@@ -48,62 +64,82 @@ class VerifyLoginOtpView(APIView):
 
     def post(self, request):
         serializer = VerifyLoginOtpSerializer(data=request.data)
-        if serializer.is_valid():
-            phone_number = serializer.validated_data['phone_number']
-            otp_code = serializer.validated_data['otp_code']
-            otp_code.delete()
-            user = User.objects.filter(phone_number=phone_number).first()
-            if user:
-                tokens = RefreshToken.for_user(user)
-                return Response(
-                    {
-                    'messages': 'ورود موفق بود',
-                    'is_registered': True,
-                    'tokens': {
-                        'refresh': str(tokens),
-                        'access': str(tokens.access_token)}},
-                    status=status.HTTP_200_OK)
-            return Response({
-                'messages': 'شماره تایید شد.',
-                'is_registered': False},
-                status=status.HTTP_200_OK)
+        serializer.is_valid(raise_exception=True)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            
+            phone_number = serializer.validated_data['phone_number']
+            code = serializer.validated_data['code']
+            
+            result = OtpService.verify_otp(
+                phone_number,
+                code
+            )
+            
+            return Response(
+                result,
+                status=status.HTTP_200_OK
+            )
+        
+        except ValueError as e:
+
+            return Response(
+                {
+                    'error':str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
         try:
-            refresh_token = request.data['refresh']
-
-            token = RefreshToken(refresh_token)
-            token.blacklist()
+            AuthService.logout(request.data['refresh'])
+            
             return Response(
-                {'message': 'خروج با موفقیت انجام شد'},
+                {
+                    'message': 'خروج با موفقیت انجام شد'
+                },
                 status=status.HTTP_205_RESET_CONTENT)
-        except Exception:
-            return Response(
-                {'message': 'Refresh Token نامعتبر است'},
-                status=status.HTTP_400_BAD_REQUEST)
+        
+        except ValueError as e:
 
+            return Response(
+                {
+                    'error':str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST)
 
 
 class SendChangePhoneOtpView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        
         serializer = SendChangePhoneOtpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if serializer.is_valid():
+        try:
+            
             phone_number = serializer.validated_data['phone_number']
-            random_code = random.randint(1000, 9999)
-            OtpCode.objects.create(phone_number=phone_number, code=random_code)
-            send_otp_code(phone_number=phone_number, code=random_code)
-
-            return Response({'message': 'کد تایید ارسال شد'}, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            OtpService.send_otp(phone_number)
+            
+            return Response(
+                {
+                    'messages':'کد تایید ارسال شد'
+                },
+                status=status.HTTP_200_OK
+            )
+       
+        except ValueError as e:
+            
+            return Response(
+                {
+                    'error': str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class VerifyChangePhoneOtpView(APIView):
@@ -111,19 +147,28 @@ class VerifyChangePhoneOtpView(APIView):
 
     def post(self, request):
         serializer = VerifyChangePhoneOtpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if serializer.is_valid():
-            
+        try:
+            user = request.user
             phone_number = serializer.validated_data['phone_number']
-            otp_code = serializer.validated_data['otp_code']
-            otp_code.delete()
+            code = serializer.validated_data['code']
 
-            request.user.phone_number = phone_number
-            request.user.save(update_fields=['phone_number'])
-            user_serializer = ProfileSerializer(request.user)
+            user = UserService.change_phone(
+                user=user,
+                phone_number=phone_number,
+                code=code
+            )
             return Response(
-                {'message': 'شماره تلفن با موفقیت تغییر کرد',
-                 'user': user_serializer.data},
-                status=status.HTTP_200_OK)
+                {
+                    'message': 'شماره تلفن با موفقیت تغییر کرد',
+                    'user':ProfileSerializer(user).data
+                },
+                status=status.HTTP_200_OK
+            )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError as e:
+
+            return Response(
+                {'error':str(e)},
+                status=status.HTTP_400_BAD_REQUEST)
