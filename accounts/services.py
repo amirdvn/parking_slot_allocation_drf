@@ -10,14 +10,18 @@ User = get_user_model()
 class OtpService:
 
     @staticmethod
-    def send_otp(phone_number: str) -> None:
-        user = User.objects.filter(phone_number=phone_number).first()
-        if not user:
-            raise ValueError('کاربری با این شماره یافت نشد')
-
+    def _create_and_send(phone_number: str) -> None:
         code = random.randint(1000, 9999)
         OtpCode.objects.create(phone_number=phone_number, code=code)
         send_otp_code(phone_number=phone_number, code=code)
+
+    
+    @staticmethod
+    def send_otp(phone_number: str) -> None:
+        user = User.objects.filter(phone_number=phone_number).exists()
+        if not user:
+            raise ValueError('کاربری با این شماره یافت نشد')
+        OtpService._create_and_send(phone_number)
 
     @staticmethod
     def verify_otp(phone_number: str, code: int) -> dict:
@@ -40,6 +44,17 @@ class OtpService:
             }
         }
 
+    @staticmethod
+    def send_change_phone_otp(user, new_phone_number: str):
+        if new_phone_number == user.phone_number:
+            raise ValueError('شماره جدید وارد شده با شماره قبلی یکسان میباشد')
+        already_exists = User.objects.filter(phone_number=new_phone_number).exists()
+
+        if already_exists:
+            raise ValueError('این شماره از قبل موجود میباشد')
+
+        OtpService._create_and_send(new_phone_number)
+
 
 class UserService:
 
@@ -54,15 +69,18 @@ class UserService:
         )
         return user
 
+
     @staticmethod
-    def change_phone(user, phone_number: str, code: int):
-        otp = OtpCode.objects.get_valid(phone_number, code)
+    def change_phone(user, new_phone_number:str, code:int):
+        otp = OtpCode.objects.get_valid(new_phone_number, code)
         if not otp:
             raise ValueError('کد تایید اشتباه یا منقضی شده است')
+        
+        otp.delete()    
 
-        otp.delete()
-        user.phone_number = phone_number
+        user.phone_number = new_phone_number
         user.save(update_fields=['phone_number'])
+        
         return user
 
 

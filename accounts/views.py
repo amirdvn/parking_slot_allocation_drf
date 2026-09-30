@@ -123,7 +123,7 @@ class SendChangePhoneOtpView(APIView):
         try:
             
             phone_number = serializer.validated_data['phone_number']
-            OtpService.send_otp(phone_number)
+            OtpService.send_change_phone_otp(request.user, phone_number)
             
             return Response(
                 {
@@ -150,13 +150,13 @@ class VerifyChangePhoneOtpView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            user = request.user
+            
             phone_number = serializer.validated_data['phone_number']
             code = serializer.validated_data['code']
 
             user = UserService.change_phone(
-                user=user,
-                phone_number=phone_number,
+                user=request.user,
+                new_phone_number=phone_number,
                 code=code
             )
             return Response(
