@@ -18,31 +18,20 @@ class OtpService:
     
     @staticmethod
     def send_otp(phone_number: str) -> None:
+        
         user = User.objects.filter(phone_number=phone_number).exists()
         if not user:
             raise ValueError('کاربری با این شماره یافت نشد')
         OtpService._create_and_send(phone_number)
 
     @staticmethod
-    def verify_otp(phone_number: str, code: int) -> dict:
+    def verify(phone_number: str, code: int) -> None:
         otp = OtpCode.objects.get_valid(phone_number, code)
         if not otp:
             raise ValueError('کد تایید اشتباه یا منقضی شده است')
 
         otp.delete()
 
-        user = User.objects.filter(phone_number=phone_number).first()
-        if not user:
-            return {'is_registered': False}
-
-        tokens = RefreshToken.for_user(user)
-        return {
-            'is_registered': True,
-            'tokens': {
-                'refresh': str(tokens),
-                'access': str(tokens.access_token),
-            }
-        }
 
     @staticmethod
     def send_change_phone_otp(user, new_phone_number: str):
@@ -60,9 +49,18 @@ class UserService:
 
     @staticmethod
     def register(validated_data: dict):
+        email=validated_data['email']
+        phone_number = validated_data['phone_number']
+
+        if User.objects.filter(email=email).exists():
+            raise ValueError('این ایمیل قبلاً ثبت شده')
+        
+        if User.objects.filter(phone_number=phone_number).exists():
+            raise ValueError('این شماره قبلاً ثبت شده')
+
         user = User.objects.create_user(
-            email=validated_data['email'],
-            phone_number=validated_data['phone_number'],
+            email=email,
+            phone_number=phone_number,
             full_name=validated_data['full_name'],
             role=validated_data['role'],
             department=validated_data['department'],
@@ -72,12 +70,7 @@ class UserService:
 
     @staticmethod
     def change_phone(user, new_phone_number:str, code:int):
-        otp = OtpCode.objects.get_valid(new_phone_number, code)
-        if not otp:
-            raise ValueError('کد تایید اشتباه یا منقضی شده است')
-        
-        otp.delete()    
-
+        OtpService.verify(new_phone_number, code)
         user.phone_number = new_phone_number
         user.save(update_fields=['phone_number'])
         
@@ -93,3 +86,18 @@ class AuthService:
             token.blacklist()
         except Exception:
             raise ValueError('Refresh Token نامعتبر است')
+    @staticmethod
+    def verify_login_otp(phone_number: str, code: int) -> dict:
+        OtpService.verify(phone_number, code)
+        user = User.objects.filter(phone_number=phone_number).first()
+        if not user:
+            return {'is_registered': False}
+
+        tokens = RefreshToken.for_user(user)
+        return {
+            'is_registered': True,
+            'tokens': {
+                'refresh': str(tokens),
+                'access': str(tokens.access_token),
+            }
+        }

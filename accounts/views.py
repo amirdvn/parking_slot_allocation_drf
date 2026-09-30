@@ -31,7 +31,7 @@ class RegisterView(APIView):
                 {
                     'error':str(e)
                 },
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_400_BAD_REQUEST
             )
 
 @extend_schema(auth=[],  request=SendLoginOtpSerializer)
@@ -71,7 +71,7 @@ class VerifyLoginOtpView(APIView):
             phone_number = serializer.validated_data['phone_number']
             code = serializer.validated_data['code']
             
-            result = OtpService.verify_otp(
+            result = AuthService.verify_login_otp(
                 phone_number,
                 code
             )
@@ -150,7 +150,7 @@ class VerifyChangePhoneOtpView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            
+
             phone_number = serializer.validated_data['phone_number']
             code = serializer.validated_data['code']
 
