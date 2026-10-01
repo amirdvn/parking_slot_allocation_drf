@@ -19,7 +19,7 @@ class SendLoginOtpSerializer(serializers.Serializer):
 
 class VerifyLoginOtpSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=11)
-    code = serializers.CharField(min_length=4, max_length=4)
+    code = serializers.IntegerField()
 
 class SendChangePhoneOtpSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=11)

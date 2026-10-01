@@ -2,7 +2,8 @@ import random
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from .cache import OtpCache
-from utils import send_otp_code
+from .tasks import send_otp_code_task
+
 
 User = get_user_model()
 
@@ -13,7 +14,7 @@ class OtpService:
     def _create_and_send(phone_number: str) -> None:
         code = random.randint(1000, 9999)
         OtpCache.set(phone_number, code)
-        send_otp_code(phone_number=phone_number, code=code)
+        send_otp_code_task.delay(phone_number=phone_number, code=code)
 
     
     @staticmethod
@@ -27,7 +28,7 @@ class OtpService:
     @staticmethod
     def verify(phone_number: str, code: int) -> None:
         otp = OtpCache.get(phone_number)
-        if not otp is None or otp != code:
+        if otp is None or otp != code:
             raise ValueError('کد تایید اشتباه یا منقضی شده است')
 
         OtpCache.delete(phone_number)
@@ -86,6 +87,7 @@ class AuthService:
             token.blacklist()
         except Exception:
             raise ValueError('Refresh Token نامعتبر است')
+    
     @staticmethod
     def verify_login_otp(phone_number: str, code: int) -> dict:
         OtpService.verify(phone_number, code)
