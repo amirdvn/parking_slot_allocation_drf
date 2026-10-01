@@ -6,12 +6,19 @@ from rest_framework.response import Response
 from profiles.serializers import ProfileSerializer
 from drf_spectacular.utils import extend_schema
 from .services import OtpService, UserService, AuthService
-
+from .throttles import (
+    LoginSendOtpThrottle,
+    LoginVerifyOtpThrottle,
+    RegisterThrottle,
+    ChangePhoneSendOtpThrottle,
+    ChangePhoneVerifyOtpThrottle,
+)
 
 
 @extend_schema(auth=[],  request=RegisterSerializer)
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegisterThrottle]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -37,6 +44,8 @@ class RegisterView(APIView):
 @extend_schema(auth=[],  request=SendLoginOtpSerializer)
 class SendLoginOtpView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginSendOtpThrottle]
+
     def post(self, request):
         serializer = SendLoginOtpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -61,6 +70,7 @@ class SendLoginOtpView(APIView):
 @extend_schema(auth=[],  request=VerifyLoginOtpSerializer)
 class VerifyLoginOtpView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginVerifyOtpThrottle]
 
     def post(self, request):
         serializer = VerifyLoginOtpSerializer(data=request.data)
@@ -114,6 +124,7 @@ class LogoutView(APIView):
 
 class SendChangePhoneOtpView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ChangePhoneSendOtpThrottle]
 
     def post(self, request):
         
@@ -144,6 +155,7 @@ class SendChangePhoneOtpView(APIView):
 
 class VerifyChangePhoneOtpView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ChangePhoneVerifyOtpThrottle]
 
     def post(self, request):
         serializer = VerifyChangePhoneOtpSerializer(data=request.data)

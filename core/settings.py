@@ -155,6 +155,14 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    
+    'DEFAULT_THROTTLE_RATES': {
+        'login_send_otp': '3/120',
+        'login_verify_otp': '5/120',
+        'register': '5/3600',
+        'change_phone_send_otp': '3/120',
+        'change_phone_verify_otp': '5/120',
+    },
 }
 
 SIMPLE_JWT = {
