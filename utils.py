@@ -1,5 +1,9 @@
 from kavenegar import *
 from decouple import config
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def send_otp_code(phone_number, code):
     if config('SMS_BACKEND', default='mock') == 'kavenegar':
@@ -17,14 +21,15 @@ def _send_kavenegar(phone_number, code):
             'receptor': phone_number,#multiple mobile number, split by comma
             'message': f'کد تایید شما: {code}',
         } 
+        
         response = api.sms_send(params)
-        print(response)
-    except APIException as e: 
-        print(e)
-        raise
-    except HTTPException as e: 
-        print(e)
+
+        logger.info('SMS sent to %s via Kavenegar', phone_number)
+        logger.debug('Kavenegar response: %s', response)
+    except (APIException, HTTPException):
+        logger.exception('Kavenegar failed for %s', phone_number)
         raise
 
+
 def _send_mock(phone_number, code):
-    print(f'[MOCK SMS] to={phone_number} code={code}')
+    logger.warning('[MOCK SMS] to=%s code=%s', phone_number, code)
