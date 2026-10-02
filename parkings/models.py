@@ -2,8 +2,7 @@ from django.db import models
 from django.conf import settings 
 import uuid
 from vehicles.models import Vehicle
-from django.utils import timezone
-from notifications.models import Notification
+from .querysets import ParkingRequestQuerySet
 
 
 
@@ -12,6 +11,13 @@ class ParkingSpace(models.Model):
     class Meta:
         verbose_name = 'جایگاه پارکینگ'
         verbose_name_plural = 'جایگاه‌های پارکینگ'
+        ordering = ['-id'] 
+        indexes = [
+        models.Index(fields=['is_active']),
+        models.Index(fields=['space_type']),
+        models.Index(fields=['zone', 'floor']),
+    ]
+
 
     class SpaceType(models.TextChoices):
         NORMAL = 'NORMAL', 'عادی'
@@ -63,6 +69,12 @@ class ParkingRequest(models.Model):
         verbose_name = 'درخواست پارکینگ'
         verbose_name_plural = 'درخواست‌های پارکینگ'
         ordering = ['-id']
+        indexes = [
+        models.Index(fields=['status']),
+        models.Index(fields=['created_date']),
+        models.Index(fields=['user', 'status']),
+        models.Index(fields=['parking_space', 'status']),
+    ]  
 
     class RequestStatus(models.TextChoices):
         PENDING = 'PENDING', 'در انتظار بررسی'
@@ -96,32 +108,22 @@ class ParkingRequest(models.Model):
     reason = models.TextField(blank=True, null=True, verbose_name="دلیل مراجعه")
 
 
+    objects = ParkingRequestQuerySet.as_manager() 
+
     def __str__(self):
         return f'{self.user} - {self.vehicle} - {self.parking_space} - {self.get_status_display()}'
 
 
-    @classmethod
-    def expire_pending_requests(cls):
-        time_expire = timezone.now() - timezone.timedelta(minutes=3)
-        request_expired = cls.objects.filter(
-            status__in=[cls.RequestStatus.PENDING, cls.RequestStatus.NEEDS_REVIEW],
-            created_date__lt=time_expire)
-
-        for parkin_request in request_expired:
-            Notification.objects.create(
-                user=parkin_request.user,
-                type=Notification.Type.REQUEST_STATUS,
-                title='درخواست پارکینگ منقضی شد',
-                message=f'درخواست #{parkin_request.id} به دلیل عدم بررسی به‌موقع منقضی شد',
-                link=f'/api/parking/requests/detail/{parkin_request.id}/',
-            )
-        return request_expired.update(status=cls.RequestStatus.EXPIRED)
 
 class ParkingSpaceBlock(models.Model):
     class Meta:
         verbose_name = 'انسداد جایگاه'
         verbose_name_plural = 'انسداد جایگاه ها'
         ordering = ['-id']
+        indexes = [
+        models.Index(fields=['start_time', 'end_time']),
+        models.Index(fields=['parking_space', 'start_time']),
+    ]
 
     class ReasonChoice(models.TextChoices):
         REPAIR = 'REPAIR', 'تعمیرات و نگهداری'
@@ -150,6 +152,12 @@ class EntryExitLog(models.Model):
     class Meta:
         verbose_name=' گزارش ورود و خروج'
         verbose_name_plural='گزارشات ورود و خروج'
+        ordering = ['-id']
+        indexes = [
+        models.Index(fields=['exit_time']),
+        models.Index(fields=['vehicle', 'exit_time']),
+        models.Index(fields=['entry_time']),
+    ]
 
     parking_request = models.ForeignKey('ParkingRequest', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='درخواست')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, blank=True, null=True, verbose_name='وسیله نقلیه')
