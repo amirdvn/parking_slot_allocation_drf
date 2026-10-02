@@ -78,23 +78,15 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
         if overlapping_blocks.exists():
             raise serializers.ValidationError({'parking_space':'این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است'})
 
-        overlapping_requests = ParkingRequest.objects.filter(
-            parking_space=parking_space,
-            start_time__lt=end_time,
-            end_time__gt=start_time,
-            status__in=[
-                ParkingRequest.RequestStatus.PENDING,
-                ParkingRequest.RequestStatus.APPROVED,
-                ParkingRequest.RequestStatus.IN_USE,
-                ParkingRequest.RequestStatus.NEEDS_REVIEW])
+        
 
+        overlapping_requests = ParkingRequest.objects.overlapping(parking_space, start_time, end_time)
         if overlapping_requests.exists():
             raise serializers.ValidationError({
-                    'parking_space':
-                    'این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است و نمی‌توان آن را مسدود کرد'})
+                'parking_space':
+                'این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است و نمی‌توان آن را مسدود کرد'})
 
         return attrs
-
 
 class ParkingRequestReviewSerializer(serializers.ModelSerializer): 
     class Meta: 
@@ -288,7 +280,7 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'parking_space': 'این جایگاه در این بازه زمانی قبلاً مسدود شده است'})
 
         if parking_space and start_time and end_time:
-            overlapping_requests = ParkingRequest.objects.filter(parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time, status__in=[ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE, ParkingRequest.RequestStatus.NEEDS_REVIEW])
+            overlapping_requests = ParkingRequest.objects.overlapping(parking_space, start_time, end_time)
             if self.instance:
                 overlapping_requests = overlapping_requests.exclude(id=self.instance.id)
             if overlapping_requests.exists():
@@ -446,7 +438,7 @@ class GuestParkingRequestSerializer(serializers.ModelSerializer):
 
         if parking_space and start_time and end_time:
 
-            overlapping_requests = ParkingRequest.objects.filter( parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time, status__in=[ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE, ParkingRequest.RequestStatus.NEEDS_REVIEW, ] )
+            overlapping_requests = ParkingRequest.objects.overlapping(parking_space, start_time, end_time)
 
             if overlapping_requests.exists(): 
                 raise serializers.ValidationError({ 

@@ -24,3 +24,20 @@ class ParkingRequestQuerySet(models.QuerySet):
                 link=f'/api/parking/requests/detail/{parking_request.id}/',
             )
         return request_expired.update(status=RequestStatus.EXPIRED)
+
+
+    def overlapping(self, parking_space, start_time, end_time):
+
+        RequestStatus = self.model.RequestStatus
+        
+        overlapping_requests = self.filter(
+                parking_space=parking_space,
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+                status__in=[
+                    RequestStatus.PENDING,
+                    RequestStatus.APPROVED,
+                    RequestStatus.IN_USE,
+                    RequestStatus.NEEDS_REVIEW])
+
+        return overlapping_requests
