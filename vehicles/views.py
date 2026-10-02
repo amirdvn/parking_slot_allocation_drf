@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.generics import RetrieveUpdateDestroyAPIView
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, ListCreateAPIView
 
 from .models import Vehicle
 from .serializers import VehicleSerializer
@@ -10,29 +10,20 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 
 
 @extend_schema_view(
-    get=extend_schema(responses=VehicleSerializer(many=True)),
+    list=extend_schema(responses=VehicleSerializer(many=True)),
 
-    post=extend_schema(request=VehicleSerializer, responses={201: VehicleSerializer})
+    create=extend_schema(request=VehicleSerializer, responses={201: VehicleSerializer})
 )
-class VehicleListCreateView(APIView):
+class VehicleListCreateView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = VehicleSerializer
 
-    def get(self, request):
-        vehicles = Vehicle.objects.filter(user=request.user)
-        serializer = VehicleSerializer(vehicles, many=True)
+    def get_queryset(self):
+        vehicle_list = self.request.user.vehicles.all()
+        return vehicle_list
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        serializer = VehicleSerializer(data=request.data)
-
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class VehicleDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]

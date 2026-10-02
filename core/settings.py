@@ -163,6 +163,9 @@ REST_FRAMEWORK = {
         'change_phone_send_otp': '3/120',
         'change_phone_verify_otp': '5/120',
     },
+
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
 }
 
 SIMPLE_JWT = {
