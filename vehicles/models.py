@@ -32,9 +32,9 @@ class Vehicle(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='vehicles', verbose_name='مالک')
     plate_number = models.CharField(max_length=10, unique=True, verbose_name='پلاک')
-    vehicle_type = models.CharField(max_length=20, choices=VehicleType.choices, default=VehicleType.CAR, verbose_name='نوع وسیله نقلیه')
-    sub_type = models.CharField(max_length=20, choices=SubType.choices, default=SubType.PASSENGER, verbose_name='نوع سوخت / حالت')
-    color = models.CharField(max_length=20, choices=ColorType.choices, default=ColorType.BLACK, verbose_name='رنگ')
+    vehicle_type = models.CharField(max_length=20, choices=VehicleType.choices, verbose_name='نوع وسیله نقلیه')
+    sub_type = models.CharField(max_length=20, choices=SubType.choices, verbose_name='نوع سوخت / حالت')
+    color = models.CharField(max_length=20, choices=ColorType.choices, verbose_name='رنگ')
     is_active = models.BooleanField(default=False, verbose_name='فعال')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
