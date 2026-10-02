@@ -2,41 +2,11 @@ from rest_framework import serializers
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 from vehicles.models import Vehicle
 from django.utils import timezone
-from profiles.serializers import ProfileSerializer
-from vehicles.serializers import VehicleSerializer
 from django.contrib.auth import get_user_model
 
 
 User = get_user_model()
 
-def get_allowed_parking_spaces(vehicle=None, user=None, is_guest=False):
-
-    query_set = ParkingSpace.objects.filter(is_active=True)
-        
-    if user and (user.is_staff or user.is_superuser):
-        return query_set.filter(space_type=ParkingSpace.SpaceType.MANAGERS)
-
-    if is_guest:
-        return query_set.filter(space_type=ParkingSpace.SpaceType.GUEST)
-
-    if not vehicle:
-        return query_set
-
-    if vehicle.vehicle_type in (Vehicle.VehicleType.MOTORCYCLE, Vehicle.VehicleType.BICYCLE):
-        return query_set.filter(space_type__in=[ParkingSpace.SpaceType.MOTORCYCLE, ParkingSpace.SpaceType.EMERGENCY])
-
-    if vehicle.vehicle_type == Vehicle.VehicleType.CAR:
-        if vehicle.sub_type == Vehicle.SubType.ELECTRIC:
-            return query_set.filter(space_type__in=[ParkingSpace.SpaceType.ELECTRIC, ParkingSpace.SpaceType.EMERGENCY])
-
-        elif vehicle.sub_type == Vehicle.SubType.DISABLED:
-            return query_set.filter(space_type__in=[ParkingSpace.SpaceType.DISABLED, ParkingSpace.SpaceType.EMERGENCY])
-
-        elif vehicle.sub_type == Vehicle.SubType.CARGO:
-            return query_set.filter(space_type__in=[ParkingSpace.SpaceType.LOADING, ParkingSpace.SpaceType.EMERGENCY])
-        else:
-            return query_set.filter(space_type__in=[ParkingSpace.SpaceType.NORMAL, ParkingSpace.SpaceType.EMERGENCY])
-    return ParkingSpace.objects.none()
 
 #Manager
 
@@ -218,7 +188,9 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
         if vehicle:
 
-            self.fields['parking_space'].queryset = get_allowed_parking_spaces(vehicle=vehicle, user=user)
+            self.fields['parking_space'].queryset = ParkingSpace.objects.get_allowed_parking_spaces(
+                vehicle=vehicle, user=user
+            )
 
         else:
             self.fields['parking_space'].queryset = (ParkingSpace.objects.none())
@@ -260,7 +232,7 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
 
 
         if parking_space and vehicle:
-            allowed_spaces = get_allowed_parking_spaces(vehicle=vehicle, user=user)
+            allowed_spaces = ParkingSpace.objects.get_allowed_parking_spaces(vehicle=vehicle, user=user)
             if not allowed_spaces.filter(id=parking_space.id).exists():
                 raise serializers.ValidationError({'parking_space':'این جایگاه با وسیله نقلیه انتخاب‌شده همخوانی ندارد'})
 
@@ -394,7 +366,7 @@ class GuestParkingRequestSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['parking_space'].queryset = get_allowed_parking_spaces(is_guest=True)
+        self.fields['parking_space'].queryset = ParkingSpace.objects.get_allowed_parking_spaces(is_guest=True)
 
     def validate(self, attrs):
         start_time = attrs.get('start_time')

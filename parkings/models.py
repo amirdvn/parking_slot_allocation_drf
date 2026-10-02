@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings 
 import uuid
 from vehicles.models import Vehicle
-from .querysets import ParkingRequestQuerySet
+from .querysets import ParkingRequestQuerySet, ParkingSpaceQuerySet
 
 
 
@@ -17,8 +17,7 @@ class ParkingSpace(models.Model):
         models.Index(fields=['space_type']),
         models.Index(fields=['zone', 'floor']),
     ]
-
-
+    
     class SpaceType(models.TextChoices):
         NORMAL = 'NORMAL', 'عادی'
         GUEST = 'GUEST', 'مهمان'
@@ -51,6 +50,9 @@ class ParkingSpace(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='وضعیت فعال بودن')
     requires_permission = models.BooleanField(default=False, verbose_name='نیاز به تایید مدیر / مجوز')
     description = models.TextField(blank=True, null=True, verbose_name='ویژگی‌ها و توضیحات')
+
+
+    objects = ParkingSpaceQuerySet.as_manager()   
 
     def __str__(self):
         return f'{self.code} - {self.get_space_type_display()} - {self.get_floor_display()} - {self.get_zone_display()} - توضیحات: {self.description if self.description else "ندارد"}'
