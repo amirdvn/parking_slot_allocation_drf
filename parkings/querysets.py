@@ -67,3 +67,26 @@ class ParkingRequestQuerySet(models.QuerySet):
         time = self.filter(created_date__lt=appointed_time)
         return time
 
+
+class ParkingSpaceBlockQuerySet(models.QuerySet):
+
+    def overlapping(self, parking_space, start_time, end_time):
+        return self.filter(
+            parking_space=parking_space,
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+        )
+
+class EntryExitLogQuerySet(models.QuerySet):
+
+    def with_relations(self):
+        return self.select_related('vehicle', 'parking_request', 'guard')
+
+    def active(self):
+        return self.filter(exit_time__isnull=True)
+
+    def for_vehicle(self, vehicle):
+        return self.filter(vehicle=vehicle)
+
+    def for_request(self, parking_request):
+        return self.filter(parking_request=parking_request)

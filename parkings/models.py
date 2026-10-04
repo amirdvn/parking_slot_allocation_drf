@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings 
 import uuid
 from vehicles.models import Vehicle
-from .querysets import ParkingRequestQuerySet, ParkingSpaceQuerySet
+from .querysets import ParkingRequestQuerySet, ParkingSpaceQuerySet, ParkingSpaceBlockQuerySet, EntryExitLogQuerySet
 
 
 
@@ -145,6 +145,9 @@ class ParkingSpaceBlock(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name='ثبت کننده')
     created_date = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت ')
 
+
+    objects = ParkingSpaceBlockQuerySet.as_manager()
+
     def __str__(self):
         return f'انسداد {self.parking_space.code} ({self.start_time.strftime("%Y-%m-%d %H:%M")} تا {self.end_time.strftime("%Y-%m-%d %H:%M")})'
 
@@ -169,6 +172,8 @@ class EntryExitLog(models.Model):
 
     guard = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name='نگهبان')
     description = models.TextField(blank=True, null=True, verbose_name='توضیحات')
+
+    objects = EntryExitLogQuerySet.as_manager() 
 
     def __str__(self):
         if self.vehicle:

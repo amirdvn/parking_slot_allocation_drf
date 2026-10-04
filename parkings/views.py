@@ -387,7 +387,7 @@ class EntryExitLogListCreateView(ListCreateAPIView):
     serializer_class = EntryExitLogSerializer
 
     def get_queryset(self):
-        return EntryExitLog.objects.all()
+        return EntryExitLog.objects.with_relations().all()
 
     def perform_create(self, serializer):
         log = serializer.save(guard=self.request.user)

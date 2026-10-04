@@ -38,8 +38,8 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
 
 
-        overlapping_blocks = ParkingSpaceBlock.objects.filter(
-            parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time)
+        overlapping_blocks = ParkingSpaceBlock.objects.overlapping(
+            parking_space, start_time, end_time)
 
     
         if self.instance:
@@ -244,7 +244,9 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
 
         if parking_space and start_time and end_time:
-            is_blocked = ParkingSpaceBlock.objects.filter(parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time)
+            
+            is_blocked = ParkingSpaceBlock.objects.overlapping(parking_space, start_time, end_time)
+            
             if self.instance:
                 is_blocked = is_blocked.exclude(pk=self.instance.pk)
 
@@ -310,11 +312,11 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
             if timezone.now() > parking_request.end_time:
                 raise serializers.ValidationError({'parking_request': 'زمان این درخواست به پایان رسیده است'})
 
-            active_entry = EntryExitLog.objects.filter(parking_request=parking_request, exit_time__isnull=True).exists()
+            active_entry = EntryExitLog.objects.for_request(parking_request).active().exists()
             if active_entry:
                 raise serializers.ValidationError({'parking_request': 'برای این درخواست قبلاً ورود ثبت شده است'})
         else:
-            active_log = EntryExitLog.objects.filter(vehicle=vehicle, exit_time__isnull=True).exists()
+            active_log = EntryExitLog.objects.for_vehicle(vehicle).active().exists()
             if active_log:
                 raise serializers.ValidationError({'vehicle': 'این خودرو قبلاً وارد شده و هنوز خارج نشده است'})
 
@@ -402,7 +404,7 @@ class GuestParkingRequestSerializer(serializers.ModelSerializer):
 
         if parking_space and start_time and end_time:
 
-            is_blocked = ParkingSpaceBlock.objects.filter( parking_space=parking_space, start_time__lt=end_time, end_time__gt=start_time)
+            is_blocked = ParkingSpaceBlock.objects.overlapping(parking_space, start_time, end_time)
 
             if is_blocked.exists(): 
                 raise serializers.ValidationError({ 
