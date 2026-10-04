@@ -95,3 +95,45 @@ class ParkingRequestService:
         )
 
         return parking_request
+
+
+
+class EntryExitLogService:
+
+    @staticmethod
+    def record_entry(parking_request):
+        parking_request.status = ParkingRequest.RequestStatus.IN_USE
+        parking_request.save(update_fields=['status'])
+
+        Notification.objects.create(
+            user=parking_request.user,
+            type=Notification.Type.REQUEST_STATUS,
+            title='ورود خودرو ثبت شد',
+            message=f'ورود خودرو برای درخواست #{parking_request.id} ثبت شد',
+            link=f'/api/parking/requests/detail/{parking_request.id}/',
+        )
+    
+
+
+    @staticmethod
+    def record_exit(log):
+        if log.exit_time:
+            raise ValueError('خروج این خودرو قبلاً ثبت شده است')
+
+        log.exit_time = timezone.now()
+        log.save(update_fields=['exit_time'])
+
+        parking_request = log.parking_request
+        if parking_request:
+            parking_request.status = ParkingRequest.RequestStatus.COMPLETED
+            parking_request.save(update_fields=['status'])
+
+            Notification.objects.create(
+                user=parking_request.user,
+                type=Notification.Type.REQUEST_STATUS,
+                title='خروج خودرو ثبت شد',
+                message=f'خروج خودرو برای درخواست #{parking_request.id} ثبت شد',
+                link=f'/api/parking/requests/detail/{parking_request.id}/',
+            )
+
+        return log

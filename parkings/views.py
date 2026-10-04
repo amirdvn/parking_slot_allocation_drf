@@ -14,7 +14,7 @@ from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from notifications.models import Notification
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from .services import ParkingRequestService
+from .services import ParkingRequestService, EntryExitLogService
 
 
 User = get_user_model()
@@ -375,20 +375,9 @@ class EntryExitLogListCreateView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         log = serializer.save(guard=self.request.user)
-        parking_request = log.parking_request
-        if parking_request:
-            parking_request.status = parking_request.RequestStatus.IN_USE
-            parking_request.save(update_fields=['status'])
+        if log.parking_request:
+            EntryExitLogService.record_entry(log.parking_request)
 
-            try:
-                Notification.objects.create(
-                    user=parking_request.user,
-                    type=Notification.Type.REQUEST_STATUS,
-                    title='ورود خودرو ثبت شد',
-                    message=f'ورود خودرو برای درخواست #{parking_request.id} ثبت شد',
-                    link=f'/api/parking/requests/detail/{parking_request.id}/')
-            except Exception as e:
-                print(f"خطا در ایجاد اعلان: {e}")
 
 @extend_schema_view(
     put=extend_schema(operation_id="guard_vehicle_exit_put"),
@@ -404,29 +393,22 @@ class VehicleExitView(UpdateAPIView):
 
         log = self.get_object()
 
-        if log.exit_time:
+        try:
+            EntryExitLogService.record_exit(log)
+        
+        except ValueError as e:
+            
             return Response(
-                {'detail': 'خروج این خودرو قبلاً ثبت شده است.'},
-                status=status.HTTP_400_BAD_REQUEST)
-
-        log.exit_time = timezone.now()
-        log.save(update_fields=['exit_time'])
-        parking_request = log.parking_request
-        if parking_request:
-            parking_request.status = parking_request.RequestStatus.COMPLETED
-            parking_request.save(update_fields=['status'])
-
-            try:
-                Notification.objects.create(
-                    user=parking_request.user,
-                    type=Notification.Type.REQUEST_STATUS,
-                    title='خروج خودرو ثبت شد',
-                    message=f'خروج خودرو برای درخواست #{parking_request.id} ثبت شد',
-                    link=f'/api/parking/requests/detail/{parking_request.id}/')
-            except Exception as e:
-                print(f"خطا در ایجاد اعلان: {e}")
-
-        return Response(EntryExitLogSerializer(log).data, status=status.HTTP_200_OK)
+                {
+                    'detail': str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response(
+            EntryExitLogSerializer(log).data,
+            status=status.HTTP_200_OK
+        )
 
 
 @extend_schema(operation_id="guard_approved_parking_request_list")
