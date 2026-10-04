@@ -76,45 +76,31 @@ class ParkingRequestReviewView(UpdateAPIView):
     permission_classes = [IsManagerUser] 
     def update(self, request, *args, **kwargs): 
         parking_request = self.get_object()
-        if parking_request.status not in [ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.NEEDS_REVIEW, ]:
-
-             return Response( { 
-                'detail': 'این درخواست در وضعیت فعلی قابل بررسی نیست' },
-                status=status.HTTP_400_BAD_REQUEST )
-
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            parking_request.status = serializer.validated_data['status']
-            if parking_request.status == ParkingRequest.RequestStatus.REJECTED:
-                parking_request.rejection_reason = serializer.validated_data.get('rejection_reason')
+        
+        serializer.is_valid(raise_exception=True)
 
-            parking_request.save( update_fields=['status', 'updated_date', 'rejection_reason'] ) 
+        try:
+            ParkingRequestService.review(
+                parking_request,
+                serializer.validated_data['status'],
+                serializer.validated_data.get('rejection_reason'),
+            )
 
+        except ValueError as e:
+            return Response(
+                {
+                    'detail': str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST)
 
-            if parking_request.status == ParkingRequest.RequestStatus.APPROVED:
-                title = 'تایید درخواست پارکینگ'
-                message = (
-                    f'درخواست شما برای جایگاه '
-                    f'{parking_request.parking_space.code if parking_request.parking_space else "تعیین‌شده"} '
-                    f'تایید شد')
-            else:
-                title = 'رد درخواست پارکینگ'
-                message = f'درخواست شما رد شد؛ دلیل: {parking_request.rejection_reason or "تعیین نشده"}'
-            try:
-                Notification.objects.create(
-                    user=parking_request.user,
-                    type=Notification.Type.REQUEST_STATUS,
-                    title=title,
-                    message=message,
-                    link=f'/api/parking/requests/detail/{parking_request.id}/')
-            except Exception as e:
-                print(f"خطا در ایجاد اعلان: {e}")
-
-            return Response( {
-                'detail': 'وضعیت درخواست با موفقیت تغییر کرد',
-                'status': parking_request.status },
-                status=status.HTTP_200_OK )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                'detail': 'وضعیت درخواست با موفقیت تغییر کرد', 
+                'status': parking_request.status
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 @extend_schema(operation_id="manager_parking_request_approved_list")

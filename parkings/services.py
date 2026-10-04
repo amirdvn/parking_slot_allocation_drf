@@ -56,3 +56,42 @@ class ParkingRequestService:
         parking_request.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
 
         return parking_request
+
+
+    #manager
+    @staticmethod
+    def review(parking_request, status, rejection_reason=None):
+
+        if parking_request.status not in [
+            ParkingRequest.RequestStatus.PENDING,
+            ParkingRequest.RequestStatus.NEEDS_REVIEW,
+        ]:
+            raise ValueError('این درخواست در وضعیت فعلی قابل بررسی نیست')
+
+
+        parking_request.status = status
+
+
+        if status == ParkingRequest.RequestStatus.REJECTED:
+            parking_request.rejection_reason = rejection_reason
+
+
+        parking_request.save(update_fields=['status', 'updated_date', 'rejection_reason'])
+
+
+        if status == ParkingRequest.RequestStatus.APPROVED:
+            title = 'تایید درخواست پارکینگ'
+            message = f'درخواست شما برای جایگاه {parking_request.parking_space.code if parking_request.parking_space else "تعیین‌شده"} تایید شد'
+        else:
+            title = 'رد درخواست پارکینگ'
+            message = f'درخواست شما رد شد؛ دلیل: {parking_request.rejection_reason or "تعیین نشده"}'
+
+        Notification.objects.create(
+            user=parking_request.user,
+            type=Notification.Type.REQUEST_STATUS,
+            title=title,
+            message=message,
+            link=f'/api/parking/requests/detail/{parking_request.id}/',
+        )
+
+        return parking_request
