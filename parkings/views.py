@@ -292,43 +292,41 @@ class ParkingRequestDetailView(RetrieveUpdateAPIView):
         return ParkingRequest.objects.filter(user=self.request.user)
 
     def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.status != ParkingRequest.RequestStatus.PENDING:
-            return Response(
-                {'detail': 'فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند'},
-                status=status.HTTP_400_BAD_REQUEST)
-
+        parking_request = self.get_object()
+        try:
+            ParkingRequestService.check_editable(parking_request)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return super().update(request, *args, **kwargs)
 
 @extend_schema(operation_id="user_parking_request_cancel")
 class ParkingRequestCancelView(UpdateAPIView):
-    queryset = ParkingRequest.objects.all()
     serializer_class = ParkingRequestCancelSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return ParkingRequest.objects.filter(user=self.request.user)
+
     def update(self, request, *args, **kwargs):
         parking_request = self.get_object()
-
-        if parking_request.user != request.user:
-            return Response(
-                {'detail': 'شما اجازه لغو این درخواست را ندارید'},
-                status=status.HTTP_403_FORBIDDEN)
-        if parking_request.status not in [ ParkingRequest.RequestStatus.PENDING, ParkingRequest.RequestStatus.APPROVED]:
-            return Response(
-                {'detail': 'این درخواست در وضعیت فعلی قابل لغو نیست'},
-                status=status.HTTP_400_BAD_REQUEST)
-        
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            parking_request.status = ParkingRequest.RequestStatus.CANCELED
-            parking_request.cancellation_reason = serializer.validated_data['cancellation_reason']
+        
+        serializer.is_valid(raise_exception=True)
 
-            parking_request.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
-            return Response(
-                {'detail':'در خواست با موفقیت لغو شد'},
-                status=status.HTTP_202_ACCEPTED)
-            
-        return Response( serializer.errors, status=status.HTTP_400_BAD_REQUEST )
+        try:
+            ParkingRequestService.cancel(
+                parking_request,
+                serializer.validated_data['cancellation_reason'],
+            )
+
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {'detail': 'درخواست با موفقیت لغو شد'},
+            status=status.HTTP_200_OK,
+        )
+
 
 
 @extend_schema(operation_id="user_dashboard")

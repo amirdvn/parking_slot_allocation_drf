@@ -35,3 +35,24 @@ class ParkingRequestService:
             parking_request.save(update_fields=['status'])
 
         return parking_request
+
+
+    @staticmethod
+    def check_editable(parking_request):
+        if parking_request.status != ParkingRequest.RequestStatus.PENDING:
+            raise ValueError('فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند')
+
+
+    @staticmethod
+    def cancel(parking_request, reason):
+        if parking_request.status not in [
+            ParkingRequest.RequestStatus.PENDING,
+            ParkingRequest.RequestStatus.APPROVED,
+        ]:
+            raise ValueError('این درخواست در وضعیت فعلی قابل لغو نیست')
+
+        parking_request.status = ParkingRequest.RequestStatus.CANCELED
+        parking_request.cancellation_reason = reason
+        parking_request.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
+
+        return parking_request
