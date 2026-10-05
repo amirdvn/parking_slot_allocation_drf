@@ -182,3 +182,10 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 pakring_space.rtf
+
+
+
+# Celery Beat
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid

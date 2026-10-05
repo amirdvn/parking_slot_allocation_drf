@@ -1,9 +1,20 @@
 from django.db import models
 from django.conf import settings
 import uuid
+from .querysets import NotificationQuerySet
 
 
 class Notification(models.Model):
+    
+    class Meta:
+        ordering = ['-created_date']
+
+        indexes = [
+            models.Index(fields=['user', 'is_read']),
+            models.Index(fields=['user', 'created_date']),
+        ]
+
+
     class Type(models.TextChoices):
         REQUEST_STATUS = 'REQUEST_STATUS', 'تغییر وضعیت درخواست'
         REVIEW_NEEDED = 'REVIEW_NEEDED', 'درخواست نیازمند بررسی'
@@ -18,8 +29,7 @@ class Notification(models.Model):
     is_read = models.BooleanField(default=False)
     created_date = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        ordering = ['-created_date']
+    objects = NotificationQuerySet.as_manager()
 
     def __str__(self):
         return f'{self.user} - {self.title}'

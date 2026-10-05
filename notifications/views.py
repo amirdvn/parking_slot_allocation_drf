@@ -1,4 +1,4 @@
-from rest_framework.generics import ListAPIView, UpdateAPIView
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -13,32 +13,54 @@ class NotificationListView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Notification.objects.filter(user=self.request.user).order_by('-created_date')
+        queryset = Notification.objects.for_user(self.request.user)
         return queryset
 
-class NotificationMarkAsReadView(UpdateAPIView):
-    serializer_class = NotificationSerializer
+class NotificationMarkAsReadView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user)
+    def post(self, request, pk):
+        updated = Notification.objects.for_user(request.user).filter(id=pk).update(is_read=True)
 
-    def update(self, request, *args, **kwargs):
-        notification = self.get_object()
-        notification.is_read = True
-        notification.save(update_fields=['is_read'])
-        return Response({'detail': 'اعلان خوانده شد'}, status=status.HTTP_200_OK)
+        if not updated:
+            return Response(
+                {
+                    'detail': 'اعلان پیدا نشد'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        return Response(
+            {
+                'detail': 'اعلان خوانده شد'
+            },
+            status=status.HTTP_200_OK
+        )
+    
 
-class NotificationMarkAllAsReadView(UpdateAPIView):
+class NotificationMarkAllAsReadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-        return Response({'detail': 'همه اعلان‌ها خوانده شدند'}, status=status.HTTP_200_OK)
+        Notification.objects.for_user(request.user).unread().update(is_read=True)
+        return Response(
+            {
+                'detail': 'همه اعلان‌ها خوانده شدند'
+            },
+            status=status.HTTP_200_OK
+        )
+
+
 
 class UnreadNotificationCountView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        count = Notification.objects.filter(user=request.user, is_read=False).count()
-        return Response({'unread_count': count})
+        
+        count = Notification.objects.for_user(request.user).unread().count()
+     
+        return Response(
+            {
+                'unread_count': count
+             }
+        )
