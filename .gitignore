@@ -189,3 +189,5 @@ pakring_space.rtf
 celerybeat-schedule
 celerybeat-schedule.*
 celerybeat.pid
+celerybeat-schedule-shm
+celerybeat-schedule-wal
