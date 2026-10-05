@@ -1,9 +1,15 @@
 from datetime import timedelta
 from django.utils import timezone
 from notifications.models import Notification
-from .models import ParkingRequest, ParkingSpace
+from .models import ParkingRequest, ParkingSpace, ParkingSpaceBlock
 from notifications.tasks import create_notification_task
+from django.db.models import Count, Q
+from django.contrib.auth import get_user_model
+from vehicles.models import Vehicle
 
+
+
+User = get_user_model()
 
 class ParkingRequestService:
 
@@ -137,3 +143,160 @@ class EntryExitLogService:
             )
 
         return log
+
+
+
+class DashboardService:
+
+    @staticmethod
+    def get_manager_dashboard():
+        now = timezone.now()
+
+        total_spaces = ParkingSpace.objects.filter(is_active=True).count()
+
+        occupied_spaces = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.IN_USE
+        ).values('parking_space').distinct().count()
+
+        blocked_spaces = ParkingSpaceBlock.objects.filter(
+            start_time__lte=now, end_time__gt=now
+        ).values('parking_space').distinct().count()
+
+        available_spaces = total_spaces - (occupied_spaces + blocked_spaces)
+
+        pending_requests = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.PENDING
+        ).count()
+
+        needs_review_requests = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.NEEDS_REVIEW
+        ).count()
+
+        top_parking_spaces = (
+            ParkingSpace.objects.annotate(
+                usage_count=Count(
+                    'parking_requests',
+                    filter=Q(parking_requests__status__in=[
+                        ParkingRequest.RequestStatus.IN_USE,
+                        ParkingRequest.RequestStatus.COMPLETED,
+                    ]),
+                )
+            ).order_by('-usage_count')[:5]
+        )
+
+        top_users = (
+            User.objects.annotate(
+                request_count=Count(
+                    'parking_requests',
+                    filter=Q(parking_requests__status__in=[
+                        ParkingRequest.RequestStatus.IN_USE,
+                        ParkingRequest.RequestStatus.COMPLETED,
+                    ]),
+                )
+            ).order_by('-request_count')[:5]
+        )
+
+        return {
+            'parking_spaces': {
+                'total': total_spaces,
+                'occupied': occupied_spaces,
+                'blocked': blocked_spaces,
+                'available': available_spaces,
+            },
+            'requests': {
+                'pending': pending_requests,
+                'needs_review': needs_review_requests,
+            },
+            'top_parking_spaces': [
+                {
+                    'id': space.id,
+                    'code': space.code,
+                    'usage_count': space.usage_count,
+                }
+                for space in top_parking_spaces
+            ],
+            'top_users': [
+                {
+                    'id': user.id,
+                    'full_name': user.full_name,
+                    'phone_number': user.phone_number,
+                    'request_count': user.request_count,
+                }
+                for user in top_users
+            ],
+        }
+
+
+    @staticmethod
+    def get_user_dashboard(user):
+        total_vehicles = Vehicle.objects.filter(user=user).count()
+        active_vehicles = Vehicle.objects.filter(user=user, is_active=True).count()
+
+        pending_requests = ParkingRequest.objects.filter(
+            user=user, status=ParkingRequest.RequestStatus.PENDING
+        ).count()
+
+        needs_review_requests = ParkingRequest.objects.filter(
+            user=user, status=ParkingRequest.RequestStatus.NEEDS_REVIEW
+        ).count()
+
+        approved_requests = ParkingRequest.objects.filter(
+            user=user, status=ParkingRequest.RequestStatus.APPROVED
+        ).count()
+
+        rejected_requests = ParkingRequest.objects.filter(
+            user=user, status=ParkingRequest.RequestStatus.REJECTED
+        ).count()
+
+        return {
+            'vehicles': {
+                'total': total_vehicles,
+                'active': active_vehicles,
+            },
+            'requests': {
+                'pending': pending_requests,
+                'needs_review': needs_review_requests,
+                'approved': approved_requests,
+                'rejected': rejected_requests,
+            },
+        }
+
+
+    @staticmethod
+    def get_guard_dashboard():
+        now = timezone.now()
+
+        total_spaces = ParkingSpace.objects.filter(is_active=True).count()
+
+        occupied_spaces = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.IN_USE
+        ).values('parking_space').distinct().count()
+
+        blocked_spaces = ParkingSpaceBlock.objects.filter(
+            start_time__lte=now, end_time__gt=now
+        ).values('parking_space').distinct().count()
+
+        available_spaces = total_spaces - (occupied_spaces + blocked_spaces)
+
+        in_use_vehicles = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.IN_USE
+        ).count()
+
+        approved_requests = ParkingRequest.objects.filter(
+            status=ParkingRequest.RequestStatus.APPROVED
+        ).count()
+
+        return {
+            'parking_spaces': {
+                'total': total_spaces,
+                'occupied': occupied_spaces,
+                'blocked': blocked_spaces,
+                'available': available_spaces,
+            },
+            'vehicles': {
+                'in_use': in_use_vehicles,
+            },
+            'requests': {
+                'approved': approved_requests,
+            },
+        }
