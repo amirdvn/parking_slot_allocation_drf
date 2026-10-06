@@ -1,6 +1,5 @@
 from django.db import models
-from django.utils import timezone
-from datetime import timedelta
+from parkings.cache import AllowedParkingSpacesCache
 
 
 class ParkingSpaceQuerySet(models.QuerySet):
@@ -8,34 +7,66 @@ class ParkingSpaceQuerySet(models.QuerySet):
 
         from vehicles.models import Vehicle
 
+
         SpaceType = self.model.SpaceType
+
+        if user and (user.is_staff or user.is_superuser):
+            cache_key = AllowedParkingSpacesCache.make_key(is_manager=True)
+
+        elif is_guest:
+            cache_key = AllowedParkingSpacesCache.make_key(is_guest=True)
+
+        elif not vehicle:
+            cache_key = AllowedParkingSpacesCache.make_key()
+
+        else:
+            cache_key = AllowedParkingSpacesCache.make_key(
+                vehicle_type=vehicle.vehicle_type,
+                sub_type=vehicle.sub_type
+            )
+
+
+        cached_ids = AllowedParkingSpacesCache.get(cache_key)
+
+        if cached_ids is not None:
+            return self.filter(id__in=cached_ids)
+
 
         query_set = self.filter(is_active=True)
             
         if user and (user.is_staff or user.is_superuser):
-            return query_set.filter(space_type=SpaceType.MANAGERS)
+            query_set = query_set.filter(space_type=SpaceType.MANAGERS)
 
-        if is_guest:
-            return query_set.filter(space_type=SpaceType.GUEST)
+        elif is_guest:
+            query_set = query_set.filter(space_type=SpaceType.GUEST)
 
-        if not vehicle:
-            return query_set
+        elif not vehicle:
+            query_set = query_set
 
-        if vehicle.vehicle_type in (Vehicle.VehicleType.MOTORCYCLE, Vehicle.VehicleType.BICYCLE):
-            return query_set.filter(space_type__in=[SpaceType.MOTORCYCLE, SpaceType.EMERGENCY])
+        elif vehicle.vehicle_type in (Vehicle.VehicleType.MOTORCYCLE, Vehicle.VehicleType.BICYCLE):
+            query_set = query_set.filter(space_type__in=[SpaceType.MOTORCYCLE, SpaceType.EMERGENCY])
 
-        if vehicle.vehicle_type == Vehicle.VehicleType.CAR:
+        elif vehicle.vehicle_type == Vehicle.VehicleType.CAR:
+            
             if vehicle.sub_type == Vehicle.SubType.ELECTRIC:
-                return query_set.filter(space_type__in=[SpaceType.ELECTRIC, SpaceType.EMERGENCY])
+                query_set = query_set.filter(space_type__in=[SpaceType.ELECTRIC, SpaceType.EMERGENCY])
 
             elif vehicle.sub_type == Vehicle.SubType.DISABLED:
-                return query_set.filter(space_type__in=[SpaceType.DISABLED, SpaceType.EMERGENCY])
+                query_set = query_set.filter(space_type__in=[SpaceType.DISABLED, SpaceType.EMERGENCY])
 
             elif vehicle.sub_type == Vehicle.SubType.CARGO:
-                return query_set.filter(space_type__in=[SpaceType.LOADING, SpaceType.EMERGENCY])
+                query_set = query_set.filter(space_type__in=[SpaceType.LOADING, SpaceType.EMERGENCY])
             else:
-                return query_set.filter(space_type__in=[SpaceType.NORMAL, SpaceType.EMERGENCY])
-        return self.none()
+                query_set = query_set.filter(space_type__in=[SpaceType.NORMAL, SpaceType.EMERGENCY])
+        
+        else:
+            query_set = self.none()
+
+        ids = list(query_set.values_list('id', flat=True))
+        AllowedParkingSpacesCache.set(cache_key, ids)
+
+        return self.filter(id__in=ids)
+    
 
 
 class ParkingRequestQuerySet(models.QuerySet):

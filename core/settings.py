@@ -99,6 +99,8 @@ CACHES = {
 
 OTP_TTL = config('OTP_TTL', default=120, cast=int)
 
+ALLOWED_PARKING_SPACE_CACHE_TTL = config('ALLOWED_PARKING_SPACE_CACHE_TTL', default=300, cast=int)
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -169,7 +171,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1000),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
