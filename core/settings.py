@@ -101,6 +101,8 @@ OTP_TTL = config('OTP_TTL', default=120, cast=int)
 
 ALLOWED_PARKING_SPACE_CACHE_TTL = config('ALLOWED_PARKING_SPACE_CACHE_TTL', default=300, cast=int)
 
+DASHBOARD_CACHE_TTL = config('DASHBOARD_CACHE_TTL', default=60, cast=int)
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 

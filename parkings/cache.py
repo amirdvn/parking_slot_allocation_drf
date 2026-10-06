@@ -4,7 +4,7 @@ from django.core.cache import cache
 
 class AllowedParkingSpacesCache:
 
-    TTL = getattr(settings, 'ALLOWED_PARKING_SPACE_CACHE_TTL', 300)
+    TTL = getattr(settings, 'ALLOWED_PARKING_SPACE_CACHE_TTL')
     PREFIX = 'allowed_spaces'
 
     @classmethod
@@ -31,3 +31,24 @@ class AllowedParkingSpacesCache:
     @classmethod
     def invalidate_all(cls):
         cache.delete_pattern(f'{cls.PREFIX}:*')
+
+
+
+class DashboardCache:
+    TTL = getattr(settings, 'DASHBOARD_CACHE_TTL')
+ 
+    MANAGER_KEY = 'dashboard:manager'
+    GUARD_KEY = 'dashboard:guard'   
+
+    @classmethod
+    def get(cls, key):
+        return cache.get(key)
+
+    @classmethod
+    def set(cls, key, data):
+        cache.set(key, data, timeout=cls.TTL)
+
+    @classmethod
+    def invalidate(cls):
+        cache.delete(cls.MANAGER_KEY)
+        cache.delete(cls.GUARD_KEY)

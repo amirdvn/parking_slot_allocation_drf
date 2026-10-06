@@ -6,7 +6,7 @@ from notifications.tasks import create_notification_task
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from vehicles.models import Vehicle
-
+from .cache import DashboardCache
 
 
 User = get_user_model()
@@ -150,6 +150,12 @@ class DashboardService:
 
     @staticmethod
     def get_manager_dashboard():
+
+        cached = DashboardCache.get(DashboardCache.MANAGER_KEY)
+
+        if cached is not None:
+            return cached
+
         now = timezone.now()
 
         total_spaces = ParkingSpace.objects.filter(is_active=True).count()
@@ -196,7 +202,7 @@ class DashboardService:
             ).order_by('-request_count')[:5]
         )
 
-        return {
+        data = {
             'parking_spaces': {
                 'total': total_spaces,
                 'occupied': occupied_spaces,
@@ -226,6 +232,8 @@ class DashboardService:
             ],
         }
 
+        DashboardCache.set(DashboardCache.MANAGER_KEY, data)
+        return data
 
     @staticmethod
     def get_user_dashboard(user):
@@ -264,6 +272,10 @@ class DashboardService:
 
     @staticmethod
     def get_guard_dashboard():
+        cached = DashboardCache.get(DashboardCache.GUARD_KEY)
+        if cached is not None:
+            return cached
+
         now = timezone.now()
 
         total_spaces = ParkingSpace.objects.filter(is_active=True).count()
@@ -286,7 +298,7 @@ class DashboardService:
             status=ParkingRequest.RequestStatus.APPROVED
         ).count()
 
-        return {
+        data = {
             'parking_spaces': {
                 'total': total_spaces,
                 'occupied': occupied_spaces,
@@ -300,3 +312,6 @@ class DashboardService:
                 'approved': approved_requests,
             },
         }
+
+        DashboardCache.set(DashboardCache.GUARD_KEY, data)
+        return data
