@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-from .serializers import RegisterSerializer, SendLoginOtpSerializer, VerifyLoginOtpSerializer, SendChangePhoneOtpSerializer, VerifyChangePhoneOtpSerializer
+from .serializers import RegisterSerializer, SendLoginOtpSerializer, VerifyLoginOtpSerializer, SendChangePhoneOtpSerializer, VerifyChangePhoneOtpSerializer, LogoutSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
@@ -104,8 +104,10 @@ class VerifyLoginOtpView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            AuthService.logout(request.data['refresh'])
+            AuthService.logout(serializer.validated_data['refresh'])
             
             return Response(
                 {

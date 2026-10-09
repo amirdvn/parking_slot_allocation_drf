@@ -27,3 +27,7 @@ class SendChangePhoneOtpSerializer(serializers.Serializer):
 class VerifyChangePhoneOtpSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=11)
     code = serializers.IntegerField(min_value=4, max_value=4)
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()

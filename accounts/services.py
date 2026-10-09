@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from .cache import OtpCache
 from .tasks import send_otp_code_task
-
+from rest_framework_simplejwt.exceptions import TokenError
 
 User = get_user_model()
 
@@ -88,7 +88,7 @@ class AuthService:
         try:
             token = RefreshToken(refresh_token)
             token.blacklist()
-        except Exception:
+        except TokenError:
             raise ValueError('Refresh Token نامعتبر است')
     
     @staticmethod
