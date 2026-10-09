@@ -99,6 +99,8 @@ CACHES = {
 
 OTP_TTL = config('OTP_TTL', default=120, cast=int)
 
+REGISTRATION_TTL = config('REGISTRATION_TTL', default=300, cast=int)
+
 ALLOWED_PARKING_SPACE_CACHE_TTL = config('ALLOWED_PARKING_SPACE_CACHE_TTL', default=300, cast=int)
 
 DASHBOARD_CACHE_TTL = config('DASHBOARD_CACHE_TTL', default=60, cast=int)

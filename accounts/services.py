@@ -20,9 +20,6 @@ class OtpService:
     @staticmethod
     def send_otp(phone_number: str) -> None:
         
-        user = User.objects.filter(phone_number=phone_number).exists()
-        if not user:
-            raise ValueError('کاربری با این شماره یافت نشد')
         OtpService._create_and_send(phone_number)
 
     @staticmethod
@@ -53,6 +50,9 @@ class UserService:
         email=validated_data['email']
         phone_number = validated_data['phone_number']
 
+        if not OtpCache.is_registration_verified(phone_number):
+            raise ValueError('ابتدا شماره تلفن خود را تأیید کنید')
+
         if User.objects.filter(email=email).exists():
             raise ValueError('این ایمیل قبلاً ثبت شده')
         
@@ -66,6 +66,9 @@ class UserService:
             role=validated_data['role'],
             department=validated_data['department'],
         )
+        
+        OtpCache.delete_registration_verified(phone_number)
+
         return user
 
 
@@ -93,9 +96,11 @@ class AuthService:
         OtpService.verify(phone_number, code)
         user = User.objects.filter(phone_number=phone_number).first()
         if not user:
+            OtpCache.set_registration_verified(phone_number)
             return {'is_registered': False}
 
         tokens = RefreshToken.for_user(user)
+        
         return {
             'is_registered': True,
             'tokens': {
