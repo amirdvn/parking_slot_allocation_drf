@@ -18,7 +18,7 @@ class AllowedParkingSpacesCache:
         if not vehicle_type:
             return f'{cls.PREFIX}:all'
         
-        return f'{cls.PREFIX}:{vehicle_type}:{sub_type or 'default'}'
+        return f'{cls.PREFIX}:{vehicle_type}:{sub_type or "default"}'
 
     @classmethod
     def get(cls, key):
@@ -30,7 +30,13 @@ class AllowedParkingSpacesCache:
 
     @classmethod
     def invalidate_all(cls):
-        cache.delete_pattern(f'{cls.PREFIX}:*')
+        keys = [f'{cls.PREFIX}:manager', f'{cls.PREFIX}:guest', f'{cls.PREFIX}:all']
+
+        for vehicle_type in ('CAR', 'MOTORCYCLE', 'BICYCLE'):
+            for sub_type in ('default', 'PASSENGER', 'CARGO', 'ELECTRIC', 'DISABLE'):
+                keys.append(f'{cls.PREFIX}:{vehicle_type}:{sub_type}')
+
+        cache.delete_many(keys)
 
 
 
@@ -50,5 +56,4 @@ class DashboardCache:
 
     @classmethod
     def invalidate(cls):
-        cache.delete(cls.MANAGER_KEY)
-        cache.delete(cls.GUARD_KEY)
+        cache.delete_many([cls.MANAGER_KEY, cls.GUARD_KEY])
