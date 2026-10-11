@@ -10,7 +10,9 @@ class ParkingSpaceQuerySet(models.QuerySet):
 
         SpaceType = self.model.SpaceType
 
-        if user and (user.is_staff or user.is_superuser):
+        is_manager = bool(user and (user.is_superuser or user.is_staff or getattr(user, 'role', None) == 'MANAGER'))
+
+        if is_manager:
             cache_key = AllowedParkingSpacesCache.make_key(is_manager=True)
 
         elif is_guest:
@@ -29,12 +31,12 @@ class ParkingSpaceQuerySet(models.QuerySet):
         cached_ids = AllowedParkingSpacesCache.get(cache_key)
 
         if cached_ids is not None:
-            return self.filter(id__in=cached_ids)
+            return self.filter(id__in=cached_ids, is_active=True,)
 
 
         query_set = self.filter(is_active=True)
             
-        if user and (user.is_staff or user.is_superuser):
+        if is_manager:
             query_set = query_set.filter(space_type=SpaceType.MANAGERS)
 
         elif is_guest:
@@ -62,10 +64,10 @@ class ParkingSpaceQuerySet(models.QuerySet):
         else:
             query_set = self.none()
 
-        ids = list(query_set.values_list('id', flat=True))
-        AllowedParkingSpacesCache.set(cache_key, ids)
+        space_ids = list(query_set.values_list('id', flat=True))
+        AllowedParkingSpacesCache.set(cache_key, space_ids)
 
-        return self.filter(id__in=ids)
+        return self.filter(id__in=space_ids, is_active=True)
     
 
 

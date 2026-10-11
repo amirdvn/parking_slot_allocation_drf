@@ -165,7 +165,7 @@ class EntryExitLog(models.Model):
     ]
 
     parking_request = models.ForeignKey('ParkingRequest', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='درخواست')
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, blank=True, null=True, verbose_name='وسیله نقلیه')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='وسیله نقلیه')
 
     entry_time = models.DateTimeField(auto_now_add=True, verbose_name=' زمان ورود')
     exit_time = models.DateTimeField(null=True, blank=True, verbose_name='زمان خروج ')
