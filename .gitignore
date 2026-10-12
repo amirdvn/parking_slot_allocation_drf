@@ -191,3 +191,4 @@ celerybeat-schedule.*
 celerybeat.pid
 celerybeat-schedule-shm
 celerybeat-schedule-wal
+.idea/
