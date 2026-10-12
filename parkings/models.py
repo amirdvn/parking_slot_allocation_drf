@@ -59,7 +59,7 @@ class ParkingSpace(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            self.code = f'{self.zone}-{self.floor}-{str(self.id)[:3].upper()}'
+            self.code = f'{self.zone}-{self.floor}-{str(self.id)[:5].upper()}'
         if self.zone == self.ZoneChoice.EAST:
             self.requires_permission = True
         return super().save(*args, **kwargs)

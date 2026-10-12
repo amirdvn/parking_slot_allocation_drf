@@ -31,6 +31,9 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
         parking_space = attrs.get('parking_space', self.instance.parking_space if self.instance else None)
 
 
+        if not parking_space or not start_time or not end_time:
+            raise serializers.ValidationError('جایگاه، زمان شروع و زمان پایان الزامی هستند')
+
         if start_time < timezone.now():
             raise serializers.ValidationError({'start_time':'زمان شروع نمی‌تواند در گذشته باشد'})
         
@@ -46,9 +49,13 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
             overlapping_blocks = overlapping_blocks.exclude(id=self.instance.id)
 
         if overlapping_blocks.exists():
-            raise serializers.ValidationError({'parking_space':'این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است'})
-
-        
+            raise serializers.ValidationError(
+                {
+                    'parking_space':
+                    'این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است'
+                }
+            )
+     
 
         overlapping_requests = ParkingRequest.objects.overlapping(parking_space, start_time, end_time)
         if overlapping_requests.exists():
@@ -69,12 +76,21 @@ class ParkingRequestReviewSerializer(serializers.ModelSerializer):
         rejection_reason = attrs.get('rejection_reason') 
 
         if status_value not in [ ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.REJECTED]: 
-            raise serializers.ValidationError({ 'status': 'وضعیت باید تایید یا رد باشد' }) 
+            raise serializers.ValidationError(
+                {
+                    'status':
+                    'وضعیت باید تایید یا رد باشد'
+                }
+            ) 
 
         if status_value == ParkingRequest.RequestStatus.REJECTED: 
             if not rejection_reason or not rejection_reason.strip(): 
-                raise serializers.ValidationError({ 
-                    'rejection_reason': 'دلیل رد درخواست الزامی است'}) 
+                raise serializers.ValidationError(
+                    { 
+                        'rejection_reason': 
+                        'دلیل رد درخواست الزامی است'
+                    }
+                ) 
         return attrs
 
 
@@ -141,9 +157,9 @@ class ParkingManagerVehicleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehicle
 
-        fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'is_active', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'is_active', 'created_date', 'updated_date']
 
-        read_only_fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'created_date', 'updated_date']
 
 
 
@@ -153,7 +169,7 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParkingRequest
         fields = ['id', 'vehicle', 'parking_space', 'start_time', 'end_time', 'status', 'description', 'cancellation_reason', 'created_date', 'updated_date']
-        read_only_fields = ['id', 'status', 'cancellation_reason', 'created_at', 'updated_at', 'created_date', 'updated_date']
+        read_only_fields = ['id', 'status', 'cancellation_reason', 'created_date', 'updated_date']
 
 
     def __init__(self, *args, **kwargs):
@@ -196,19 +212,6 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
             self.fields['parking_space'].queryset = (ParkingSpace.objects.none())
             
 
-    def validate_vehicle(self, value):
-
-        request = self.context.get('request')
-        user = request.user
-
-        if value.user != user:
-            raise serializers.ValidationError('این خودرو متعلق به شما نیست')
-
-        if not value.is_active:
-            raise serializers.ValidationError('این خودرو فعال نیست')
-
-        return value
-
     def validate(self, attrs):
         validated_data = super().validate(attrs)
 
@@ -216,13 +219,21 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
             if self.instance.status != ParkingRequest.RequestStatus.PENDING:
                 raise serializers.ValidationError('فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند')
 
-        start_time = validated_data.get('start_time', self.instance.start_time if self.instance else None)
-        end_time = validated_data.get('end_time', self.instance.end_time if self.instance else None)
-        parking_space = validated_data.get('parking_space', self.instance.parking_space if self.instance else None)
-        vehicle = validated_data.get('vehicle', self.instance.vehicle if self.instance else None)
-
         request = self.context.get('request')
+        
+        if not request or not request.user:
+            raise serializers.ValidationError('درخواست کاربر یافت نشد')
+
         user = request.user
+
+        start_time = validated_data.get('start_time', self.instance.start_time if self.instance else None)
+        
+        end_time = validated_data.get('end_time', self.instance.end_time if self.instance else None)
+        
+        parking_space = validated_data.get('parking_space', self.instance.parking_space if self.instance else None)
+                
+        vehicle = validated_data.get('vehicle', self.instance.vehicle if self.instance else None)
+               
 
         if not vehicle:
             raise serializers.ValidationError({'vehicle': 'انتخاب وسیله نقلیه الزامی است'})
@@ -231,34 +242,63 @@ class ParkingRequestSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'parking_space': 'انتخاب جایگاه الزامی است'})
 
 
-        if parking_space and vehicle:
-            allowed_spaces = ParkingSpace.objects.get_allowed_parking_spaces(vehicle=vehicle, user=user)
-            if not allowed_spaces.filter(id=parking_space.id).exists():
-                raise serializers.ValidationError({'parking_space':'این جایگاه با وسیله نقلیه انتخاب‌شده همخوانی ندارد'})
+        if not start_time or not end_time:
+            raise serializers.ValidationError('زمان شروع و زمان پایان الزامی هستند')
 
-        if start_time and end_time:
-            if start_time < timezone.now():
-                raise serializers.ValidationError({'start_time':'زمان شروع نمی‌تواند در گذشته باشد'})
 
-            if start_time >= end_time:
-                raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
+        allowed_spaces = ParkingSpace.objects.get_allowed_parking_spaces(vehicle=vehicle, user=user)
 
-        if parking_space and start_time and end_time:
-            
-            is_blocked = ParkingSpaceBlock.objects.overlapping(parking_space, start_time, end_time)
-            
-            if self.instance:
-                is_blocked = is_blocked.exclude(pk=self.instance.pk)
 
-            if is_blocked.exists():
-                raise serializers.ValidationError({'parking_space': 'این جایگاه در این بازه زمانی قبلاً مسدود شده است'})
+        if not allowed_spaces.filter(id=parking_space.id).exists():
+            raise serializers.ValidationError(
+                {
+                    'parking_space':
+                    'این جایگاه با وسیله نقلیه انتخاب‌شده همخوانی ندارد'
+                }
+            )
 
-        if parking_space and start_time and end_time:
-            overlapping_requests = ParkingRequest.objects.overlapping(parking_space, start_time, end_time)
-            if self.instance:
-                overlapping_requests = overlapping_requests.exclude(id=self.instance.id)
-            if overlapping_requests.exists():
-                raise serializers.ValidationError({'parking_space': 'این جایگاه در بازه زمانی انتخابی قبلاً درخواست یا رزرو شده است'})
+
+        if start_time < timezone.now():
+            raise serializers.ValidationError(
+                {
+                    'start_time':
+                    'زمان شروع نمی‌تواند در گذشته باشد'
+                }
+            )
+
+        if start_time >= end_time:
+            raise serializers.ValidationError(
+                {
+                    'end_time':
+                    'زمان پایان باید بعد از زمان شروع باشد'
+                }
+            )
+
+
+        overlapping_blocks = ParkingSpaceBlock.objects.overlapping(parking_space, start_time, end_time)
+        
+
+        if overlapping_blocks.exists():
+                raise serializers.ValidationError(
+                    {
+                        'parking_space':
+                        'این جایگاه در این بازه زمانی قبلاً مسدود شده است'
+                    }
+                )
+
+        overlapping_requests = ParkingRequest.objects.overlapping(parking_space, start_time, end_time)
+
+        if self.instance:
+            overlapping_requests = overlapping_requests.exclude(id=self.instance.id)
+
+
+        if overlapping_requests.exists():
+            raise serializers.ValidationError(
+                {
+                    'parking_space': 
+                    'این جایگاه در بازه زمانی انتخابی قبلاً درخواست یا رزرو شده است'
+                }
+            )
     
         return validated_data
 
@@ -299,26 +339,55 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
 
         if parking_request and vehicle:
             if parking_request.vehicle != vehicle:
-                raise serializers.ValidationError({'vehicle': 'این خودرو با خودروی درخواست پارک یکسان نیست'})
+                raise serializers.ValidationError(
+                    {
+                        'vehicle': 
+                        'این خودرو با خودروی درخواست پارک یکسان نیست'
+                    }
+                )
         if parking_request:
             if parking_request.status != ParkingRequest.RequestStatus.APPROVED:
-                raise serializers.ValidationError({
-                    'parking_request': 'این درخواست هنوز تایید نشده است'})
+                raise serializers.ValidationError(
+                    {
+                        'parking_request': 
+                        'این درخواست هنوز تایید نشده است'
+                    }
+                )
 
 
             if timezone.now() < parking_request.start_time:
-                raise serializers.ValidationError({'parking_request': 'هنوز زمان شروع این درخواست نرسیده است'})
+                raise serializers.ValidationError(
+                    {
+                        'parking_request': 
+                        'هنوز زمان شروع این درخواست نرسیده است'
+                    }
+                )
 
             if timezone.now() > parking_request.end_time:
-                raise serializers.ValidationError({'parking_request': 'زمان این درخواست به پایان رسیده است'})
+                raise serializers.ValidationError(
+                    {
+                        'parking_request': 
+                        'زمان این درخواست به پایان رسیده است'
+                    }
+                )
 
             active_entry = EntryExitLog.objects.for_request(parking_request).active().exists()
             if active_entry:
-                raise serializers.ValidationError({'parking_request': 'برای این درخواست قبلاً ورود ثبت شده است'})
+                raise serializers.ValidationError(
+                    {
+                        'parking_request': 
+                        'برای این درخواست قبلاً ورود ثبت شده است'
+                    }
+                )
         else:
             active_log = EntryExitLog.objects.for_vehicle(vehicle).active().exists()
             if active_log:
-                raise serializers.ValidationError({'vehicle': 'این خودرو قبلاً وارد شده و هنوز خارج نشده است'})
+                raise serializers.ValidationError(
+                    {
+                        'vehicle': 
+                        'این خودرو قبلاً وارد شده و هنوز خارج نشده است'
+                    }
+                )
 
         return attrs
 
@@ -334,15 +403,20 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
         }
 
     def get_parking_request_detail(self, obj):
-        if not obj.parking_request:
+
+        parking_request = obj.parking_request
+
+        if not parking_request:
             return None
 
+        parking_space = parking_request.parking_space
+
         return {
-            'id': obj.parking_request.id,
-            'parking_space': obj.parking_request.parking_space.code,
-            'start_time': obj.parking_request.start_time,
-            'end_time': obj.parking_request.end_time,
-            'status': obj.parking_request.status,
+            'id': parking_request.id,
+            'parking_space': parking_space.code if parking_space else None,
+            'start_time': parking_request.start_time,
+            'end_time': parking_request.end_time,
+            'status': parking_request.status,
         }
 
     def get_guard_detail(self, obj):
@@ -404,25 +478,35 @@ class GuestParkingRequestSerializer(serializers.ModelSerializer):
 
         if parking_space and start_time and end_time:
 
-            is_blocked = ParkingSpaceBlock.objects.overlapping(parking_space, start_time, end_time)
+            overlapping_blocks = ParkingSpaceBlock.objects.overlapping(parking_space, start_time, end_time)
 
-            if is_blocked.exists(): 
-                raise serializers.ValidationError({ 
-                    'parking_space': 'این جایگاه در بازه زمانی انتخابی مسدود است' })
-
-        if parking_space and start_time and end_time:
+            if overlapping_blocks.exists(): 
+                raise serializers.ValidationError(
+                    { 
+                        'parking_space': 
+                        'این جایگاه در بازه زمانی انتخابی مسدود است'
+                    }
+                )
 
             overlapping_requests = ParkingRequest.objects.overlapping(parking_space, start_time, end_time)
 
             if overlapping_requests.exists(): 
-                raise serializers.ValidationError({ 
-                    'parking_space': 'این جایگاه در بازه زمانی انتخابی قبلاً درخواست یا رزرو شده است' })
+                raise serializers.ValidationError(
+                    { 
+                        'parking_space':
+                        'این جایگاه در بازه زمانی انتخابی قبلاً درخواست یا رزرو شده است'
+                    }
+                )
 
         if parking_space:
 
             if parking_space.space_type != ParkingSpace.SpaceType.GUEST:
                 raise serializers.ValidationError(
-                    {'parking_space': 'برای درخواست مهمان فقط جایگاه‌های نوع مهمان مجاز است'})
+                    {
+                        'parking_space': 
+                        'برای درخواست مهمان فقط جایگاه‌های نوع مهمان مجاز است'
+                    }
+                )
 
         return attrs
 
@@ -455,5 +539,4 @@ class GuestParkingRequestListSerializer(serializers.ModelSerializer):
             'code': obj.parking_space.code,
             'floor':obj.parking_space.floor,
             'zone':obj.parking_space.zone,
-            'status': obj.status,
         }

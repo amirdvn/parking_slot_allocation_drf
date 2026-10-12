@@ -10,7 +10,7 @@ class ParkingSpaceQuerySet(models.QuerySet):
 
         SpaceType = self.model.SpaceType
 
-        is_manager = bool(user and (user.is_superuser or user.is_staff or getattr(user, 'role', None) == 'MANAGER'))
+        is_manager = bool(user and (user.is_superuser or getattr(user, 'role', None) == 'MANAGER'))
 
         if is_manager:
             cache_key = AllowedParkingSpacesCache.make_key(is_manager=True)
@@ -73,6 +73,8 @@ class ParkingSpaceQuerySet(models.QuerySet):
 
 class ParkingRequestQuerySet(models.QuerySet):
 
+    def with_relations(self):
+        return self.select_related('user', 'vehicle', 'parking_space')
 
     def overlapping(self, parking_space, start_time, end_time):
 
@@ -113,7 +115,7 @@ class ParkingSpaceBlockQuerySet(models.QuerySet):
 class EntryExitLogQuerySet(models.QuerySet):
 
     def with_relations(self):
-        return self.select_related('vehicle', 'parking_request', 'guard')
+        return self.select_related('vehicle', 'parking_request', 'parking_request__parking_space', 'guard')
 
     def active(self):
         return self.filter(exit_time__isnull=True)

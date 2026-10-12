@@ -21,15 +21,21 @@ class ParkingRequestService:
         time_expire = timezone.now() - timedelta(minutes=3)
         request_expired = ParkingRequest.objects.pending_or_review().created_before(time_expire)
 
-        for parking_request in request_expired:
+        expired_requests = list(request_expired.values_list('id', 'user_id'))
+        
+        updated_count = request_expired.update(status=RequestStatus.EXPIRED)
+
+
+        for req_id, user_id in expired_requests:
             create_notification_task.delay(
-                user_id=parking_request.user_id,
+                user_id=user_id,
                 notification_type=Notification.Type.REQUEST_STATUS,
                 title='درخواست پارکینگ منقضی شد',
-                message=f'درخواست #{parking_request.id} به دلیل عدم بررسی به‌موقع منقضی شد',
-                link=f'/api/parking/requests/detail/{parking_request.id}/',
+                message=f'درخواست #{req_id} به دلیل عدم بررسی به‌موقع منقضی شد',
+                link=f'/api/parking/requests/detail/{req_id}/',
             )
-        return request_expired.update(status=RequestStatus.EXPIRED)
+        
+        return updated_count
 
 
     @staticmethod
@@ -68,11 +74,20 @@ class ParkingRequestService:
     @staticmethod
     def review(parking_request, status, rejection_reason=None):
 
+        RequestStatus = ParkingRequest.RequestStatus
+
         if parking_request.status not in [
-            ParkingRequest.RequestStatus.PENDING,
-            ParkingRequest.RequestStatus.NEEDS_REVIEW,
+            RequestStatus.PENDING,
+            RequestStatus.NEEDS_REVIEW,
         ]:
             raise ValueError('این درخواست در وضعیت فعلی قابل بررسی نیست')
+
+
+        if status not in [
+            RequestStatus.APPROVED,
+            RequestStatus.REJECTED,
+        ]:
+            raise ValueError('وضعیت جدید باید تایید یا رد باشد')
 
 
         parking_request.status = status
@@ -108,6 +123,10 @@ class EntryExitLogService:
 
     @staticmethod
     def record_entry(parking_request):
+
+        if parking_request.status != ParkingRequest.RequestStatus.APPROVED:
+            raise ValueError('فقط درخواست‌های تاییدشده امکان ثبت ورود دارند')
+
         parking_request.status = ParkingRequest.RequestStatus.IN_USE
         parking_request.save(update_fields=['status'])
 
@@ -131,6 +150,10 @@ class EntryExitLogService:
 
         parking_request = log.parking_request
         if parking_request:
+            
+            if parking_request.status != ParkingRequest.RequestStatus.IN_USE:
+                raise ValueError('این درخواست در وضعیت «در حال استفاده» نیست')
+            
             parking_request.status = ParkingRequest.RequestStatus.COMPLETED
             parking_request.save(update_fields=['status'])
 
@@ -160,16 +183,23 @@ class DashboardService:
 
         total_spaces = ParkingSpace.objects.filter(is_active=True).count()
 
-        occupied_spaces = ParkingRequest.objects.filter(
+        occupied_ids = set(
+            ParkingRequest.objects.filter(
             status=ParkingRequest.RequestStatus.IN_USE
-        ).values('parking_space').distinct().count()
+            ).values_list('parking_space_id', flat=True)
+        )
 
-        blocked_spaces = ParkingSpaceBlock.objects.filter(
+
+        blocked_ids = set(
+            ParkingSpaceBlock.objects.filter(
             start_time__lte=now, end_time__gt=now
-        ).values('parking_space').distinct().count()
+            ).values_list('parking_space_id', flat=True)
+        )
 
-        available_spaces = total_spaces - (occupied_spaces + blocked_spaces)
-
+        occupied_spaces = len(occupied_ids)
+        blocked_spaces = len(blocked_ids)
+        available_spaces = total_spaces - len(occupied_ids | blocked_ids)   
+        
         pending_requests = ParkingRequest.objects.filter(
             status=ParkingRequest.RequestStatus.PENDING
         ).count()
@@ -280,16 +310,24 @@ class DashboardService:
 
         total_spaces = ParkingSpace.objects.filter(is_active=True).count()
 
-        occupied_spaces = ParkingRequest.objects.filter(
+        occupied_ids = set(
+        ParkingRequest.objects.filter(
             status=ParkingRequest.RequestStatus.IN_USE
-        ).values('parking_space').distinct().count()
+        ).values_list('parking_space_id', flat=True)
+    )
 
-        blocked_spaces = ParkingSpaceBlock.objects.filter(
+        blocked_ids = set(
+        ParkingSpaceBlock.objects.filter(
             start_time__lte=now, end_time__gt=now
-        ).values('parking_space').distinct().count()
-
-        available_spaces = total_spaces - (occupied_spaces + blocked_spaces)
-
+        ).values_list('parking_space_id', flat=True)
+    )
+        
+        
+        occupied_spaces = len(occupied_ids)
+        blocked_spaces = len(blocked_ids)
+        available_spaces = total_spaces - len(occupied_ids | blocked_ids)
+        
+        
         in_use_vehicles = ParkingRequest.objects.filter(
             status=ParkingRequest.RequestStatus.IN_USE
         ).count()

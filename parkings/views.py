@@ -68,9 +68,14 @@ class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
     patch=extend_schema(operation_id="manager_parking_request_review_patch")
 )
 class ParkingRequestReviewView(UpdateAPIView): 
-    queryset = ParkingRequest.objects.all() 
+
     serializer_class = ParkingRequestReviewSerializer 
     permission_classes = [IsManagerUser] 
+
+    def get_queryset(self):
+        return ParkingRequest.objects.select_related('parking_space')
+
+
     def update(self, request, *args, **kwargs): 
         parking_request = self.get_object()
         serializer = self.get_serializer(data=request.data)
@@ -107,7 +112,7 @@ class ApprovedParkingRequestListView(ListAPIView):
 
     def get_queryset(self): 
 
-        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED).select_related('user', 'vehicle', 'parking_space') 
+        return ParkingRequest.objects.with_relations().filter(status=ParkingRequest.RequestStatus.APPROVED)
 
 @extend_schema(operation_id="manager_parking_request_needs_review_list")
 class NeedsReviewParkingRequestListView(ListAPIView):
@@ -116,16 +121,15 @@ class NeedsReviewParkingRequestListView(ListAPIView):
 
     def get_queryset(self): 
 
-        return ParkingRequest.objects.filter( 
-        status=ParkingRequest.RequestStatus.NEEDS_REVIEW ).select_related( 'user', 'vehicle', 'parking_space' )
-
+        return ParkingRequest.objects.with_relations().filter( 
+        status=ParkingRequest.RequestStatus.NEEDS_REVIEW )
 @extend_schema(operation_id="manager_parking_request_cancel_list")
 class CanceledParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUser]
 
     def get_queryset(self):
-        return ParkingRequest.objects.filter(status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED]).select_related('user', 'vehicle', 'parking_space')
+        return ParkingRequest.objects.with_relations().filter(status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED])
 
 @extend_schema(operation_id="manager_dashboard")
 class ManagerDashboardView(APIView):
@@ -190,7 +194,7 @@ class ParkingRequestListCreateView(ListCreateAPIView):
      permission_classes = [IsAuthenticated]
      def get_queryset(self):
 
-        return ParkingRequest.objects.filter(user=self.request.user)
+        return ParkingRequest.objects.with_relations().filter(user=self.request.user)
      def perform_create(self, serializer):
         parking_request = ParkingRequestService.create(
             user=self.request.user,
@@ -207,7 +211,7 @@ class ParkingRequestDetailView(RetrieveUpdateAPIView):
     serializer_class = ParkingRequestSerializer
     permission_classes = [IsAuthenticated]
     def get_queryset(self):
-        return ParkingRequest.objects.filter(user=self.request.user)
+        return ParkingRequest.objects.with_relations().filter(user=self.request.user)
 
     def update(self, request, *args, **kwargs):
         parking_request = self.get_object()
@@ -280,9 +284,11 @@ class EntryExitLogListCreateView(ListCreateAPIView):
 )
 class VehicleExitView(UpdateAPIView):
 
-    queryset = EntryExitLog.objects.all()
     serializer_class = EntryExitLogSerializer
     permission_classes = [IsManagerOrGuard]
+
+    def get_queryset(self):
+        return EntryExitLog.objects.with_relations().all()
 
     def update(self, request, *args, **kwargs):
 
@@ -312,7 +318,7 @@ class ApprovedParkingRequestGuardListView(ListAPIView):
     permission_classes = [IsManagerOrGuard]
 
     def get_queryset(self):
-        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.APPROVED).select_related('user', 'vehicle', 'parking_space') 
+        return ParkingRequest.objects.with_relations().filter(status=ParkingRequest.RequestStatus.APPROVED)
 
 @extend_schema(operation_id="guard_inuse_parking_space_list")
 class InUseParkingListView(ListAPIView):
@@ -321,7 +327,7 @@ class InUseParkingListView(ListAPIView):
     permission_classes = [IsManagerOrGuard]
 
     def get_queryset(self):
-        return ParkingRequest.objects.filter(status=ParkingRequest.RequestStatus.IN_USE).select_related('user', 'vehicle', 'parking_space') 
+        return ParkingRequest.objects.with_relations().filter(status=ParkingRequest.RequestStatus.IN_USE)
 
 @extend_schema(operation_id="guard_vehicle_search")
 class GuardVehicleSearchView(ListAPIView):
@@ -336,9 +342,9 @@ class GuardVehicleSearchView(ListAPIView):
         if not plate_number:
             return ParkingRequest.objects.none()
 
-        return ParkingRequest.objects.filter(
+        return ParkingRequest.objects.with_relations().filter(
             vehicle__plate_number=plate_number,
-            status__in=[ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE]).select_related('user', 'vehicle', 'parking_space') 
+            status__in=[ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE])
 
 @extend_schema(operation_id="guard_dashboard")
 class GuardDashboardView(APIView):
@@ -362,7 +368,7 @@ class GuestParkingRequestListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
 
-        return ParkingRequest.objects.filter(is_guest=True)
+        return ParkingRequest.objects.with_relations().filter(is_guest=True)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user, vehicle=None, is_guest=True)

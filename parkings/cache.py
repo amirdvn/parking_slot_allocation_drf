@@ -33,7 +33,7 @@ class AllowedParkingSpacesCache:
         keys = [f'{cls.PREFIX}:manager', f'{cls.PREFIX}:guest', f'{cls.PREFIX}:all']
 
         for vehicle_type in ('CAR', 'MOTORCYCLE', 'BICYCLE'):
-            for sub_type in ('default', 'PASSENGER', 'CARGO', 'ELECTRIC', 'DISABLE'):
+            for sub_type in ('default', 'PASSENGER', 'CARGO', 'ELECTRIC', 'DISABLED'):
                 keys.append(f'{cls.PREFIX}:{vehicle_type}:{sub_type}')
 
         cache.delete_many(keys)
