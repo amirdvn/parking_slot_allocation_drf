@@ -1,12 +1,13 @@
 from datetime import timedelta
 from django.utils import timezone
 from notifications.models import Notification
-from .models import ParkingRequest, ParkingSpace, ParkingSpaceBlock
+from .models import ParkingRequest, ParkingSpace, ParkingSpaceBlock, EntryExitLog
 from notifications.tasks import create_notification_task
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from vehicles.models import Vehicle
 from .cache import DashboardCache
+from django.db import transaction
 
 
 User = get_user_model()
@@ -122,48 +123,70 @@ class ParkingRequestService:
 class EntryExitLogService:
 
     @staticmethod
+    @transaction.atomic
     def record_entry(parking_request):
+
+        parking_request = ParkingRequest.objects.select_for_update().get(pk=parking_request.id)
 
         if parking_request.status != ParkingRequest.RequestStatus.APPROVED:
             raise ValueError('فقط درخواست‌های تاییدشده امکان ثبت ورود دارند')
 
         parking_request.status = ParkingRequest.RequestStatus.IN_USE
-        parking_request.save(update_fields=['status'])
+        parking_request.save(update_fields=['status', 'updated_date'])
 
-        create_notification_task.delay(
-            user_id=parking_request.user_id,
-            notification_type=Notification.Type.REQUEST_STATUS,
-            title='ورود خودرو ثبت شد',
-            message=f'ورود خودرو برای درخواست #{parking_request.id} ثبت شد',
-            link=f'/api/parking/requests/detail/{parking_request.id}/',
-        )
-    
+
+        user_id = parking_request.user_id
+        request_id = parking_request.id
+
+        def send_notification():
+            create_notification_task.delay(
+                user_id=user_id,
+                notification_type=Notification.Type.REQUEST_STATUS,
+                title='ورود خودرو ثبت شد',
+                message=f'ورود خودرو برای درخواست #{request_id} ثبت شد',
+                link=f'/api/parking/requests/detail/{request_id}/',
+            )
+        transaction.on_commit(send_notification)
+        return parking_request
 
 
     @staticmethod
+    @transaction.atomic
     def record_exit(log):
+
+        log = EntryExitLog.objects.select_for_update().get(pk=log.id)
+
+
         if log.exit_time:
             raise ValueError('خروج این خودرو قبلاً ثبت شده است')
+
+        parking_request = None
+
+        if log.parking_request_id:
+            parking_request = ParkingRequest.objects.get(pk=log.parking_request_id)
+
+            if parking_request.status != ParkingRequest.RequestStatus.IN_USE:
+                raise ValueError('این درخواست در وضعیت «در حال استفاده» نیست')
+
+            parking_request.status = ParkingRequest.RequestStatus.COMPLETED
+            parking_request.save(update_fields=['status'])
 
         log.exit_time = timezone.now()
         log.save(update_fields=['exit_time'])
 
-        parking_request = log.parking_request
         if parking_request:
-            
-            if parking_request.status != ParkingRequest.RequestStatus.IN_USE:
-                raise ValueError('این درخواست در وضعیت «در حال استفاده» نیست')
-            
-            parking_request.status = ParkingRequest.RequestStatus.COMPLETED
-            parking_request.save(update_fields=['status'])
+            user_id = parking_request.user_id
+            request_id = parking_request.id
 
-            create_notification_task.delay(
-                user_id=parking_request.user_id,
-                notification_type=Notification.Type.REQUEST_STATUS,
-                title='خروج خودرو ثبت شد',
-                message=f'خروج خودرو برای درخواست #{parking_request.id} ثبت شد',
-                link=f'/api/parking/requests/detail/{parking_request.id}/',
-            )
+            def send_notification():
+                create_notification_task.delay(
+                    user_id=user_id,
+                    notification_type=Notification.Type.REQUEST_STATUS,
+                    title='خروج خودرو ثبت شد',
+                    message=f'خروج خودرو برای درخواست #{request_id} ثبت شد',
+                    link=f'/api/parking/requests/detail/{request_id}/',
+                )
+            transaction.on_commit(send_notification)
 
         return log
 
