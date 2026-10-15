@@ -95,10 +95,14 @@ class AuthService:
     def verify_login_otp(phone_number: str, code: int) -> dict:
         OtpService.verify(phone_number, code)
         user = User.objects.filter(phone_number=phone_number).first()
+
         if not user:
             OtpCache.set_registration_verified(phone_number)
             return {'is_registered': False}
 
+        if not user.is_active:
+            raise ValueError('حساب کاربری شما فعال نیست')
+        
         tokens = RefreshToken.for_user(user)
         
         return {
