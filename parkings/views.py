@@ -12,7 +12,7 @@ from vehicles.models import Vehicle
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from .services import ParkingRequestService, EntryExitLogService, DashboardService
-
+from django.db import transaction
 
 User = get_user_model()
 
@@ -273,9 +273,11 @@ class EntryExitLogListCreateView(ListCreateAPIView):
         return EntryExitLog.objects.with_relations().all()
 
     def perform_create(self, serializer):
-        log = serializer.save(guard=self.request.user)
-        if log.parking_request:
-            EntryExitLogService.record_entry(log.parking_request)
+        with transaction.atomic():
+            log = serializer.save(guard=self.request.user)
+
+            if log.parking_request:
+                EntryExitLogService.record_entry(log.parking_request)
 
 
 @extend_schema_view(

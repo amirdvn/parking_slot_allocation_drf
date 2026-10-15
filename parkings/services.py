@@ -163,7 +163,7 @@ class EntryExitLogService:
         parking_request = None
 
         if log.parking_request_id:
-            parking_request = ParkingRequest.objects.get(pk=log.parking_request_id)
+            parking_request = ParkingRequest.objects.select_for_update().get(pk=log.parking_request_id)
 
             if parking_request.status != ParkingRequest.RequestStatus.IN_USE:
                 raise ValueError('این درخواست در وضعیت «در حال استفاده» نیست')
