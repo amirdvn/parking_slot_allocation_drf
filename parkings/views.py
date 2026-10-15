@@ -194,7 +194,7 @@ class ParkingRequestListCreateView(ListCreateAPIView):
      permission_classes = [IsAuthenticated]
      def get_queryset(self):
 
-        return ParkingRequest.objects.with_relations().filter(user=self.request.user)
+        return ParkingRequest.objects.filter(user=self.request.user)
      def perform_create(self, serializer):
         parking_request = ParkingRequestService.create(
             user=self.request.user,
@@ -370,7 +370,7 @@ class GuestParkingRequestListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
 
-        return ParkingRequest.objects.with_relations().filter(is_guest=True)
+        return ParkingRequest.objects.select_related('user', 'parking_space').filter(is_guest=True)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user, vehicle=None, is_guest=True)
