@@ -1,7 +1,7 @@
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView, CreateAPIView, RetrieveUpdateAPIView
 from rest_framework.views import APIView
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
-
+from rest_framework.exceptions import ValidationError
 from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer, GuestParkingRequestSerializer, GuestParkingRequestListSerializer, ParkingManagerUserSerializer, ParkingManagerVehicleSerializer
 
 from .permissions import IsManagerUserOrReadOnly, IsManagerOrGuard, IsManagerForGetOrAuthenticatedForPost, IsManagerUser
@@ -83,7 +83,7 @@ class ParkingRequestReviewView(UpdateAPIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            ParkingRequestService.review(
+            updated = ParkingRequestService.review(
                 parking_request,
                 serializer.validated_data['status'],
                 serializer.validated_data.get('rejection_reason'),
@@ -99,7 +99,7 @@ class ParkingRequestReviewView(UpdateAPIView):
         return Response(
             {
                 'detail': 'وضعیت درخواست با موفقیت تغییر کرد', 
-                'status': parking_request.status
+                'status': updated.status
             },
             status=status.HTTP_200_OK,
         )
@@ -195,12 +195,17 @@ class ParkingRequestListCreateView(ListCreateAPIView):
      def get_queryset(self):
 
         return ParkingRequest.objects.filter(user=self.request.user)
+
      def perform_create(self, serializer):
-        parking_request = ParkingRequestService.create(
-            user=self.request.user,
-            validated_data=serializer.validated_data,
-        )
-        serializer.instance = parking_request
+         try:
+             parking_request = ParkingRequestService.create(
+                 user=self.request.user,
+                 validated_data=serializer.validated_data,
+             )
+         except ValueError as e:
+             raise ValidationError({'parking_space': str(e)})
+
+         serializer.instance = parking_request
 
 @extend_schema_view(
     get=extend_schema(operation_id="user_parking_request_retrieve"),
@@ -273,11 +278,14 @@ class EntryExitLogListCreateView(ListCreateAPIView):
         return EntryExitLog.objects.with_relations().all()
 
     def perform_create(self, serializer):
-        with transaction.atomic():
-            log = serializer.save(guard=self.request.user)
+        try:
+            with transaction.atomic():
+                log = serializer.save(guard=self.request.user)
 
-            if log.parking_request:
-                EntryExitLogService.record_entry(log.parking_request)
+                if log.parking_request:
+                    EntryExitLogService.record_entry(log.parking_request)
+        except ValueError as e:
+            raise ValidationError({'parking_space': str(e)})
 
 
 @extend_schema_view(
