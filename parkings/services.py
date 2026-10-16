@@ -20,32 +20,64 @@ class ParkingRequestService:
         RequestStatus = ParkingRequest.RequestStatus    
 
         time_expire = timezone.now() - timedelta(minutes=3)
-        request_expired = ParkingRequest.objects.pending_or_review().created_before(time_expire)
 
-        expired_requests = list(request_expired.values_list('id', 'user_id'))
-        
-        updated_count = request_expired.update(status=RequestStatus.EXPIRED)
+        with transaction.atomic():
+            request_expired =(
+                ParkingRequest.objects
+                .select_for_update(of=('self',))
+                .pending_or_review()
+                .created_before(time_expire))
 
+            expired_requests = list(request_expired.values_list('id', 'user_id'))
+
+            ids = [req_id for req_id, _ in expired_requests]
+
+            updated_count = 0
+            if ids:
+                updated_count = ParkingRequest.objects.filter(id__in=ids).update(
+                    status=RequestStatus.EXPIRED
+                )
 
         for req_id, user_id in expired_requests:
-            create_notification_task.delay(
-                user_id=user_id,
-                notification_type=Notification.Type.REQUEST_STATUS,
-                title='درخواست پارکینگ منقضی شد',
-                message=f'درخواست #{req_id} به دلیل عدم بررسی به‌موقع منقضی شد',
-                link=f'/api/parking/requests/detail/{req_id}/',
-            )
+
+            def send_notification(req_id=req_id, user_id=user_id):
+                create_notification_task.delay(
+                    user_id=user_id,
+                    notification_type=Notification.Type.REQUEST_STATUS,
+                    title='درخواست پارکینگ منقضی شد',
+                    message=f'درخواست #{req_id} به دلیل عدم بررسی به‌موقع منقضی شد',
+                    link=f'/api/parking/requests/detail/{req_id}/',
+                )
+            transaction.on_commit(send_notification)
         
         return updated_count
 
 
     @staticmethod
     def create(user, validated_data):
-        parking_request = ParkingRequest.objects.create(user=user, **validated_data)
 
-        if parking_request.parking_space and parking_request.parking_space.space_type == ParkingSpace.SpaceType.EMERGENCY:
-            parking_request.status = ParkingRequest.RequestStatus.NEEDS_REVIEW
-            parking_request.save(update_fields=['status'])
+        with transaction.atomic():
+            space = ParkingSpace.objects.select_for_update().get(pk=validated_data['parking_space'].pk)
+
+            if ParkingRequest.objects.overlapping(
+                    space,
+                    validated_data['start_time'],
+                    validated_data['end_time']
+            ).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخابی قبلاً رزرو شده است')
+
+            if ParkingSpaceBlock.objects.overlapping(
+                    space,
+                    validated_data['start_time'],
+                    validated_data['end_time'],
+            ).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخابی مسدود است')
+
+            parking_request = ParkingRequest.objects.create(user=user, **validated_data)
+
+            if space.space_type == ParkingSpace.SpaceType.EMERGENCY:
+                parking_request.status = ParkingRequest.RequestStatus.NEEDS_REVIEW
+                parking_request.save(update_fields=['status'])
 
         return parking_request
 
@@ -62,7 +94,12 @@ class ParkingRequestService:
         RequestStatus = ParkingRequest.RequestStatus
 
         with transaction.atomic():
-            locked = ParkingRequest.objects.select_for_update().get(pk=parking_request.id)
+            locked = (
+                ParkingRequest.objects
+                .select_related('parking_space')
+                .select_for_update(of=('self',))
+                .get(pk=parking_request.id)
+            )
 
             if locked.status not in [
                 RequestStatus.PENDING,
@@ -90,7 +127,12 @@ class ParkingRequestService:
             raise ValueError('وضعیت جدید باید تایید یا رد باشد')
 
         with transaction.atomic():
-            locked = ParkingRequest.objects.select_for_update().get(pk=parking_request.id)
+            locked = (
+                ParkingRequest.objects
+                .select_related('parking_space')
+                .select_for_update(of=('self',))
+                .get(pk=parking_request.id)
+            )
 
             if locked.status not in [
                 RequestStatus.PENDING,
@@ -105,22 +147,24 @@ class ParkingRequestService:
             locked.save(update_fields=['status', 'updated_date', 'rejection_reason'])
 
 
-        if locked.status == RequestStatus.APPROVED:
-            title = 'تایید درخواست پارکینگ'
-            message = f'درخواست شما برای جایگاه {locked.parking_space.code if locked.parking_space else "تعیین‌شده"} تایید شد'
-            title = 'رد درخواست پارکینگ'
-            message = f'درخواست شما رد شد؛ دلیل: {locked.rejection_reason or "تعیین نشده"}'
+            if locked.status == RequestStatus.APPROVED:
+                title = 'تایید درخواست پارکینگ'
+                message = f'درخواست شما برای جایگاه {locked.parking_space.code if locked.parking_space else "تعیین‌شده"} تایید شد'
+            else:
+                title = 'رد درخواست پارکینگ'
+                message = f'درخواست شما رد شد؛ دلیل: {locked.rejection_reason or "تعیین نشده"}'
 
-        def send_notification():
+            def send_notification():
 
-            create_notification_task.delay(
-                user_id=locked.user_id,
-                notification_type=Notification.Type.REQUEST_STATUS,
-                title=title,
-                message=message,
-                link=f'/api/parking/requests/detail/{locked.id}/',
-            )
-        transaction.on_commit(send_notification)
+                create_notification_task.delay(
+                    user_id=locked.user_id,
+                    notification_type=Notification.Type.REQUEST_STATUS,
+                    title=title,
+                    message=message,
+                    link=f'/api/parking/requests/detail/{locked.id}/',
+                )
+            transaction.on_commit(send_notification)
+
         return locked
 
 
@@ -137,7 +181,6 @@ class EntryExitLogService:
 
         parking_request.status = ParkingRequest.RequestStatus.IN_USE
         parking_request.save(update_fields=['status', 'updated_date'])
-
 
         user_id = parking_request.user_id
         request_id = parking_request.id
@@ -213,14 +256,14 @@ class DashboardService:
         occupied_ids = set(
             ParkingRequest.objects.filter(
             status=ParkingRequest.RequestStatus.IN_USE
-            ).values_list('parking_space_id', flat=True)
+            ).exclude(parking_space__isnull=True).values_list('parking_space_id', flat=True)
         )
 
 
         blocked_ids = set(
             ParkingSpaceBlock.objects.filter(
             start_time__lte=now, end_time__gt=now
-            ).values_list('parking_space_id', flat=True)
+            ).exclude(parking_space__isnull=True).values_list('parking_space_id', flat=True)
         )
 
         occupied_spaces = len(occupied_ids)
@@ -340,13 +383,13 @@ class DashboardService:
         occupied_ids = set(
         ParkingRequest.objects.filter(
             status=ParkingRequest.RequestStatus.IN_USE
-        ).values_list('parking_space_id', flat=True)
+        ).exclude(parking_space__isnull=True).values_list('parking_space_id', flat=True)
     )
 
         blocked_ids = set(
         ParkingSpaceBlock.objects.filter(
             start_time__lte=now, end_time__gt=now
-        ).values_list('parking_space_id', flat=True)
+        ).exclude(parking_space__isnull=True).values_list('parking_space_id', flat=True)
     )
         
         
