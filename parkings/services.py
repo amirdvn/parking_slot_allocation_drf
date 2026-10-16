@@ -58,17 +58,23 @@ class ParkingRequestService:
 
     @staticmethod
     def cancel(parking_request, reason):
-        if parking_request.status not in [
-            ParkingRequest.RequestStatus.PENDING,
-            ParkingRequest.RequestStatus.APPROVED,
-        ]:
-            raise ValueError('این درخواست در وضعیت فعلی قابل لغو نیست')
 
-        parking_request.status = ParkingRequest.RequestStatus.CANCELED
-        parking_request.cancellation_reason = reason
-        parking_request.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
+        RequestStatus = ParkingRequest.RequestStatus
 
-        return parking_request
+        with transaction.atomic():
+            locked = ParkingRequest.objects.select_for_update().get(pk=parking_request.id)
+
+            if locked.status not in [
+                RequestStatus.PENDING,
+                RequestStatus.APPROVED,
+            ]:
+                raise ValueError('این درخواست در وضعیت فعلی قابل لغو نیست')
+
+            locked.status = RequestStatus.CANCELED
+            locked.cancellation_reason = reason
+            locked.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
+
+        return locked
 
 
     #manager
@@ -77,47 +83,45 @@ class ParkingRequestService:
 
         RequestStatus = ParkingRequest.RequestStatus
 
-        if parking_request.status not in [
-            RequestStatus.PENDING,
-            RequestStatus.NEEDS_REVIEW,
-        ]:
-            raise ValueError('این درخواست در وضعیت فعلی قابل بررسی نیست')
-
-
         if status not in [
             RequestStatus.APPROVED,
             RequestStatus.REJECTED,
         ]:
             raise ValueError('وضعیت جدید باید تایید یا رد باشد')
 
+        with transaction.atomic():
+            locked = ParkingRequest.objects.select_for_update().get(pk=parking_request.id)
 
-        parking_request.status = status
+            if locked.status not in [
+                RequestStatus.PENDING,
+                RequestStatus.NEEDS_REVIEW,
+            ]:
+                raise ValueError('این درخواست در وضعیت فعلی قابل بررسی نیست')
+
+            locked.status = status
+            if status == RequestStatus.REJECTED:
+                locked.rejection_reason = rejection_reason
+
+            locked.save(update_fields=['status', 'updated_date', 'rejection_reason'])
 
 
-        if status == ParkingRequest.RequestStatus.REJECTED:
-            parking_request.rejection_reason = rejection_reason
-
-
-        parking_request.save(update_fields=['status', 'updated_date', 'rejection_reason'])
-
-
-        if status == ParkingRequest.RequestStatus.APPROVED:
+        if locked.status == RequestStatus.APPROVED:
             title = 'تایید درخواست پارکینگ'
-            message = f'درخواست شما برای جایگاه {parking_request.parking_space.code if parking_request.parking_space else "تعیین‌شده"} تایید شد'
-        else:
+            message = f'درخواست شما برای جایگاه {locked.parking_space.code if locked.parking_space else "تعیین‌شده"} تایید شد'
             title = 'رد درخواست پارکینگ'
-            message = f'درخواست شما رد شد؛ دلیل: {parking_request.rejection_reason or "تعیین نشده"}'
+            message = f'درخواست شما رد شد؛ دلیل: {locked.rejection_reason or "تعیین نشده"}'
 
-        create_notification_task.delay(
-            user_id=parking_request.user_id,
-            notification_type=Notification.Type.REQUEST_STATUS,
-            title=title,
-            message=message,
-            link=f'/api/parking/requests/detail/{parking_request.id}/',
-        )
+        def send_notification():
 
-        return parking_request
-
+            create_notification_task.delay(
+                user_id=locked.user_id,
+                notification_type=Notification.Type.REQUEST_STATUS,
+                title=title,
+                message=message,
+                link=f'/api/parking/requests/detail/{locked.id}/',
+            )
+        transaction.on_commit(send_notification)
+        return locked
 
 
 class EntryExitLogService:
