@@ -168,6 +168,68 @@ class ParkingRequestService:
         return locked
 
 
+    @staticmethod
+    def update(parking_request, validated_data):
+
+        RequestStatus = ParkingRequest.RequestStatus
+
+        with transaction.atomic():
+            space = ParkingSpace.objects.select_for_update().get(
+                pk=validated_data.get(
+                    'parking_space',
+                    parking_request.parking_space).id
+            )
+            locked = ParkingRequest.objects.select_for_update().get(pk=parking_request.id)
+
+            if locked.status != RequestStatus.PENDING:
+                raise ValueError('فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند')
+
+            start = validated_data.get('start_time', locked.start_time)
+            end = validated_data.get('end_time', locked.end_time)
+
+            if ParkingRequest.objects.overlapping(space, start, end).exclude(pk=locked.id).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخابی قبلاً رزرو شده است')
+
+            if ParkingSpaceBlock.objects.overlapping(space, start, end).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخابی مسدود است')
+
+            for field, value in validated_data.items():
+                setattr(locked, field, value)
+            locked.save(update_fields=[field])
+
+        return locked
+
+
+    @staticmethod
+    def create_guest(user, validated_data):
+        with transaction.atomic():
+            space = ParkingSpace.objects.select_for_update().get(pk=validated_data['parking_space'].id)
+
+            if ParkingRequest.objects.overlapping(
+                    space,
+                    validated_data['start_time'],
+                    validated_data['end_time']
+            ).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخابی قبلاً رزرو شده است')
+
+            if ParkingSpaceBlock.objects.overlapping(
+                    space,
+                    validated_data['start_time'],
+                    validated_data['end_time'],
+            ).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخابی مسدود است')
+
+            parking_request = ParkingRequest.objects.create(user=user, vehicle=None, is_guest=True, **validated_data)
+
+            return parking_request
+
+
+
+
+
+
+
+
 class EntryExitLogService:
 
     @staticmethod

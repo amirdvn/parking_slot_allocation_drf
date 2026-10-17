@@ -220,11 +220,15 @@ class ParkingRequestDetailView(RetrieveUpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         parking_request = self.get_object()
+        serializer = self.get_serializer(parking_request, data=request.data, partial=kwargs.pop('partial', False))
+        serializer.is_valid(raise_exception=True)
         try:
-            ParkingRequestService.check_editable(parking_request)
+            updated = ParkingRequestService.update(parking_request, serializer.validated_data)
         except ValueError as e:
+
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return super().update(request, *args, **kwargs)
+
+        return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
 
 @extend_schema(operation_id="user_parking_request_cancel")
 class ParkingRequestCancelView(UpdateAPIView):
@@ -381,5 +385,12 @@ class GuestParkingRequestListCreateView(ListCreateAPIView):
         return ParkingRequest.objects.select_related('user', 'parking_space').filter(is_guest=True)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user, vehicle=None, is_guest=True)
+        try:
+            parking_request = ParkingRequestService.create_guest(
+                user=self.request.user,
+                validated_data=serializer.validated_data,
+            )
+        except ValueError as e:
+            raise ValidationError({'parking_space': str(e)})
+        serializer.instance = parking_request
 
