@@ -174,6 +174,12 @@ class ParkingRequestService:
         RequestStatus = ParkingRequest.RequestStatus
 
         with transaction.atomic():
+
+            target_space = validated_data.get('parking_space') or parking_request.parking_space
+            if target_space is None:
+                raise ValueError('جایگاه نامعتبر است')
+
+
             space = ParkingSpace.objects.select_for_update().get(
                 pk=validated_data.get(
                     'parking_space',
@@ -187,15 +193,22 @@ class ParkingRequestService:
             start = validated_data.get('start_time', locked.start_time)
             end = validated_data.get('end_time', locked.end_time)
 
+            if start >= end:
+                raise ValueError('زمان پایان باید بعد از زمان شروع باشد')
+
             if ParkingRequest.objects.overlapping(space, start, end).exclude(pk=locked.id).exists():
                 raise ValueError('این جایگاه در بازه زمانی انتخابی قبلاً رزرو شده است')
 
             if ParkingSpaceBlock.objects.overlapping(space, start, end).exists():
                 raise ValueError('این جایگاه در بازه زمانی انتخابی مسدود است')
 
-            for field, value in validated_data.items():
-                setattr(locked, field, value)
-            locked.save(update_fields=[field])
+            locked.parking_space = space
+            locked.start_time = start
+            locked.end_time = end
+            if 'description' in validated_data:
+                locked.description = validated_data['description']
+
+            locked.save(update_fields=['parking_space', 'start_time', 'end_time', 'description', 'updated_date'])
 
         return locked
 
@@ -222,11 +235,6 @@ class ParkingRequestService:
             parking_request = ParkingRequest.objects.create(user=user, vehicle=None, is_guest=True, **validated_data)
 
             return parking_request
-
-
-
-
-
 
 
 
@@ -485,3 +493,21 @@ class DashboardService:
 
         DashboardCache.set(DashboardCache.GUARD_KEY, data)
         return data
+
+
+class ParkingSpaceBlockService:
+
+    @staticmethod
+    def create(validated_data, created_by):
+        with transaction.atomic():
+            space = ParkingSpace.objects.select_for_update().get(pk=validated_data['parking_space'].pk)
+
+            start, end = validated_data['start_time'], validated_data['end_time']
+
+            if ParkingSpaceBlock.objects.overlapping(space, start, end).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است')
+
+            if ParkingRequest.objects.overlapping(space, start, end).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است و نمی‌توان آن را مسدود کرد')
+
+            return ParkingSpaceBlock.objects.create(created_by=created_by, **validated_data)

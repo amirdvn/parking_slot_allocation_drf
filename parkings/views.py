@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from vehicles.models import Vehicle
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from .services import ParkingRequestService, EntryExitLogService, DashboardService
+from .services import ParkingRequestService, EntryExitLogService, DashboardService, ParkingSpaceBlockService
 from django.db import transaction
 
 User = get_user_model()
@@ -48,7 +48,11 @@ class ParkingSpaceBlockListCreateView(ListCreateAPIView):
     def get_queryset(self):
         return ParkingSpaceBlock.objects.all()
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        try:
+            block = ParkingSpaceBlockService.create(serializer.validated_data, created_by=self.request.user)
+        except ValueError as e:
+            raise ValidationError({'parking_space': str(e)})
+        serializer.instance = block
 
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_space_block_retrieve"),
