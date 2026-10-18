@@ -38,6 +38,9 @@ class ParkingRequestService:
                     status=RequestStatus.EXPIRED
                 )
 
+        if updated_count:
+            DashboardCache.invalidate()
+
         for req_id, user_id in expired_requests:
 
             def send_notification(req_id=req_id, user_id=user_id):
@@ -337,6 +340,32 @@ class EntryExitLogService:
 
 class DashboardService:
 
+
+    @staticmethod
+    def _space_availability(now):
+        total_spaces = ParkingSpace.objects.filter(is_active=True).count()
+
+        occupied_ids = set(
+            ParkingRequest.objects
+            .filter(status=ParkingRequest.RequestStatus.IN_USE)
+            .exclude(parking_space__isnull=True)
+            .values_list('parking_space_id', flat=True)
+        )
+
+        blocked_ids = set(
+            ParkingSpaceBlock.objects
+            .filter(start_time__lte=now, end_time__gt=now)
+            .exclude(parking_space__isnull=True)
+            .values_list('parking_space_id', flat=True)
+        )
+
+        return {
+            'total': total_spaces,
+            'occupied': len(occupied_ids),
+            'blocked': len(blocked_ids),
+            'available': total_spaces - len(occupied_ids | blocked_ids),
+        }
+
     @staticmethod
     def get_manager_dashboard():
 
@@ -346,33 +375,14 @@ class DashboardService:
             return cached
 
         now = timezone.now()
+        RequestStatus = ParkingRequest.RequestStatus
 
-        total_spaces = ParkingSpace.objects.filter(is_active=True).count()
-
-        occupied_ids = set(
-            ParkingRequest.objects.filter(
-            status=ParkingRequest.RequestStatus.IN_USE
-            ).exclude(parking_space__isnull=True).values_list('parking_space_id', flat=True)
+        request_stats = ParkingRequest.objects.aggregate(
+            pending=Count('id', filter=Q(status=RequestStatus.PENDING)),
+            needs_review=Count('id', filter=Q(status=RequestStatus.NEEDS_REVIEW)),
         )
 
 
-        blocked_ids = set(
-            ParkingSpaceBlock.objects.filter(
-            start_time__lte=now, end_time__gt=now
-            ).exclude(parking_space__isnull=True).values_list('parking_space_id', flat=True)
-        )
-
-        occupied_spaces = len(occupied_ids)
-        blocked_spaces = len(blocked_ids)
-        available_spaces = total_spaces - len(occupied_ids | blocked_ids)   
-        
-        pending_requests = ParkingRequest.objects.filter(
-            status=ParkingRequest.RequestStatus.PENDING
-        ).count()
-
-        needs_review_requests = ParkingRequest.objects.filter(
-            status=ParkingRequest.RequestStatus.NEEDS_REVIEW
-        ).count()
 
         top_parking_spaces = (
             ParkingSpace.objects.annotate(
@@ -399,16 +409,14 @@ class DashboardService:
         )
 
         data = {
-            'parking_spaces': {
-                'total': total_spaces,
-                'occupied': occupied_spaces,
-                'blocked': blocked_spaces,
-                'available': available_spaces,
+            'parking_spaces': DashboardService._space_availability(now),
+
+            'requests':
+                {
+                    'pending': request_stats['pending'],
+                    'needs_review': request_stats['needs_review'],
             },
-            'requests': {
-                'pending': pending_requests,
-                'needs_review': needs_review_requests,
-            },
+
             'top_parking_spaces': [
                 {
                     'id': space.id,
@@ -417,6 +425,7 @@ class DashboardService:
                 }
                 for space in top_parking_spaces
             ],
+
             'top_users': [
                 {
                     'id': user.id,
@@ -468,48 +477,26 @@ class DashboardService:
             return cached
 
         now = timezone.now()
+        RequestStatus = ParkingRequest.RequestStatus
 
-        total_spaces = ParkingSpace.objects.filter(is_active=True).count()
-
-        occupied_ids = set(
-        ParkingRequest.objects.filter(
-            status=ParkingRequest.RequestStatus.IN_USE
-        ).exclude(parking_space__isnull=True).values_list('parking_space_id', flat=True)
-    )
-
-        blocked_ids = set(
-        ParkingSpaceBlock.objects.filter(
-            start_time__lte=now, end_time__gt=now
-        ).exclude(parking_space__isnull=True).values_list('parking_space_id', flat=True)
-    )
-        
-        
-        occupied_spaces = len(occupied_ids)
-        blocked_spaces = len(blocked_ids)
-        available_spaces = total_spaces - len(occupied_ids | blocked_ids)
-        
-        
-        in_use_vehicles = ParkingRequest.objects.filter(
-            status=ParkingRequest.RequestStatus.IN_USE
-        ).count()
-
-        approved_requests = ParkingRequest.objects.filter(
-            status=ParkingRequest.RequestStatus.APPROVED
-        ).count()
+        request_stats = ParkingRequest.objects.aggregate(
+            in_use=Count('id', filter=Q(status=RequestStatus.IN_USE)),
+            approved=Count('id', filter=Q(status=RequestStatus.APPROVED)),
+        )
 
         data = {
-            'parking_spaces': {
-                'total': total_spaces,
-                'occupied': occupied_spaces,
-                'blocked': blocked_spaces,
-                'available': available_spaces,
-            },
-            'vehicles': {
-                'in_use': in_use_vehicles,
-            },
-            'requests': {
-                'approved': approved_requests,
-            },
+            'parking_spaces': DashboardService._space_availability(now),
+
+            'vehicles':
+                {
+                    'in_use': request_stats['in_use']
+                },
+
+            'requests':
+                {
+                    'approved': request_stats['approved']
+                },
+
         }
 
         DashboardCache.set(DashboardCache.GUARD_KEY, data)
