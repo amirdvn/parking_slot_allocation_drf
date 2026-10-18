@@ -192,3 +192,5 @@ celerybeat.pid
 celerybeat-schedule-shm
 celerybeat-schedule-wal
 .idea/
+parking_space.rtf
+.DS_Store

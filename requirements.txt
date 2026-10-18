@@ -17,6 +17,7 @@ django-redis==7.0.0
 djangorestframework==3.18.0
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.30.0
+et_xmlfile==2.0.0
 executing==2.2.1
 filelock==3.20.0
 idna==3.19
@@ -29,6 +30,7 @@ jsonschema-specifications==2025.9.1
 kavenegar==1.1.2
 kombu==5.6.2
 matplotlib-inline==0.2.1
+openpyxl==3.1.5
 packaging==25.0
 parso==0.8.5
 pexpect==4.9.0
