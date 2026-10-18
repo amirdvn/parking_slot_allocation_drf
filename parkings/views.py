@@ -289,9 +289,8 @@ class EntryExitLogListCreateView(ListCreateAPIView):
         try:
             with transaction.atomic():
                 log = serializer.save(guard=self.request.user)
+                EntryExitLogService.record_entry(log)
 
-                if log.parking_request:
-                    EntryExitLogService.record_entry(log.parking_request)
         except ValueError as e:
             raise ValidationError({'parking_space': str(e)})
 

@@ -40,29 +40,6 @@ class ParkingSpaceBlockSerializer(serializers.ModelSerializer):
         if start_time >= end_time:
             raise serializers.ValidationError({'end_time':'زمان پایان باید بعد از زمان شروع باشد'})
 
-
-        overlapping_blocks = ParkingSpaceBlock.objects.overlapping(
-            parking_space, start_time, end_time)
-
-    
-        if self.instance:
-            overlapping_blocks = overlapping_blocks.exclude(id=self.instance.id)
-
-        if overlapping_blocks.exists():
-            raise serializers.ValidationError(
-                {
-                    'parking_space':
-                    'این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است'
-                }
-            )
-     
-
-        overlapping_requests = ParkingRequest.objects.overlapping(parking_space, start_time, end_time)
-        if overlapping_requests.exists():
-            raise serializers.ValidationError({
-                'parking_space':
-                'این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است و نمی‌توان آن را مسدود کرد'})
-
         return attrs
 
 class ParkingRequestReviewSerializer(serializers.ModelSerializer): 
@@ -157,11 +134,9 @@ class ParkingManagerVehicleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehicle
 
-        fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'is_active', 'created_date', 'updated_date']
+        fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'is_active', 'created_at', 'updated_at']
 
-        read_only_fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'created_date', 'updated_date']
-
-
+        read_only_fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'created_at', 'updated_at']
 
 
 #User

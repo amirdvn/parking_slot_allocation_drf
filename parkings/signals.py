@@ -8,4 +8,9 @@ from .cache import AllowedParkingSpacesCache, DashboardCache
 def invalidate_allowed_spaces_cache(sender, instance, **kwargs):
     AllowedParkingSpacesCache.invalidate_all()
 
+@receiver([post_save, post_delete], sender=ParkingRequest)
+@receiver([post_save, post_delete], sender=ParkingSpaceBlock)
+def invalidate_dashboard_cache(sender, instance, **kwargs):
+    DashboardCache.invalidate()
+
 

@@ -242,29 +242,55 @@ class EntryExitLogService:
 
     @staticmethod
     @transaction.atomic
-    def record_entry(parking_request):
+    def record_entry(log):
 
-        parking_request = ParkingRequest.objects.select_for_update().get(pk=parking_request.id)
+        RequestStatus = ParkingRequest.RequestStatus
 
-        if parking_request.status != ParkingRequest.RequestStatus.APPROVED:
-            raise ValueError('فقط درخواست‌های تاییدشده امکان ثبت ورود دارند')
+        if log.parking_request_id:
+            parking_request = ParkingRequest.objects.select_for_update(
+                of=('self',)
+            ).get(pk=log.parking_request_id)
 
-        parking_request.status = ParkingRequest.RequestStatus.IN_USE
-        parking_request.save(update_fields=['status', 'updated_date'])
+            if parking_request.status != ParkingRequest.RequestStatus.APPROVED:
+                raise ValueError('فقط درخواست‌های تاییدشده امکان ثبت ورود دارند')
 
-        user_id = parking_request.user_id
-        request_id = parking_request.id
+            now = timezone.now()
+            if now < parking_request.start_time:
+                raise ValueError('هنوز زمان شروع این درخواست نرسیده است')
+            if now > parking_request.end_time:
+                raise ValueError('زمان این درخواست به پایان رسیده است')
 
-        def send_notification():
-            create_notification_task.delay(
-                user_id=user_id,
-                notification_type=Notification.Type.REQUEST_STATUS,
-                title='ورود خودرو ثبت شد',
-                message=f'ورود خودرو برای درخواست #{request_id} ثبت شد',
-                link=f'/api/parking/requests/detail/{request_id}/',
-            )
-        transaction.on_commit(send_notification)
-        return parking_request
+            if log.vehicle_id and parking_request.vehicle_id != log.vehicle_id:
+                raise ValueError('این خودرو با خودروی درخواست پارک یکسان نیست')
+
+            if EntryExitLog.objects.for_request(parking_request).active().exclude(pk=log.id).exists():
+                raise ValueError('برای این درخواست قبلاً ورود ثبت شده است')
+
+
+            parking_request.status = ParkingRequest.RequestStatus.IN_USE
+            parking_request.save(update_fields=['status', 'updated_date'])
+
+            user_id = parking_request.user_id
+            request_id = parking_request.id
+
+            def send_notification():
+                create_notification_task.delay(
+                    user_id=user_id,
+                    notification_type=Notification.Type.REQUEST_STATUS,
+                    title='ورود خودرو ثبت شد',
+                    message=f'ورود خودرو برای درخواست #{request_id} ثبت شد',
+                    link=f'/api/parking/requests/detail/{request_id}/',
+                )
+            transaction.on_commit(send_notification)
+
+        else:
+            if not log.vehicle_id:
+                raise ValueError('وسیله نقلیه الزامی است')
+
+            if EntryExitLog.objects.for_vehicle(log.vehicle_id).active().exclude(pk=log.pk).exists():
+                raise ValueError('این خودرو قبلاً وارد شده و هنوز خارج نشده است')
+
+        return log
 
 
     @staticmethod
@@ -407,35 +433,30 @@ class DashboardService:
 
     @staticmethod
     def get_user_dashboard(user):
-        total_vehicles = Vehicle.objects.filter(user=user).count()
-        active_vehicles = Vehicle.objects.filter(user=user, is_active=True).count()
+        RequestStatus = ParkingRequest.RequestStatus
 
-        pending_requests = ParkingRequest.objects.filter(
-            user=user, status=ParkingRequest.RequestStatus.PENDING
-        ).count()
+        vehicle_stats = Vehicle.objects.filter(user=user).aggregate(
+            total = Count('id'),
+            active = Count('id', filter=Q(is_active=True)),
+        )
 
-        needs_review_requests = ParkingRequest.objects.filter(
-            user=user, status=ParkingRequest.RequestStatus.NEEDS_REVIEW
-        ).count()
-
-        approved_requests = ParkingRequest.objects.filter(
-            user=user, status=ParkingRequest.RequestStatus.APPROVED
-        ).count()
-
-        rejected_requests = ParkingRequest.objects.filter(
-            user=user, status=ParkingRequest.RequestStatus.REJECTED
-        ).count()
+        request_stats = ParkingRequest.objects.filter(user=user).aggregate(
+            pending = Count('id', filter=Q(status=RequestStatus.PENDING)),
+            needs_review = Count('id', filter=Q(status=RequestStatus.NEEDS_REVIEW)),
+            approved = Count('id', filter=Q(status=RequestStatus.APPROVED)),
+            rejected = Count('id', filter=Q(status=RequestStatus.REJECTED)),
+        )
 
         return {
             'vehicles': {
-                'total': total_vehicles,
-                'active': active_vehicles,
+                'total': vehicle_stats['total'],
+                'active': vehicle_stats['active'],
             },
             'requests': {
-                'pending': pending_requests,
-                'needs_review': needs_review_requests,
-                'approved': approved_requests,
-                'rejected': rejected_requests,
+                'pending': request_stats['pending'],
+                'needs_review': request_stats['needs_review'],
+                'approved': request_stats['approved'],
+                'rejected': request_stats['rejected'],
             },
         }
 
