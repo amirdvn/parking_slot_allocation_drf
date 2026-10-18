@@ -18,8 +18,7 @@ from datetime import datetime
 from django.utils import timezone as dj_tz
 from io import BytesIO
 from openpyxl import Workbook
-from django.http import StreamingHttpResponse
-from django.http import StreamingHttpResponse, HttpResponse
+from django.http import HttpResponse
 
 User = get_user_model()
 

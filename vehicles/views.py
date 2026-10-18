@@ -1,9 +1,16 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import RetrieveUpdateDestroyAPIView, ListCreateAPIView
+from .permissions import IsManagerUser
+from rest_framework.views import APIView
 
 from .models import Vehicle
 from .serializers import VehicleSerializer
 from drf_spectacular.utils import extend_schema, extend_schema_view
+from  .services import VehicleReportService
+
+from io import BytesIO
+from openpyxl import Workbook
+from django.http import HttpResponse
 
 
 @extend_schema_view(
@@ -29,3 +36,25 @@ class VehicleDetailView(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         user_vehicle = Vehicle.objects.filter(user=self.request.user)
         return user_vehicle
+
+
+class VehicleXlsxReportView(APIView):
+    permission_classes = [IsManagerUser]
+
+    def get(self, request):
+        wb = Workbook(write_only=True)
+        ws = wb.create_sheet('vehicles')
+        ws.append(VehicleReportService.HEADER_LABELS)
+        for row in VehicleReportService.iter_rows():
+            ws.append([row[h] for h in VehicleReportService.HEADERS])
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename="vehicles_report.xlsx"'
+        return response
