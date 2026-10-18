@@ -519,3 +519,58 @@ class ParkingSpaceBlockService:
                 raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است و نمی‌توان آن را مسدود کرد')
 
             return ParkingSpaceBlock.objects.create(created_by=created_by, **validated_data)
+
+class EntryExitReportService:
+    COLUMNS = [
+        ('user_id', 'شناسه کاربر'),
+        ('full_name', 'نام و نام خانوادگی'),
+        ('plate_number', 'پلاک'),
+        ('parking_space', 'جایگاه'),
+        ('entry_time', 'زمان ورود'),
+        ('exit_time', 'زمان خروج'),
+        ('duration', 'مدت توقف'),
+        ('still_inside', 'هنوز داخل است'),
+    ]
+
+    HEADERS = [key for key, _ in COLUMNS]
+    HEADER_LABELS = [label for _, label in COLUMNS]
+
+    @staticmethod
+    def _format_duration(delta):
+        total = int(delta.total_seconds())
+        hours, rem = divmod(total, 3600)
+        minutes, seconds = divmod(rem, 60)
+        return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
+
+
+    @staticmethod
+    def iter_rows(start, end):
+        logs = (
+            EntryExitLog.objects
+            .with_relations()
+            .filter(entry_time__gte=start, entry_time__lt=end)
+            .order_by('entry_time')
+            .iterator(chunk_size=500)
+        )
+        now = timezone.now()
+
+        for log in logs:
+            vehicle = log.vehicle
+            user = vehicle.user if vehicle else None
+            last_time = log.exit_time or now
+            delta = last_time - log.entry_time
+
+            yield {
+                'user_id': user.id if user else None,
+                'full_name': user.full_name if user else None,
+                'plate_number': vehicle.plate_number if vehicle else None,
+                'parking_space': (
+                    log.parking_request.parking_space.code
+                    if log.parking_request and log.parking_request.parking_space
+                    else None
+                ),
+                'entry_time': timezone.localtime(log.entry_time).strftime('%Y-%m-%d %H:%M:%S'),
+                'exit_time': timezone.localtime(log.exit_time).strftime('%Y-%m-%d %H:%M:%S') if log.exit_time else None,
+                'duration': EntryExitReportService._format_duration(delta),
+                'still_inside': log.exit_time is None,
+            }

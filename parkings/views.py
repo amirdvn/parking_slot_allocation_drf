@@ -11,8 +11,15 @@ from rest_framework.response import Response
 from vehicles.models import Vehicle
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from .services import ParkingRequestService, EntryExitLogService, DashboardService, ParkingSpaceBlockService
+from .services import ParkingRequestService, EntryExitLogService, DashboardService, ParkingSpaceBlockService, EntryExitReportService
 from django.db import transaction
+
+from datetime import datetime
+from django.utils import timezone as dj_tz
+from io import BytesIO
+from openpyxl import Workbook
+from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, HttpResponse
 
 User = get_user_model()
 
@@ -397,3 +404,41 @@ class GuestParkingRequestListCreateView(ListCreateAPIView):
             raise ValidationError({'parking_space': str(e)})
         serializer.instance = parking_request
 
+
+
+
+class _Echo:
+    def write(self, value):
+        return value
+
+class EntryExitXlsxReportView(APIView):
+    permission_classes = [IsManagerUser]
+
+    def get(self, request):
+
+        try:
+            start = dj_tz.make_aware(datetime.fromisoformat(request.query_params['start']))
+            end = dj_tz.make_aware(datetime.fromisoformat(request.query_params['end']))
+
+        except (KeyError, ValueError):
+            return Response({'detail': 'start و end (YYYY-MM-DD) الزامی هستند'}, status=400)
+
+        if start >= end:
+            return Response({'detail': 'بازه نامعتبر است'}, status=400)
+
+        wb = Workbook(write_only=True)
+        ws = wb.create_sheet('entry_exit')
+        ws.append(EntryExitReportService.HEADER_LABELS)
+        for row in EntryExitReportService.iter_rows(start, end):
+            ws.append([row[h] for h in EntryExitReportService.HEADERS])
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename="entry_exit_report.xlsx"'
+        return response

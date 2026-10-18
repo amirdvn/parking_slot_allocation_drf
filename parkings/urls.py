@@ -40,7 +40,7 @@ urlpatterns = [
     path('manager/vehicles/detail/<int:pk>/', ParkingManagerVehicleDetailView.as_view(http_method_names=['get']), name='manager_vehicle_detail'),
     path('manager/vehicles/activate/<int:pk>/', ParkingManagerVehicleDetailView.as_view(http_method_names=['patch']), name='manager_vehicle_activate'),
     path('manager/vehicles/deactivate/<int:pk>/', ParkingManagerVehicleDetailView.as_view(http_method_names=['patch']), name='manager_vehicle_deactivate'),
-
+    path('manager/reports/entryـexit/xlsx/', EntryExitXlsxReportView.as_view(http_method_names=['get']), name='manager_entry_exit_xlsx'),
 
     #block_space
     path('blocks/list/', ParkingSpaceBlockListCreateView.as_view(http_method_names=['get']), name='manager_parking_space_block_list'),
