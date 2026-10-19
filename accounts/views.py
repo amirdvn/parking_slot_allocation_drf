@@ -100,7 +100,7 @@ class VerifyLoginOtpView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-
+@extend_schema(request=LogoutSerializer)
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
@@ -123,7 +123,7 @@ class LogoutView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST)
 
-
+@extend_schema(request=SendChangePhoneOtpSerializer)
 class SendChangePhoneOtpView(APIView):
     permission_classes = [IsAuthenticated]
     throttle_classes = [ChangePhoneSendOtpThrottle]
@@ -154,7 +154,7 @@ class SendChangePhoneOtpView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-
+@extend_schema(request=VerifyChangePhoneOtpSerializer)
 class VerifyChangePhoneOtpView(APIView):
     permission_classes = [IsAuthenticated]
     throttle_classes = [ChangePhoneVerifyOtpThrottle]
