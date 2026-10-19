@@ -1,149 +1,524 @@
-# 🅿️ Parking Slot Allocation System (DRF API)
+# 🅿️ Parking Slot Allocation System
 
-A comprehensive Django REST Framework backend for managing parking space allocation in organizations such as companies, universities, dormitories, hospitals, or office buildings. The system supports OTP-based authentication, vehicle registration and approval, smart parking-space matching, guest requests, temporary slot blocking, and guard-managed vehicle entry/exit tracking.
+A scalable and performance-focused **Django REST Framework API** for managing parking space allocation in organizations such as companies, universities, hospitals, dormitories, and office buildings.
 
-## 🚀 Features
+The project focuses on **data integrity, concurrency control, database query optimization, caching, asynchronous processing, and clean separation of business logic** using a Service Layer architecture.
 
-- Phone-based Registration & OTP Authentication (via Kavenegar SMS)
-- JWT Authentication with Access/Refresh Tokens & Token Blacklisting
-- Role-Based Access Control (User / Guard / Manager)
-- Vehicle Registration & Manager Approval Workflow
-- Smart Parking-Space Allocation Based on Vehicle Type & Sub-Type
-- Time-Based Conflict Detection (Overlapping Requests & Blocked Slots)
-- Guest Parking Requests (No Account Required, Registered by Host)
-- Temporary Parking-Space Blocking (Maintenance, Events, Cleaning, etc.)
-- Guard Module: Plate-Number Search, Entry/Exit Logging
-- Automatic Request Expiration for Unreviewed Requests
-- Manager & Guard Dashboards with Real-Time Statistics
-- In-App Notifications for Request Status Changes
-- Request Cancellation with Mandatory Reason
-- Interactive API Documentation with Swagger UI
+It supports OTP-based authentication, role-based access control, intelligent parking-space allocation, guest parking requests, temporary space blocking, vehicle entry/exit tracking, notifications, dashboards, and Excel report generation.
 
-## 🛠 Tech Stack
+---
 
-- Python 3
-- Django 5
-- Django REST Framework
-- SQLite
-- Simple JWT (djangorestframework-simplejwt)
-- Kavenegar (SMS/OTP Provider)
-- drf-spectacular (Swagger/OpenAPI)
-- python-dotenv (for Environment Variables)
+## 🚀 Key Features
 
+### 🔐 Authentication & Security
+
+- Phone-based user registration with OTP verification.
+- OTP delivery through Kavenegar SMS.
+- JWT authentication using Access and Refresh Tokens.
+- Refresh-token blacklisting on logout.
+- Phone-based throttling to prevent OTP/SMS abuse.
+- Role-Based Access Control (RBAC):
+  - User
+  - Guard
+  - Manager
+- Custom permissions for protected management and guard operations.
+
+---
+
+### 🅿️ Parking & Reservations
+
+- Smart parking-space allocation based on vehicle type and subtype.
+- Support for specialized parking spaces such as:
+  - Electric Vehicles
+  - Disabled
+  - Motorcycle
+  - Guest
+  - Emergency
+  - Loading
+- Time-based conflict detection for overlapping parking requests.
+- Parking-space blocking for temporary restrictions.
+- Guest parking requests.
+- Request lifecycle management:
+  - Pending
+  - Approved
+  - Rejected
+  - Canceled
+  - Expired
+  - In Use
+  - Completed
+  - Needs Review
+
+---
+
+### 🔒 Concurrency & Data Integrity
+
+Critical parking operations are protected using database transactions and row-level locking.
+
+The project uses:
+
+```python
+transaction.atomic()
+```
+
+and:
+
+```python
+select_for_update()
+```
+
+to safely handle concurrent operations such as parking-space allocation and request state changes.
+
+This prevents race conditions in critical flows where multiple users may attempt to interact with the same parking resource simultaneously.
+
+---
+
+### ⚡ Performance & Query Optimization
+
+The project was developed with a strong focus on reducing database load and avoiding unnecessary queries.
+
+Optimization techniques include:
+
+- `select_related()` for ForeignKey and OneToOne relationships.
+- `prefetch_related()` for reverse and many-to-many relationships where appropriate.
+- Database-level aggregations using:
+  - `Count`
+  - `Sum`
+  - `Avg`
+  - `Min`
+  - `Max`
+- Custom QuerySets for reusable database query logic.
+- `.values()` for retrieving only required fields.
+- `iterator()` for memory-efficient processing of large querysets.
+- Avoiding unnecessary Python-side calculations when database operations are more efficient.
+- Reducing N+1 query patterns.
+- Query optimization for dashboard and reporting endpoints.
+
+---
+
+### 📊 Dashboards & Reports
+
+The API provides role-specific dashboards for:
+
+- Users
+- Guards
+- Managers
+
+Dashboard queries use database-level aggregations to efficiently calculate statistics.
+
+Managers can also generate Excel reports for vehicle and entry/exit data.
+
+Excel generation uses `openpyxl` in **write-only mode** to reduce memory usage when processing large datasets.
+
+---
+
+### 🔔 Notifications & Background Tasks
+
+Celery is used for asynchronous and scheduled operations.
+
+Background tasks include:
+
+- SMS dispatch.
+- In-app notification creation.
+- Automatic expiration of pending parking requests.
+- Scheduled maintenance operations.
+
+`transaction.on_commit()` is used where appropriate to ensure background tasks are triggered only after the related database transaction has successfully committed.
+
+---
+
+### 🗄️ Redis Caching
+
+Redis is used as the caching and Celery broker layer.
+
+Caching is applied to data such as:
+
+- OTP codes.
+- Registration verification state.
+- Allowed parking spaces.
+- Dashboard statistics.
+
+Cache expiration is controlled using TTL values.
+
+Relevant caches are invalidated when parking-related data changes.
+
+---
+
+## 🛠️ Tech Stack
+
+| Category | Technology |
+|---|---|
+| **Language** | Python 3 |
+| **Framework** | Django 5.2 |
+| **API Framework** | Django REST Framework |
+| **Database** | PostgreSQL |
+| **Cache / Message Broker** | Redis |
+| **Background Processing** | Celery + Celery Beat |
+| **Authentication** | Simple JWT |
+| **API Documentation** | drf-spectacular / Swagger / OpenAPI |
+| **Excel Generation** | openpyxl |
+| **SMS Provider** | Kavenegar |
+| **Environment Variables** | python-decouple |
+
+---
 
 ## 📂 Project Structure
+
+The project follows a **Service Layer architecture**, separating HTTP handling, business logic, query logic, caching, and background processing.
+
+```text
 parking_slot_allocation_drf/
 │
-├── accounts/ # Custom user model, OTP-based auth, JWT
-├── profiles/ # Authenticated user's own profile
-├── vehicles/ # Vehicle registration & approval
-├── parkings/ # Parking spaces, requests, blocks, entry/exit logs
-├── notifications/ # In-app notifications
-├── core/ # Project settings, root URLs
+├── accounts/
+│   ├── cache.py
+│   ├── services.py
+│   ├── tasks.py
+│   ├── throttles.py
+│   ├── permissions.py
+│   └── ...
+│
+├── profiles/
+│   └── ...
+│
+├── vehicles/
+│   ├── permissions.py
+│   ├── services.py
+│   ├── tests.py
+│   └── ...
+│
+├── parkings/
+│   ├── cache.py
+│   ├── querysets.py
+│   ├── services.py
+│   ├── signals.py
+│   ├── tasks.py
+│   ├── tests.py
+│   └── ...
+│
+├── notifications/
+│   └── ...
+│
+├── core/
+│   ├── settings.py
+│   ├── urls.py
+│   ├── celery.py
+│   └── ...
+│
+├── .env
 ├── requirements.txt
-├── manage.py
-└── README.md
+└── manage.py
+```
 
+---
 
 ## ⚙️ Installation
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/amirdvn/parking_slot_allocation_drf
-```
+### Prerequisites
 
-### 2. Move to the project directory
+Make sure the following are installed:
+
+- Python 3.10+
+- PostgreSQL
+- Redis
+- Git
+
+---
+
+### 1. Clone the Repository
+
 ```bash
+git clone https://github.com/amirdvn/parking_slot_allocation_drf.git
+
 cd parking_slot_allocation_drf
 ```
 
-### 3. Create a virtual environment
+---
+
+### 2. Create a Virtual Environment
+
 ```bash
 python -m venv venv
 ```
 
-### 4. Activate the virtual environment
+#### macOS / Linux
 
-Windows:
-```bash
-venv\Scripts\activate
-```
-
-Linux / macOS:
 ```bash
 source venv/bin/activate
 ```
 
-### 5. Install dependencies
+#### Windows
+
+```bash
+venv\Scripts\activate
+```
+
+---
+
+### 3. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
+---
+
 ## 🔐 Environment Variables
 
-Create a `.env` file in the project root (This file is ignored by Git via `.gitignore`).
+Create a `.env` file in the project root.
 
 Example:
+
 ```env
+# Django
+SECRET_KEY=your_django_secret_key
+DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost
+
+# PostgreSQL
+DATABASE_URL=postgres://user:password@localhost:5432/parking_db
+
+# Redis
+REDIS_URL=redis://127.0.0.1:6379/1
+
+# OTP / Cache TTL
+OTP_TTL=120
+REGISTRATION_TTL=300
+ALLOWED_PARKING_SPACE_CACHE_TTL=300
+DASHBOARD_CACHE_TTL=60
+
+# Celery
+CELERY_BROKER_URL=redis://127.0.0.1:6379/2
+CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/2
+
+# Kavenegar
 KAVENEGAR_API_KEY=your_kavenegar_api_key
+SMS_BACKEND=kavenegar
+SENDER_NUMBER=10004346
 ```
 
-> Note: `SECRET_KEY` and `DEBUG` are currently set directly in `core/settings.py`. For production, it is recommended to move them into environment variables as well.
+> ⚠️ Never commit your real `.env` file or API keys to Git.
 
-## 🗄️ Database Migration
+---
 
-Run the following command to apply database migrations:
+## 🗄️ Database Setup
+
+Run migrations:
+
 ```bash
+python manage.py makemigrations
 python manage.py migrate
 ```
 
-### Create an Admin (Manager) User
+Create a manager/superuser:
+
 ```bash
 python manage.py createsuperuser
 ```
 
-## ▶️ Run Development Server
+---
 
-Start the Django development server:
+## ▶️ Running the Application
+
+The application uses Django, Celery Worker, and Celery Beat.
+
+Run each process separately.
+
+### 1. Django Server
+
 ```bash
 python manage.py runserver
 ```
 
-The API will be available at: http://127.0.0.1:8000/
+### 2. Celery Worker
 
-## ▶️ API Documentation (Swagger)
-
-Once the server is running, view the interactive API documentation at:
 ```bash
+celery -A core worker -l info
+```
+
+For macOS development, if needed:
+
+```bash
+celery -A core worker --loglevel=info --pool=solo
+```
+
+### 3. Celery Beat
+
+```bash
+celery -A core beat -l info
+```
+
+---
+
+## 📚 API Documentation
+
+After starting the Django development server, Swagger UI is available at:
+
+```text
 http://127.0.0.1:8000/api/schema/swagger-ui/
 ```
 
+The Swagger interface provides interactive API documentation and allows endpoints to be tested directly from the browser.
+
+---
 
 ## 🔑 Authentication Flow
 
-1. `POST /api/auth/register/` — Register with phone number, email, and role
-2. `POST /api/auth/login/send_otp/` — Request a login OTP code
-3. `POST /api/auth/login/verify_otp/` — Verify the code and receive JWT tokens
-4. `POST /api/token/refresh/` — Refresh an expired access token
-5. `POST /api/auth/logout/` — Blacklist the refresh token
+### Register
 
-## 🅿️ Smart Parking Allocation
+```http
+POST /api/auth/register/
+```
 
-The system automatically restricts available parking spaces based on the selected vehicle's type and sub-type (e.g., electric cars → electric spaces, disabled sub-type → accessible spaces, motorcycles → motorcycle spaces). Managers are matched to manager-only spaces, and guests are restricted to guest spaces. Overlapping time-based conflicts with existing requests or temporary blocks are rejected automatically at the API level.
+Register a user after completing the required OTP verification process.
+
+### Send Login OTP
+
+```http
+POST /api/auth/login/send_otp/
+```
+
+Request a login OTP.
+
+### Verify Login OTP
+
+```http
+POST /api/auth/login/verify_otp/
+```
+
+Verify the OTP and receive JWT Access and Refresh Tokens.
+
+### Refresh Token
+
+```http
+POST /api/token/refresh/
+```
+
+Refresh an expired access token.
+
+### Logout
+
+```http
+POST /api/auth/logout/
+```
+
+Blacklist the refresh token.
+
+---
+
+## 🧠 Architecture
+
+The application separates responsibilities between different layers.
+
+```text
+                    ┌──────────────────────┐
+                    │        Client        │
+                    │   Swagger / Postman  │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │      DRF Views       │
+                    │ HTTP / Request Flow  │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │    Service Layer     │
+                    │    Business Logic    │
+                    └───────┬───────┬──────┘
+                            │       │
+                 ┌──────────┘       └──────────┐
+                 ▼                             ▼
+        ┌──────────────────┐          ┌──────────────────┐
+        │   QuerySets      │          │      Redis       │
+        │ Database Queries │          │      Cache       │
+        └────────┬─────────┘          └──────────────────┘
+                 │
+                 ▼
+        ┌──────────────────┐
+        │    PostgreSQL    │
+        │     Database     │
+        └──────────────────┘
+
+                 │
+                 ▼
+        ┌──────────────────┐
+        │      Celery      │
+        │ Background Tasks │
+        └────────┬─────────┘
+                 │
+           ┌─────┴──────┐
+           ▼            ▼
+        Redis       Kavenegar
+        Broker          SMS
+```
+
+---
+
+## 🧪 Testing
+
+The project includes tests for critical business logic, permissions, concurrency, and report generation.
+
+### Parking Concurrency Tests
+
+`parkings/tests.py` contains concurrency tests using Python threading to verify that critical parking operations remain safe under concurrent access.
+
+### Vehicle Excel Tests
+
+`vehicles/tests.py` contains tests for:
+
+- Manager-only access to Excel reports.
+- Excel file generation.
+- Generated file contents.
+
+Run the test suite:
+
+```bash
+python manage.py test
+```
+
+---
 
 ## 👥 Roles & Permissions
 
 | Role | Capabilities |
 |---|---|
-| **User** | Register vehicles, submit parking requests, view/cancel own requests |
-| **Guard** | Search vehicles by plate, log entry/exit, view approved & in-use requests |
-| **Manager** | Manage parking spaces, review/approve/reject requests, block spaces, manage users & vehicles, view dashboards |
+| **User** | Register vehicles, submit parking requests, view and cancel own requests, and access personal dashboard. |
+| **Guard** | Search vehicles by plate number, record vehicle entry/exit, view approved/in-use requests, and access the guard dashboard. |
+| **Manager** | Manage parking spaces, review requests, approve/reject requests, block spaces, manage users and vehicles, access the manager dashboard, and generate Excel reports. |
+
+---
+
+## 🎯 Engineering Focus
+
+This project was developed to demonstrate practical backend engineering concepts, including:
+
+- RESTful API development with Django REST Framework.
+- Service Layer architecture.
+- PostgreSQL query optimization.
+- N+1 query prevention.
+- Redis caching.
+- Celery asynchronous processing.
+- Celery Beat scheduled tasks.
+- Database transactions.
+- Row-level locking and concurrency control.
+- JWT authentication.
+- Role-based permissions.
+- OTP-based authentication.
+- Memory-efficient data processing.
+- Excel report generation.
+- Automated testing of critical business logic.
+
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the **MIT License**.
+
+---
 
 ## 👨‍💻 Author
 
-Amir Daviran
-GitHub: https://github.com/amirdvn
+**Amir Daviran**
+
+GitHub:  
+https://github.com/amirdvn
