@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -25,6 +25,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+__pycache__/
+*.py[cod]
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -131,6 +133,8 @@ celerybeat.pid
 .env
 .env.*
 !.env.example
+.env.local
+.env.*.local
 .venv
 env/
 venv/
@@ -152,6 +156,13 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+
+# Node
+node_modules/
+dist/
+.vite/
+
 
 # Pyre type checker
 .pyre/
@@ -191,6 +202,10 @@ celerybeat-schedule.*
 celerybeat.pid
 celerybeat-schedule-shm
 celerybeat-schedule-wal
+
+# IDE
 .idea/
 parking_space.rtf
+
+# OS
 .DS_Store
