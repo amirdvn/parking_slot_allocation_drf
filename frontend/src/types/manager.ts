@@ -29,3 +29,16 @@ export interface ManagerParkingRequest {
   cancellation_reason?: string;
   created_date: string;
 }
+export interface ManagerUser {
+  id: number;
+  phone_number: string;
+  email: string;
+  full_name: string;
+  department: string;
+  role: string;
+  is_active: boolean;
+  is_staff: boolean;
+  description?: string;
+  created_date: string;
+  updated_date: string;
+}

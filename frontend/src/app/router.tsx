@@ -10,6 +10,9 @@ import RequestsPage from "../features/parking/pages/RequestsPage";
 import EntryExitPage from "../features/guard/pages/EntryExitPage";
 import ManagerRequestsPage from "../features/manager/pages/ManagerRequestsPage";
 import ManagerParkingPage from "../features/manager/pages/ManagerParkingPage";
+import ManagerUsersPage from "../features/manager/pages/ManagerUsersPage";
+
+
 
 function NotFoundPage() {
   return (
@@ -39,6 +42,7 @@ export const router = createBrowserRouter([
           // مسیرهای مدیر - دقت کن این دو مسیر جدا هستند
           { path: "manage-requests", element: <ManagerRequestsPage /> },
           { path: "parking", element: <ManagerParkingPage /> },
+          { path: "users", element: <ManagerUsersPage /> },
         ],
       },
     ],
