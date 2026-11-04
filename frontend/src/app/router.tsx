@@ -1,50 +1,12 @@
-
 import { createBrowserRouter } from "react-router-dom";
-import Button from "../components/ui/Button";
-import Input from "../components/ui/Input";
+import DashboardLayout from "../layouts/DashboardLayout";
+import ProtectedRoute from "../components/shared/ProtectedRoute";
+import Login from "../features/auth/pages/Login";
+import VerifyOtp from "../features/auth/pages/VerifyOtp";
 
-function HomePage() {
-  return (
-    <main
-      dir="rtl"
-      className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-6"
-    >
-      <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <h1 className="mb-6 text-2xl font-bold text-secondary-900">
-          سیستم مدیریت پارکینگ
-        </h1>
-
-        <div className="flex flex-col gap-5">
-          <Input
-            label="شماره موبایل"
-            placeholder="09123456789"
-            dir="ltr"
-          />
-
-          <Input
-            label="نام و نام خانوادگی"
-            placeholder="نام خود را وارد کنید"
-          />
-
-          <Input
-            label="شماره پلاک"
-            placeholder="شماره پلاک را وارد کنید"
-            error="شماره پلاک معتبر نیست."
-          />
-
-          <Input
-            label="توضیحات"
-            placeholder="توضیحات اختیاری"
-            helperText="حداکثر ۲۵۰ کاراکتر"
-          />
-
-          <Button className="w-full">
-            ثبت اطلاعات
-          </Button>
-        </div>
-      </div>
-    </main>
-  );
+// یک کامپوننت موقت برای داشبورد تا زمانی که کاملش کنیم
+function DashboardHome() {
+  return <div className="p-4">به داشبورد خوش آمدید!</div>;
 }
 
 function NotFoundPage() {
@@ -56,6 +18,37 @@ function NotFoundPage() {
 }
 
 export const router = createBrowserRouter([
-  { path: "/", element: <HomePage /> },
-  { path: "*", element: <NotFoundPage /> },
+  // مسیرهای عمومی (بدون نیاز به لاگین)
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/verify-otp",
+    element: <VerifyOtp />,
+  },
+
+  // مسیرهای محافظت شده (نیاز به لاگین)
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/",
+        element: <DashboardLayout />,
+        children: [
+          {
+            index: true,
+            element: <DashboardHome />,
+          },
+          // در مراحل بعدی بقیه صفحات مثل /vehicles, /parking و ... اضافه می‌شوند
+        ],
+      },
+    ],
+  },
+
+  // مسیر 404
+  {
+    path: "*",
+    element: <NotFoundPage />,
+  },
 ]);
