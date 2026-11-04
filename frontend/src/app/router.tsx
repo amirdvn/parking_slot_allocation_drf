@@ -4,6 +4,9 @@ import ProtectedRoute from "../components/shared/ProtectedRoute";
 import Login from "../features/auth/pages/Login";
 import VerifyOtp from "../features/auth/pages/VerifyOtp";
 import DashboardRouter from "../features/dashboard/DashboardRouter";
+import VehiclesPage from "../features/vehicles/pages/VehiclesPage";
+import RequestsPage from "../features/parking/pages/RequestsPage";
+
 
 function NotFoundPage() {
   return (
@@ -32,4 +35,20 @@ export const router = createBrowserRouter([
     ],
   },
   { path: "*", element: <NotFoundPage /> },
+
+    {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/",
+        element: <DashboardLayout />,
+        children: [
+          { index: true, element: <DashboardRouter /> },
+          { path: "vehicles", element: <VehiclesPage /> },
+          { path: "requests", element: <RequestsPage /> },
+        ],
+      },
+    ],
+  },
 ]);
+
