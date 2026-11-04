@@ -42,3 +42,26 @@ export interface ManagerUser {
   created_date: string;
   updated_date: string;
 }
+export interface ManagerDashboardData {
+  parking_spaces: {
+    total: number;
+    occupied: number;
+    blocked: number;
+    available: number;
+  };
+  requests: {
+    pending: number;
+    needs_review: number;
+  };
+  top_parking_spaces: {
+    id: string;
+    code: string;
+    usage_count: number;
+  }[];
+  top_users: {
+    id: number;
+    full_name: string;
+    phone_number: string;
+    request_count: number;
+  }[];
+}

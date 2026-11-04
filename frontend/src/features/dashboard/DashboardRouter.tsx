@@ -1,12 +1,13 @@
+// src/features/dashboard/DashboardRouter.tsx
 import { useAuth } from "../auth/AuthContext";
 import UserDashboard from "./UserDashboard";
 import GuardDashboard from "./GuardDashboard";
-import ManagerDashboard from "./ManagerDashboard";
+import ManagerReportsPage from "../manager/pages/ManagerReportsPage"; // 👈 ایمپورت صفحه گزارشات
 
 function DashboardRouter() {
   const { user } = useAuth();
 
-  if (user?.role === "MANAGER") return <ManagerDashboard />;
+  if (user?.role === "MANAGER") return <ManagerReportsPage />; // 👈 مدیر داشبورد آماری ببینه
   if (user?.role === "GUARD") return <GuardDashboard />;
 
   return <UserDashboard />;

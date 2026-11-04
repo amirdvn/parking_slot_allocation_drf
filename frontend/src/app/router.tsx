@@ -11,7 +11,7 @@ import EntryExitPage from "../features/guard/pages/EntryExitPage";
 import ManagerRequestsPage from "../features/manager/pages/ManagerRequestsPage";
 import ManagerParkingPage from "../features/manager/pages/ManagerParkingPage";
 import ManagerUsersPage from "../features/manager/pages/ManagerUsersPage";
-
+import ManagerReportsPage from "../features/manager/pages/ManagerReportsPage";
 
 
 function NotFoundPage() {
@@ -43,6 +43,7 @@ export const router = createBrowserRouter([
           { path: "manage-requests", element: <ManagerRequestsPage /> },
           { path: "parking", element: <ManagerParkingPage /> },
           { path: "users", element: <ManagerUsersPage /> },
+          { path: "reports", element: <ManagerReportsPage /> },
         ],
       },
     ],
