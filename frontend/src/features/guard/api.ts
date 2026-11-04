@@ -1,7 +1,8 @@
+// src/features/guard/api.ts
 import { api } from "../../lib/api";
 import type { PaginatedResponse } from "../../types/vehicle";
 import type { ParkingRequest } from "../../types/parking";
-import type { EntryExitLog } from "../../types/guard";
+import type { EntryExitLog, GuardDashboardData } from "../../types/guard";
 
 export const guardApi = {
   // جستجوی پلاک
@@ -28,5 +29,11 @@ export const guardApi = {
   getLogs: async () => {
     const response = await api.get<PaginatedResponse<EntryExitLog>>("/api/parking/entry_exit/list/");
     return response.data.results;
+  },
+
+  // دریافت آمار داشبورد نگهبان
+  getDashboard: async () => {
+    const response = await api.get<GuardDashboardData>("/api/parking/guard/dashboard/");
+    return response.data;
   },
 };

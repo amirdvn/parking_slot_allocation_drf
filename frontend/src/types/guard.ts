@@ -27,3 +27,17 @@ export interface EntryExitLog {
   } | null;
   description?: string;
 }
+export interface GuardDashboardData {
+  parking_spaces: {
+    total: number;
+    occupied: number;
+    blocked: number;
+    available: number;
+  };
+  vehicles: {
+    in_use: number;
+  };
+  requests: {
+    approved: number;
+  };
+}

@@ -1,16 +1,19 @@
-
+// src/layouts/DashboardLayout.tsx
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-
 import Sidebar from "../components/shared/Sidebar";
 import Header from "../components/shared/Header";
 
+// مپر برای تبدیل مسیر به تیتر فارسی
 const pageTitles: Record<string, string> = {
-  "/dashboard": "داشبورد",
-  "/parking": "مدیریت پارکینگ",
+  "/": "داشبورد",
   "/vehicles": "خودروها",
-  "/requests": "درخواست‌ها",
-  "/users": "کاربران",
+  "/requests": "درخواست‌های من",
+  "/guest-request": "درخواست مهمان",
+  "/entry-exit": "ثبت ورود و خروج",
+  "/manage-requests": "مدیریت درخواست‌ها",
+  "/parking": "مدیریت پارکینگ",
+  "/users": "مدیریت کاربران",
   "/reports": "گزارش‌ها",
   "/notifications": "اعلان‌ها",
 };
@@ -19,8 +22,8 @@ function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
 
-  const pageTitle =
-    pageTitles[location.pathname] ?? "سیستم مدیریت پارکینگ";
+  // پیدا کردن تیتر بر اساس مسیر فعلی
+  const currentTitle = pageTitles[location.pathname] || "پنل مدیریت";
 
   return (
     <div dir="rtl" className="flex min-h-screen bg-background">
@@ -31,7 +34,7 @@ function DashboardLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header
-          title={pageTitle}
+          title={currentTitle}
           onMenuClick={() => setIsSidebarOpen(true)}
         />
 
