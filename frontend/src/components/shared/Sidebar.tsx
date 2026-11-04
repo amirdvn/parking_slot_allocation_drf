@@ -39,7 +39,7 @@ const roleBasedItems = {
   ],
   MANAGER: [
     { title: "مدیریت پارکینگ", path: "/parking", icon: ParkingSquare },
-    { title: "مدیریت درخواست‌ها", path: "/requests", icon: ClipboardList },
+    { title: "مدیریت درخواست‌ها", path: "/manage-requests", icon: ClipboardList },
     { title: "مدیریت کاربران", path: "/users", icon: Users },
     { title: "مدیریت خودروها", path: "/vehicles", icon: Car },
     { title: "گزارش‌ها", path: "/reports", icon: FileBarChart },

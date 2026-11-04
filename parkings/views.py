@@ -131,8 +131,7 @@ class NeedsReviewParkingRequestListView(ListAPIView):
 
     def get_queryset(self): 
 
-        return ParkingRequest.objects.with_relations().filter( 
-        status=ParkingRequest.RequestStatus.NEEDS_REVIEW )
+        return ParkingRequest.objects.with_relations().pending_or_review()
 @extend_schema(operation_id="manager_parking_request_cancel_list")
 class CanceledParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer

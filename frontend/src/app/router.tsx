@@ -7,6 +7,7 @@ import DashboardRouter from "../features/dashboard/DashboardRouter";
 import VehiclesPage from "../features/vehicles/pages/VehiclesPage";
 import RequestsPage from "../features/parking/pages/RequestsPage";
 import EntryExitPage from "../features/guard/pages/EntryExitPage";
+import ManagerRequestsPage from "../features/manager/pages/ManagerRequestsPage";
 
 
 function NotFoundPage() {
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           { path: "vehicles", element: <VehiclesPage /> },
           { path: "requests", element: <RequestsPage /> },
           { path: "entry-exit", element: <EntryExitPage /> },
+          { path: "manage-requests", element: <ManagerRequestsPage /> },
         ],
       },
     ],
