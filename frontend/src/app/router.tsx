@@ -3,11 +3,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "../components/shared/ProtectedRoute";
 import Login from "../features/auth/pages/Login";
 import VerifyOtp from "../features/auth/pages/VerifyOtp";
-
-// یک کامپوننت موقت برای داشبورد تا زمانی که کاملش کنیم
-function DashboardHome() {
-  return <div className="p-4">به داشبورد خوش آمدید!</div>;
-}
+import DashboardRouter from "../features/dashboard/DashboardRouter";
 
 function NotFoundPage() {
   return (
@@ -18,17 +14,8 @@ function NotFoundPage() {
 }
 
 export const router = createBrowserRouter([
-  // مسیرهای عمومی (بدون نیاز به لاگین)
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/verify-otp",
-    element: <VerifyOtp />,
-  },
-
-  // مسیرهای محافظت شده (نیاز به لاگین)
+  { path: "/login", element: <Login /> },
+  { path: "/verify-otp", element: <VerifyOtp /> },
   {
     element: <ProtectedRoute />,
     children: [
@@ -38,17 +25,11 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <DashboardHome />,
+            element: <DashboardRouter />,
           },
-          // در مراحل بعدی بقیه صفحات مثل /vehicles, /parking و ... اضافه می‌شوند
         ],
       },
     ],
   },
-
-  // مسیر 404
-  {
-    path: "*",
-    element: <NotFoundPage />,
-  },
+  { path: "*", element: <NotFoundPage /> },
 ]);

@@ -1,4 +1,4 @@
-
+// src/components/shared/Sidebar.tsx
 import {
   LayoutDashboard,
   ParkingSquare,
@@ -10,54 +10,51 @@ import {
   Settings,
   LogOut,
   X,
+  LogIn,
 } from "lucide-react";
-
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../features/auth/AuthContext";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const navigationItems = [
-  {
-    title: "داشبورد",
-    path: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "مدیریت پارکینگ",
-    path: "/parking",
-    icon: ParkingSquare,
-  },
-  {
-    title: "خودروها",
-    path: "/vehicles",
-    icon: Car,
-  },
-  {
-    title: "درخواست‌ها",
-    path: "/requests",
-    icon: ClipboardList,
-  },
-  {
-    title: "کاربران",
-    path: "/users",
-    icon: Users,
-  },
-  {
-    title: "گزارش‌ها",
-    path: "/reports",
-    icon: FileBarChart,
-  },
-  {
-    title: "اعلان‌ها",
-    path: "/notifications",
-    icon: Bell,
-  },
+// منوهای مشترک برای همه
+const commonItems = [
+  { title: "داشبورد", path: "/", icon: LayoutDashboard },
+  { title: "اعلان‌ها", path: "/notifications", icon: Bell },
 ];
 
+// منوهای اختصاصی هر نقش
+const roleBasedItems = {
+  USER: [
+    { title: "خودروهای من", path: "/vehicles", icon: Car },
+    { title: "درخواست‌های من", path: "/requests", icon: ClipboardList },
+    { title: "درخواست مهمان", path: "/guest-request", icon: LogIn },
+  ],
+  GUARD: [
+    { title: "ثبت ورود/خروج", path: "/entry-exit", icon: ParkingSquare },
+    { title: "درخواست‌های تایید شده", path: "/approved-requests", icon: ClipboardList },
+  ],
+  MANAGER: [
+    { title: "مدیریت پارکینگ", path: "/parking", icon: ParkingSquare },
+    { title: "مدیریت درخواست‌ها", path: "/requests", icon: ClipboardList },
+    { title: "مدیریت کاربران", path: "/users", icon: Users },
+    { title: "مدیریت خودروها", path: "/vehicles", icon: Car },
+    { title: "گزارش‌ها", path: "/reports", icon: FileBarChart },
+  ],
+};
+
 function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { user, logout } = useAuth();
+
+  // ادغام منوهای مشترک با منوهای اختصاصی نقش کاربر
+  const navigationItems = [
+    ...commonItems,
+    ...(user ? roleBasedItems[user.role] : []),
+  ];
+
   return (
     <>
       {isOpen && (
@@ -100,7 +97,6 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {navigationItems.map((item) => {
             const Icon = item.icon;
-
             return (
               <NavLink
                 key={item.path}
@@ -127,11 +123,12 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-text-secondary hover:bg-background"
           >
             <Settings size={20} />
-            تنظیمات
+            تنظیمات حساب
           </button>
 
           <button
             type="button"
+            onClick={logout}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-danger hover:bg-red-50"
           >
             <LogOut size={20} />
