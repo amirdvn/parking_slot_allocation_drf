@@ -1,12 +1,34 @@
-
+// src/components/shared/Header.tsx
 import { Bell, Menu, Search, UserCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "../../features/auth/AuthContext";
+import { notificationsApi } from "../../features/notifications/api";
 
 interface HeaderProps {
   onMenuClick: () => void;
   title: string;
 }
 
+const roleTranslations: Record<string, string> = {
+  USER: "کاربر",
+  GUARD: "نگهبان",
+  MANAGER: "مدیر سیستم",
+};
+
 function Header({ onMenuClick, title }: HeaderProps) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // دریافت تعداد اعلان‌های خوانده نشده
+  const { data: unreadData } = useQuery({
+    queryKey: ["unread-count"],
+    queryFn: notificationsApi.getUnreadCount,
+    refetchInterval: 60000, // هر ۶۰ ثانیه
+  });
+
+  const unreadCount = unreadData?.unread_count || 0;
+
   return (
     <header
       dir="rtl"
@@ -23,9 +45,7 @@ function Header({ onMenuClick, title }: HeaderProps) {
         </button>
 
         <div>
-          <h1 className="text-lg font-bold text-secondary-900">
-            {title}
-          </h1>
+          <h1 className="text-lg font-bold text-secondary-900">{title}</h1>
           <p className="hidden text-xs text-text-secondary sm:block">
             به پنل مدیریت پارکینگ خوش آمدید
           </p>
@@ -43,31 +63,31 @@ function Header({ onMenuClick, title }: HeaderProps) {
 
         <button
           type="button"
+          onClick={() => navigate("/notifications")}
           className="relative rounded-xl p-2.5 text-text-secondary transition-colors hover:bg-background"
           aria-label="اعلان‌ها"
         >
           <Bell size={20} />
-
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </button>
 
         <div className="mx-1 h-8 w-px bg-border" />
 
-        <button
-          type="button"
-          className="flex items-center gap-2 rounded-xl p-2 transition-colors hover:bg-background"
-        >
+        <div className="flex items-center gap-2 rounded-xl p-2">
           <UserCircle size={28} className="text-primary-600" />
-
           <div className="hidden text-right sm:block">
             <p className="text-sm font-semibold text-secondary-900">
-              مدیر سیستم
+              {user?.full_name || "کاربر سیستم"}
             </p>
             <p className="text-xs text-text-secondary">
-              مدیر کل
+              {user ? roleTranslations[user.role] : ""}
             </p>
           </div>
-        </button>
+        </div>
       </div>
     </header>
   );
