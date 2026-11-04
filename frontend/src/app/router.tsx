@@ -6,6 +6,7 @@ import VerifyOtp from "../features/auth/pages/VerifyOtp";
 import DashboardRouter from "../features/dashboard/DashboardRouter";
 import VehiclesPage from "../features/vehicles/pages/VehiclesPage";
 import RequestsPage from "../features/parking/pages/RequestsPage";
+import EntryExitPage from "../features/guard/pages/EntryExitPage";
 
 
 function NotFoundPage() {
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
           { index: true, element: <DashboardRouter /> },
           { path: "vehicles", element: <VehiclesPage /> },
           { path: "requests", element: <RequestsPage /> },
+          { path: "entry-exit", element: <EntryExitPage /> },
         ],
       },
     ],
