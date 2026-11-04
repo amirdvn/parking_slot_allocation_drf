@@ -28,7 +28,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// اینترسپتور پاسخ‌ها (مدیریت 401)
+// 👇 لیست صفحات عمومی که نباید به Login ریدایرکت بشن
+const PUBLIC_ROUTES = ["/login", "/register", "/verify-otp"];
+
+// اینترسپتور پاسخ‌ها
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -50,12 +53,29 @@ api.interceptors.response.use(
 
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return api(originalRequest);
-
         } catch (refreshError) {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
-          window.location.href = "/login";
+
+          // 🚀 فقط اگر کاربر توی صفحه عمومی نبود، ریدایرکت کن
+          const currentPath = window.location.pathname;
+          const isPublicRoute = PUBLIC_ROUTES.some(route => currentPath.startsWith(route));
+
+          if (!isPublicRoute) {
+            window.location.href = "/login";
+          }
           return Promise.reject(refreshError);
+        }
+      } else {
+        // 🚀 اگر اصلاً refresh_token نداشتیم، فقط توکن‌ها رو پاک کن
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+
+        const currentPath = window.location.pathname;
+        const isPublicRoute = PUBLIC_ROUTES.some(route => currentPath.startsWith(route));
+
+        if (!isPublicRoute) {
+          window.location.href = "/login";
         }
       }
     }

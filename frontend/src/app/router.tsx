@@ -4,17 +4,17 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "../components/shared/ProtectedRoute";
 import Login from "../features/auth/pages/Login";
 import VerifyOtp from "../features/auth/pages/VerifyOtp";
+import Register from "../features/auth/pages/Register";
 import DashboardRouter from "../features/dashboard/DashboardRouter";
 import VehiclesPage from "../features/vehicles/pages/VehiclesPage";
 import RequestsPage from "../features/parking/pages/RequestsPage";
+import GuestRequestPage from "../features/parking/pages/GuestRequestPage";
 import EntryExitPage from "../features/guard/pages/EntryExitPage";
 import ManagerRequestsPage from "../features/manager/pages/ManagerRequestsPage";
 import ManagerParkingPage from "../features/manager/pages/ManagerParkingPage";
 import ManagerUsersPage from "../features/manager/pages/ManagerUsersPage";
 import ManagerReportsPage from "../features/manager/pages/ManagerReportsPage";
 import NotificationsPage from "../features/notifications/pages/NotificationsPage";
-import GuestRequestPage from "../features/parking/pages/GuestRequestPage";
-
 
 function NotFoundPage() {
   return (
@@ -25,8 +25,12 @@ function NotFoundPage() {
 }
 
 export const router = createBrowserRouter([
+  // 👇 مسیرهای عمومی - بیرون از ProtectedRoute
   { path: "/login", element: <Login /> },
   { path: "/verify-otp", element: <VerifyOtp /> },
+  { path: "/register", element: <Register /> },  // ⬅️ اینجا!
+
+  // 👇 مسیرهای محافظت شده - داخل ProtectedRoute
   {
     element: <ProtectedRoute />,
     children: [
@@ -35,22 +39,19 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { index: true, element: <DashboardRouter /> },
-          // مسیرهای مشترک کاربر عادی و مدیر
           { path: "vehicles", element: <VehiclesPage /> },
-          // مسیرهای کاربر عادی
           { path: "requests", element: <RequestsPage /> },
-          // مسیرهای نگهبان
+          { path: "guest-request", element: <GuestRequestPage /> },
           { path: "entry-exit", element: <EntryExitPage /> },
-          // مسیرهای مدیر - دقت کن این دو مسیر جدا هستند
           { path: "manage-requests", element: <ManagerRequestsPage /> },
           { path: "parking", element: <ManagerParkingPage /> },
           { path: "users", element: <ManagerUsersPage /> },
           { path: "reports", element: <ManagerReportsPage /> },
           { path: "notifications", element: <NotificationsPage /> },
-            { path: "guest-request", element: <GuestRequestPage /> },
         ],
       },
     ],
   },
+
   { path: "*", element: <NotFoundPage /> },
 ]);

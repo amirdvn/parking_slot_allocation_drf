@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "../api";
@@ -16,35 +16,26 @@ const otpSchema = z.object({
 type OtpFormValues = z.infer<typeof otpSchema>;
 
 function VerifyOtp() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const phoneNumber = location.state?.phone_number;
+  const urlParams = new URLSearchParams(window.location.search);
+  const phoneNumber = urlParams.get("phone") || sessionStorage.getItem("pending_phone");
 
-  // اگر کاربر مستقیم اومده باشه به این صفحه بدون شماره موبایل
-  if (!phoneNumber) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<OtpFormValues>({
+  const { register, handleSubmit, formState: { errors } } = useForm<OtpFormValues>({
     resolver: zodResolver(otpSchema),
   });
 
   const mutation = useMutation({
-    mutationFn: (data: OtpFormValues) => authApi.verifyOtp(phoneNumber, data.code),
+    mutationFn: (data: OtpFormValues) => authApi.verifyOtp(phoneNumber!, data.code),
     onSuccess: async (response) => {
-      if (response.is_registered && response.tokens) {
+      if (response?.is_registered === true && response?.tokens) {
         await login(response.tokens);
-        navigate("/");
+        sessionStorage.removeItem("pending_phone");
+        window.location.href = "/";
       } else {
-        // اگر کاربر جدید بود، باید اطلاعات تکمیلی رو پر کنه
-        navigate("/register", { state: { phone_number: phoneNumber } });
+        window.location.href = `/register?phone=${encodeURIComponent(phoneNumber || "")}`;
       }
     },
     onError: (error: any) => {
@@ -79,9 +70,7 @@ function VerifyOtp() {
           />
 
           {serverError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-danger">
-              {serverError}
-            </div>
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-danger">{serverError}</div>
           )}
 
           <Button type="submit" disabled={mutation.isPending} className="w-full">
@@ -90,7 +79,10 @@ function VerifyOtp() {
 
           <button
             type="button"
-            onClick={() => navigate("/login")}
+            onClick={() => {
+              sessionStorage.removeItem("pending_phone");
+              navigate("/login");
+            }}
             className="mt-2 text-sm text-text-secondary hover:text-secondary-900"
           >
             ویرایش شماره موبایل

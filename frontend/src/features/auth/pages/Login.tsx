@@ -32,8 +32,8 @@ function Login() {
   const mutation = useMutation({
     mutationFn: (data: LoginFormValues) => authApi.sendOtp(data.phone_number),
     onSuccess: (_, variables) => {
-      // انتقال به صفحه تایید کد و پاس دادن شماره موبایل
-      navigate("/verify-otp", { state: { phone_number: variables.phone_number } });
+      sessionStorage.setItem("pending_phone", variables.phone_number);
+      navigate(`/verify-otp?phone=${encodeURIComponent(variables.phone_number)}`);
     },
     onError: (error: any) => {
       setServerError(error.response?.data?.error || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");

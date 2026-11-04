@@ -1,5 +1,5 @@
 import { api } from "../../lib/api";
-import type { VerifyOtpResponse } from "../../types/auth";
+import type { VerifyOtpResponse, RegisterPayload } from "../../types/auth";
 
 export const authApi = {
   sendOtp: async (phone_number: string) => {
@@ -12,6 +12,11 @@ export const authApi = {
       phone_number,
       code: Number(code),
     });
+    return response.data;
+  },
+
+  register: async (data: RegisterPayload) => {
+    const response = await api.post("/api/auth/register/", data);
     return response.data;
   },
 };
