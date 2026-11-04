@@ -2,6 +2,7 @@
 import { api } from "../../lib/api";
 import type { PaginatedResponse } from "../../types/vehicle";
 import type { ParkingRequest, ParkingSpace, CreateRequestPayload } from "../../types/parking";
+import type { ParkingSpacePayload } from "../../types/parking";
 
 export const parkingApi = {
   // دریافت لیست جایگاه‌ها
@@ -28,5 +29,18 @@ export const parkingApi = {
       cancellation_reason: reason,
     });
     return response.data;
+  },
+    createSpace: async (data: ParkingSpacePayload) => {
+    const response = await api.post<ParkingSpace>("/api/parking/create/", data);
+    return response.data;
+  },
+
+  updateSpace: async (id: string, data: Partial<ParkingSpacePayload>) => {
+    const response = await api.patch<ParkingSpace>(`/api/parking/update/${id}/`, data);
+    return response.data;
+  },
+
+  deleteSpace: async (id: string) => {
+    await api.delete(`/api/parking/delete/${id}/`);
   },
 };

@@ -11,11 +11,9 @@ function ManagerRequestsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"needs_review" | "approved">("needs_review");
 
-  // Stateهای مودال رد درخواست
   const [rejectingRequest, setRejectingRequest] = useState<ManagerParkingRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  // دریافت داده‌ها بر اساس تب فعال
   const { data: requests, isLoading } = useQuery({
     queryKey: ["manager-requests", activeTab],
     queryFn: activeTab === "needs_review"
@@ -23,7 +21,6 @@ function ManagerRequestsPage() {
       : managerApi.getApprovedRequests,
   });
 
-  // Mutation برای بررسی (تایید یا رد)
   const reviewMutation = useMutation({
     mutationFn: ({ id, status, reason }: { id: number; status: "APPROVED" | "REJECTED"; reason?: string }) =>
       managerApi.reviewRequest(id, { status, rejection_reason: reason }),
@@ -56,7 +53,6 @@ function ManagerRequestsPage() {
     <div className="space-y-6">
       <h1 className="text-xl font-bold text-secondary-900">مدیریت درخواست‌ها</h1>
 
-      {/* تب‌ها */}
       <div className="flex border-b border-border">
         <button
           onClick={() => setActiveTab("needs_review")}
@@ -80,7 +76,6 @@ function ManagerRequestsPage() {
         </button>
       </div>
 
-      {/* جدول درخواست‌ها */}
       <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
         {isLoading ? (
           <div className="p-8 text-center text-text-secondary">در حال بارگذاری...</div>
@@ -140,7 +135,6 @@ function ManagerRequestsPage() {
         )}
       </div>
 
-      {/* مودال رد درخواست */}
       <Modal
         isOpen={!!rejectingRequest}
         onClose={() => setRejectingRequest(null)}

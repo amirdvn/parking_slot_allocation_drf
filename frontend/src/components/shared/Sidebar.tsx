@@ -35,11 +35,10 @@ const roleBasedItems = {
   ],
   GUARD: [
     { title: "ثبت ورود/خروج", path: "/entry-exit", icon: ParkingSquare },
-    { title: "درخواست‌های تایید شده", path: "/approved-requests", icon: ClipboardList },
   ],
   MANAGER: [
     { title: "مدیریت پارکینگ", path: "/parking", icon: ParkingSquare },
-    { title: "مدیریت درخواست‌ها", path: "/manage-requests", icon: ClipboardList },
+    { title: "مدیریت درخواست‌ها", path: "/manage-requests", icon: ClipboardList }, // 👈 دقت کن این مسیر
     { title: "مدیریت کاربران", path: "/users", icon: Users },
     { title: "مدیریت خودروها", path: "/vehicles", icon: Car },
     { title: "گزارش‌ها", path: "/reports", icon: FileBarChart },
@@ -49,7 +48,6 @@ const roleBasedItems = {
 function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
 
-  // ادغام منوهای مشترک با منوهای اختصاصی نقش کاربر
   const navigationItems = [
     ...commonItems,
     ...(user ? roleBasedItems[user.role] : []),

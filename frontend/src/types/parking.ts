@@ -40,3 +40,22 @@ export interface CreateRequestPayload {
   end_time: string;
   description?: string;
 }
+
+export interface ParkingSpace {
+  id: string; // UUID
+  code: string;
+  zone: "NORTH" | "SOUTH" | "WEST" | "EAST";
+  floor: "GROUND" | "FLOOR_1" | "FLOOR_2" | "BASEMENT_1" | "BASEMENT_2";
+  space_type: "NORMAL" | "GUEST" | "MANAGERS" | "DISABLED" | "MOTORCYCLE" | "ELECTRIC" | "LOADING" | "EMERGENCY";
+  is_active: boolean;
+  requires_permission: boolean;
+  description?: string;
+}
+
+export interface ParkingSpacePayload {
+  zone: string;
+  floor: string;
+  space_type: string;
+  description?: string;
+  is_active?: boolean;
+}
