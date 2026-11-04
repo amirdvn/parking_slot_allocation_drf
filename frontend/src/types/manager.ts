@@ -65,3 +65,15 @@ export interface ManagerDashboardData {
     request_count: number;
   }[];
 }
+export interface UserDashboardData {
+  vehicles: {
+    total: number;
+    active: number;
+  };
+  requests: {
+    pending: number;
+    needs_review: number;
+    approved: number;
+    rejected: number;
+  };
+}

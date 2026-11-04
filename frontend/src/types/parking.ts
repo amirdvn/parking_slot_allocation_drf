@@ -59,3 +59,14 @@ export interface ParkingSpacePayload {
   description?: string;
   is_active?: boolean;
 }
+export interface GuestRequestPayload {
+  guest_name: string;
+  guest_phone: string;
+  guest_email: string;
+  guest_plate_number: string;
+  parking_space: string;
+  start_time: string;
+  end_time: string;
+  reason: string;
+  description?: string;
+}

@@ -43,4 +43,13 @@ export const parkingApi = {
   deleteSpace: async (id: string) => {
     await api.delete(`/api/parking/delete/${id}/`);
   },
+
+    getUserDashboard: async () => {
+    const response = await api.get<UserDashboardData>("/api/parking/user/dashboard/");
+    return response.data;
+  },
+    createGuestRequest: async (data: GuestRequestPayload) => {
+    const response = await api.post("/api/parking/requests/guest/create/", data);
+    return response.data;
+  },
 };
