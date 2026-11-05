@@ -30,7 +30,6 @@ export const managerApi = {
     return response.data;
   },
 
-  // 👇 حالا صفحه‌بندی شده برمی‌گردونه (کامل PaginatedResponse)
   getUsers: async (page = 1) => {
     const response = await api.get<PaginatedResponse<ManagerUser>>(
       `/api/parking/manager/users/list/?page=${page}`
@@ -60,6 +59,23 @@ export const managerApi = {
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", `entry_exit_report_${startDate}_to_${endDate}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  },
+
+
+  downloadVehicleReport: async () => {
+    const response = await api.get("/api/vehicle/reports/vehicles/xlsx/", {
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `vehicles_report_${new Date().toISOString().split("T")[0]}.xlsx`
+    );
     document.body.appendChild(link);
     link.click();
     link.remove();
