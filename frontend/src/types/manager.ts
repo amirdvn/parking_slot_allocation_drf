@@ -77,3 +77,15 @@ export interface UserDashboardData {
     rejected: number;
   };
 }
+
+export interface ManagerVehicle {
+  id: number;
+  user: number;
+  plate_number: string;
+  vehicle_type: "CAR" | "MOTORCYCLE" | "BICYCLE";
+  sub_type: "PASSENGER" | "CARGO" | "ELECTRIC" | "DISABLED";
+  color: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}

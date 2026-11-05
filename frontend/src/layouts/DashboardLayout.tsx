@@ -14,9 +14,10 @@ const pageTitles: Record<string, string> = {
   "/manage-requests": "مدیریت درخواست‌ها",
   "/parking": "مدیریت پارکینگ",
   "/users": "مدیریت کاربران",
+  "/manage-vehicles": "مدیریت خودروها",
   "/reports": "گزارش‌ها",
   "/notifications": "اعلان‌ها",
-  "/settings": "تنظیمات حساب", // 👈 اضافه شد
+  "/settings": "تنظیمات حساب",
 };
 
 function DashboardLayout() {

@@ -5,6 +5,7 @@ import type {
   ManagerParkingRequest,
   ManagerUser,
   ManagerDashboardData,
+  ManagerVehicle,
 } from "../../types/manager";
 
 export const managerApi = {
@@ -45,6 +46,22 @@ export const managerApi = {
     return response.data;
   },
 
+  // 👇 جدید: مدیریت خودروهای تمام کاربران
+  getAllVehicles: async (page = 1) => {
+    const response = await api.get<PaginatedResponse<ManagerVehicle>>(
+      `/api/parking/manager/vehicles/list/?page=${page}`
+    );
+    return response.data;
+  },
+
+  toggleVehicleStatus: async (vehicleId: number, isActive: boolean) => {
+    const endpoint = isActive
+      ? `/api/parking/manager/vehicles/activate/${vehicleId}/`
+      : `/api/parking/manager/vehicles/deactivate/${vehicleId}/`;
+    const response = await api.patch(endpoint);
+    return response.data;
+  },
+
   getDashboard: async () => {
     const response = await api.get<ManagerDashboardData>("/api/parking/manager/dashboard/");
     return response.data;
@@ -63,7 +80,6 @@ export const managerApi = {
     link.click();
     link.remove();
   },
-
 
   downloadVehicleReport: async () => {
     const response = await api.get("/api/vehicle/reports/vehicles/xlsx/", {

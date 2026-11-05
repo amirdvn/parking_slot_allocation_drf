@@ -39,7 +39,8 @@ const roleBasedItems = {
     { title: "مدیریت پارکینگ", path: "/parking", icon: ParkingSquare },
     { title: "مدیریت درخواست‌ها", path: "/manage-requests", icon: ClipboardList },
     { title: "مدیریت کاربران", path: "/users", icon: Users },
-    { title: "مدیریت خودروها", path: "/vehicles", icon: Car },
+    { title: "مدیریت خودروها", path: "/manage-vehicles", icon: Car }, // 👈 همه خودروها
+    { title: "خودروهای من", path: "/my-vehicles", icon: Car },         // 👈 خودروهای شخصی
     { title: "گزارش‌ها", path: "/reports", icon: FileBarChart },
   ],
 };
@@ -124,7 +125,11 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
                     )}
                     <Icon
                       size={20}
-                      className={isActive ? "text-primary-600" : "group-hover:scale-110 transition-transform"}
+                      className={
+                        isActive
+                          ? "text-primary-600"
+                          : "group-hover:scale-110 transition-transform"
+                      }
                     />
                     <span>{item.title}</span>
                   </>
@@ -152,7 +157,10 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {isActive && (
                   <span className="absolute right-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-l-full bg-primary-600" />
                 )}
-                <Settings size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                <Settings
+                  size={20}
+                  className="group-hover:rotate-90 transition-transform duration-300"
+                />
                 <span>تنظیمات حساب</span>
               </>
             )}
@@ -163,7 +171,10 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
             onClick={handleLogout}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-danger transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
           >
-            <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
+            <LogOut
+              size={20}
+              className="group-hover:-translate-x-1 transition-transform"
+            />
             خروج از حساب
           </button>
         </div>
