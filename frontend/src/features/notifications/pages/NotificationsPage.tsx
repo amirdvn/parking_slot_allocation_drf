@@ -1,15 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, CheckCheck, Info, AlertTriangle, MessageSquare } from "lucide-react";
+import { Bell, CheckCheck, MessageSquare, AlertTriangle, Info } from "lucide-react";
+import { toast } from "sonner";
 import { notificationsApi } from "../api";
 import type { Notification, NotificationType } from "../../../types/notification";
 import Button from "../../../components/ui/Button";
+import EmptyState from "../../../components/ui/EmptyState";
+import { Skeleton } from "../../../components/ui/Skeleton";
 
-// مپر برای آیکون و رنگ هر نوع اعلان
 const typeConfig: Record<NotificationType, { icon: React.ReactNode; color: string }> = {
-  REQUEST_STATUS: { icon: <MessageSquare size={18} />, color: "bg-blue-100 text-blue-700" },
-  REVIEW_NEEDED: { icon: <AlertTriangle size={18} />, color: "bg-orange-100 text-orange-700" },
-  SYSTEM: { icon: <Info size={18} />, color: "bg-gray-100 text-gray-700" },
-  REMINDER: { icon: <Bell size={18} />, color: "bg-purple-100 text-purple-700" },
+  REQUEST_STATUS: { icon: <MessageSquare size={18} />, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  REVIEW_NEEDED: { icon: <AlertTriangle size={18} />, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+  SYSTEM: { icon: <Info size={18} />, color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400" },
+  REMINDER: { icon: <Bell size={18} />, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
 };
 
 function NotificationsPage() {
@@ -18,10 +20,9 @@ function NotificationsPage() {
   const { data: notifications, isLoading } = useQuery({
     queryKey: ["notifications"],
     queryFn: notificationsApi.getNotifications,
-    refetchInterval: 30000, // هر ۳۰ ثانیه یکبار رفرش کن
+    refetchInterval: 30000,
   });
 
-  // Mutation برای خواندن یک اعلان
   const readOneMutation = useMutation({
     mutationFn: notificationsApi.markAsRead,
     onSuccess: () => {
@@ -30,30 +31,16 @@ function NotificationsPage() {
     },
   });
 
-  // Mutation برای خواندن همه
   const readAllMutation = useMutation({
     mutationFn: notificationsApi.markAllAsRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["unread-count"] });
+      toast.success("همه اعلان‌ها خوانده شدند");
     },
   });
 
-  const handleNotificationClick = (notif: Notification) => {
-    // اگر خوانده نشده، به عنوان خوانده شده علامت بزن
-    if (!notif.is_read) {
-      readOneMutation.mutate(notif.id);
-    }
-    // اگر لینک داشت، هدایت کن
-    if (notif.link) {
-      // لینک بک‌اند مثل /api/parking/requests/detail/5/ است، ما باید مسیر فرانت رو بسازیم
-      // فعلاً لینک رو نادیده می‌گیریم
-    }
-  };
-
   const unreadCount = notifications?.filter((n) => !n.is_read).length || 0;
-
-  if (isLoading) return <div className="p-4">در حال بارگذاری...</div>;
 
   return (
     <div className="space-y-6">
@@ -71,30 +58,45 @@ function NotificationsPage() {
         )}
       </div>
 
-      {notifications?.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface p-8 text-center text-text-secondary">
-          <Bell size={48} className="mx-auto mb-4 text-gray-300" />
-          هیچ اعلانی برای نمایش وجود ندارد.
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : !notifications || notifications.length === 0 ? (
+        <div className="rounded-xl border border-border bg-surface">
+          <EmptyState
+            icon={<Bell size={48} />}
+            title="هیچ اعلانی وجود ندارد"
+            description="هنگامی که اعلان جدیدی داشته باشید، اینجا نمایش داده می‌شود."
+          />
         </div>
       ) : (
         <div className="space-y-3">
-          {notifications?.map((notif) => {
+          {notifications.map((notif: Notification) => {
             const config = typeConfig[notif.type] || typeConfig.SYSTEM;
             return (
               <div
                 key={notif.id}
-                onClick={() => handleNotificationClick(notif)}
+                onClick={() => {
+                  if (!notif.is_read) readOneMutation.mutate(notif.id);
+                }}
                 className={`cursor-pointer rounded-xl border p-4 shadow-sm transition-all hover:shadow-md ${
-                  notif.is_read 
-                    ? "border-border bg-surface opacity-70" 
-                    : "border-primary-200 bg-primary-50/30"
+                  notif.is_read
+                    ? "border-border bg-surface opacity-70"
+                    : "border-primary-200 bg-primary-50/30 dark:border-primary-800 dark:bg-primary-900/10"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`rounded-lg p-2 ${config.color}`}>{config.icon}</div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <h3 className={`text-sm font-bold ${notif.is_read ? "text-text-secondary" : "text-secondary-900"}`}>
+                      <h3
+                        className={`text-sm font-bold ${
+                          notif.is_read ? "text-text-secondary" : "text-secondary-900"
+                        }`}
+                      >
                         {notif.title}
                       </h3>
                       <span className="text-xs text-text-secondary" dir="ltr">

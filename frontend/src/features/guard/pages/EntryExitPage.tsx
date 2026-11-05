@@ -7,6 +7,8 @@ import { guardApi } from "../api";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import EmptyState from "../../../components/ui/EmptyState";
+import { TableSkeleton } from "../../../components/ui/Skeleton";
 
 function EntryExitPage() {
   const queryClient = useQueryClient();
@@ -15,7 +17,6 @@ function EntryExitPage() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState<number | null>(null);
 
-  // گرفتن لاگ‌ها
   const { data: logs, isLoading: isLoadingLogs } = useQuery({
     queryKey: ["entry-exit-logs"],
     queryFn: guardApi.getLogs,
@@ -23,12 +24,11 @@ function EntryExitPage() {
 
   const activeLogs = logs?.filter((log) => !log.exit_time) || [];
 
-  // Mutation جستجو
   const searchMutation = useMutation({
     mutationFn: guardApi.searchVehicle,
     onSuccess: (data) => {
       setSearchResult(data);
-      if (data.length === 0) {
+      if (!data || data.length === 0) {
         setSearchError("هیچ درخواست تایید شده‌ای برای این پلاک یافت نشد.");
       } else {
         setSearchError(null);
@@ -40,7 +40,6 @@ function EntryExitPage() {
     },
   });
 
-  // Mutation ثبت ورود
   const entryMutation = useMutation({
     mutationFn: guardApi.recordEntry,
     onSuccess: () => {
@@ -57,7 +56,6 @@ function EntryExitPage() {
     },
   });
 
-  // Mutation ثبت خروج
   const exitMutation = useMutation({
     mutationFn: guardApi.recordExit,
     onSuccess: () => {
@@ -75,7 +73,8 @@ function EntryExitPage() {
     e.preventDefault();
     if (!searchPlate.trim()) return;
     setSearchError(null);
-    searchMutation.mutate(searchPlate);
+    setSearchResult(null);
+    searchMutation.mutate(searchPlate.trim());
   };
 
   return (
@@ -88,7 +87,7 @@ function EntryExitPage() {
           <div className="flex-1">
             <Input
               label="جستجوی پلاک خودرو"
-              placeholder="مثلا 1234ب123"
+              placeholder="پلاک دقیق مثل: 1234ب123"
               dir="ltr"
               value={searchPlate}
               onChange={(e) => setSearchPlate(e.target.value)}
@@ -99,7 +98,8 @@ function EntryExitPage() {
             disabled={searchMutation.isPending}
             className="gap-2 mb-0.5"
           >
-            <Search size={18} /> جستجو
+            <Search size={18} />
+            {searchMutation.isPending ? "در حال جستجو..." : "جستجو"}
           </Button>
         </form>
 
@@ -109,9 +109,9 @@ function EntryExitPage() {
         {searchResult && searchResult.length > 0 && (
           <div className="mt-6 space-y-3">
             <h3 className="text-sm font-semibold text-secondary-900">
-              درخواست‌های یافت شده:
+              درخواست‌های یافت شده ({searchResult.length}):
             </h3>
-            {searchResult.map((req) => (
+            {searchResult.map((req: any) => (
               <div
                 key={req.id}
                 className="flex items-center justify-between rounded-lg border border-border bg-background p-4"
@@ -119,18 +119,34 @@ function EntryExitPage() {
                 <div className="text-sm">
                   <p className="font-bold">درخواست #{req.id}</p>
                   <p className="text-text-secondary text-xs mt-1">
-                    وضعیت:{" "}
-                    {req.status === "APPROVED" ? "تایید شده" : "در حال استفاده"} |
-                    جایگاه: {req.parking_space}
+                    پلاک:{" "}
+                    <span className="font-mono font-bold" dir="ltr">
+                      {req.vehicle_detail?.plate_number || "---"}
+                    </span>{" "}
+                    | جایگاه:{" "}
+                    <span className="font-bold">
+                      {req.parking_space_detail?.code || "---"}
+                    </span>{" "}
+                    | وضعیت:{" "}
+                    {req.status === "APPROVED" ? "تایید شده" : "در حال استفاده"}
+                  </p>
+                  <p className="text-text-secondary text-xs mt-1" dir="ltr">
+                    {new Date(req.start_time).toLocaleString("fa-IR")} -{" "}
+                    {new Date(req.end_time).toLocaleString("fa-IR")}
                   </p>
                 </div>
                 <Button
-                  onClick={() =>
+                  onClick={() => {
+                    // 👇 اصلاح شد: از vehicle_detail.id استفاده می‌کنیم
+                    if (!req.vehicle_detail?.id) {
+                      toast.error("اطلاعات خودرو ناقص است");
+                      return;
+                    }
                     entryMutation.mutate({
-                      vehicle: req.vehicle,
+                      vehicle: req.vehicle_detail.id,
                       parking_request: req.id,
-                    })
-                  }
+                    });
+                  }}
                   disabled={entryMutation.isPending}
                   className="gap-2 bg-green-600 hover:bg-green-700"
                 >
@@ -152,11 +168,15 @@ function EntryExitPage() {
         </div>
 
         {isLoadingLogs ? (
-          <div className="p-8 text-center text-text-secondary">در حال بارگذاری...</div>
-        ) : activeLogs.length === 0 ? (
-          <div className="p-8 text-center text-text-secondary">
-            هیچ خودرویی در حال حاضر داخل پارکینگ نیست.
+          <div className="p-4">
+            <TableSkeleton rows={3} cols={5} />
           </div>
+        ) : activeLogs.length === 0 ? (
+          <EmptyState
+            icon={<Car size={48} />}
+            title="هیچ خودرویی داخل پارکینگ نیست"
+            description="هنگامی که خودرویی وارد شود، در این جدول نمایش داده می‌شود."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-right text-sm">
@@ -176,16 +196,12 @@ function EntryExitPage() {
                       {log.vehicle_detail?.plate_number || "---"}
                     </td>
                     <td className="px-4 py-3">
-                      {log.parking_request
-                        ? `#${log.parking_request}`
-                        : "بدون درخواست"}
+                      {log.parking_request ? `#${log.parking_request}` : "بدون درخواست"}
                     </td>
                     <td className="px-4 py-3 text-xs" dir="ltr">
                       {new Date(log.entry_time).toLocaleString("fa-IR")}
                     </td>
-                    <td className="px-4 py-3">
-                      {log.guard_detail?.full_name || "---"}
-                    </td>
+                    <td className="px-4 py-3">{log.guard_detail?.full_name || "---"}</td>
                     <td className="px-4 py-3">
                       <Button
                         variant="danger"
@@ -204,7 +220,6 @@ function EntryExitPage() {
         )}
       </div>
 
-      {/* دیالوگ تایید خروج */}
       <ConfirmDialog
         isOpen={!!confirmExit}
         onClose={() => setConfirmExit(null)}
