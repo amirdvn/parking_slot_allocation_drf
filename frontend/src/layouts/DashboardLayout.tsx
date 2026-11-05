@@ -33,10 +33,8 @@ function DashboardLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <Header title={currentTitle} onMenuClick={() => setIsSidebarOpen(true)} />
 
-        <main
-          key={location.pathname}
-          className="flex-1 animate-fade-in overflow-y-auto p-4 sm:p-6 lg:p-8"
-        >
+        {/* ❌ حذف key و animate-fade-in */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

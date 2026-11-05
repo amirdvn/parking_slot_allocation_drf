@@ -2,84 +2,53 @@
 import axios from "axios";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL;
-
-if (!baseURL) {
-  throw new Error("VITE_API_BASE_URL is not defined");
-}
+if (!baseURL) throw new Error("VITE_API_BASE_URL is not defined");
 
 export const api = axios.create({
   baseURL,
   timeout: 15000,
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
 });
 
-// اینترسپتور درخواست‌ها
-api.interceptors.request.use(
-  (config) => {
-    const accessToken = localStorage.getItem("access_token");
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("access_token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-// 👇 لیست صفحات عمومی که نباید به Login ریدایرکت بشن
 const PUBLIC_ROUTES = ["/login", "/register", "/verify-otp"];
 
-// اینترسپتور پاسخ‌ها
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      const refreshToken = localStorage.getItem("refresh_token");
-
-      if (refreshToken) {
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry) {
+      original._retry = true;
+      const refresh = localStorage.getItem("refresh_token");
+      if (refresh) {
         try {
-          const response = await axios.post(`${baseURL}/api/token/refresh/`, {
-            refresh: refreshToken,
-          });
-
-          const newAccessToken = response.data.access;
-          localStorage.setItem("access_token", newAccessToken);
-
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return api(originalRequest);
-        } catch (refreshError) {
+          const { data } = await axios.post(`${baseURL}/api/token/refresh/`, { refresh });
+          localStorage.setItem("access_token", data.access);
+          original.headers.Authorization = `Bearer ${data.access}`;
+          return api(original);
+        } catch {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
-
-          // 🚀 فقط اگر کاربر توی صفحه عمومی نبود، ریدایرکت کن
-          const currentPath = window.location.pathname;
-          const isPublicRoute = PUBLIC_ROUTES.some(route => currentPath.startsWith(route));
-
-          if (!isPublicRoute) {
+          const path = window.location.pathname;
+          if (!PUBLIC_ROUTES.some((r) => path.startsWith(r))) {
             window.location.href = "/login";
           }
-          return Promise.reject(refreshError);
+          return Promise.reject(error);
         }
       } else {
-        // 🚀 اگر اصلاً refresh_token نداشتیم، فقط توکن‌ها رو پاک کن
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-
-        const currentPath = window.location.pathname;
-        const isPublicRoute = PUBLIC_ROUTES.some(route => currentPath.startsWith(route));
-
-        if (!isPublicRoute) {
+        const path = window.location.pathname;
+        if (!PUBLIC_ROUTES.some((r) => path.startsWith(r))) {
           window.location.href = "/login";
         }
       }
     }
-
     return Promise.reject(error);
   }
 );

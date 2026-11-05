@@ -1,5 +1,5 @@
 // src/components/ui/TableToolbar.tsx
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 interface FilterOption {
   value: string;
@@ -32,85 +32,62 @@ function TableToolbar({
   const hasFilter = filterOptions && filterOptions.length > 0 && onFilterChange;
   const isFiltered = !!searchValue || (!!filterValue && filterValue !== "");
 
-  const activeFilterCount =
-    (searchValue ? 1 : 0) + (filterValue && filterValue !== "" ? 1 : 0);
-
   const clearAll = () => {
     onSearchChange("");
     if (onFilterChange) onFilterChange("");
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-        {/* Search */}
+    <div className="space-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search
-            size={18}
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary"
+            size={16}
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
           />
           <input
             type="text"
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full rounded-lg border border-border bg-surface py-3 pr-10 pl-10 text-sm text-text-primary outline-none transition-all placeholder:text-text-secondary/60 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/30"
+            className="w-full rounded-xl border-0 bg-gray-100 py-2.5 pr-9 pl-9 text-[14px] text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#007aff] dark:bg-[#1c1c1e] dark:text-white dark:placeholder:text-gray-500 dark:focus:bg-[#2c2c2e] dark:focus:ring-[#0a84ff]"
           />
           {searchValue && (
             <button
-              type="button"
               onClick={() => onSearchChange("")}
-              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-secondary transition-colors hover:bg-background hover:text-danger"
-              aria-label="پاک کردن جستجو"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-[#3a3a3c] dark:hover:text-gray-300"
+              aria-label="پاک کردن"
             >
               <X size={14} />
             </button>
           )}
         </div>
 
-        {/* Filter */}
         {hasFilter && (
-          <div className="relative sm:w-56">
-            <SlidersHorizontal
-              size={16}
-              className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 text-text-secondary"
-            />
-            <select
-              value={filterValue}
-              onChange={(e) => onFilterChange!(e.target.value)}
-              aria-label={filterLabel || "فیلتر"}
-              className="w-full cursor-pointer appearance-none rounded-lg border border-border bg-surface py-3 pr-9 pl-3 text-sm text-text-primary outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/30"
-            >
-              {filterOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={filterValue}
+            onChange={(e) => onFilterChange!(e.target.value)}
+            className="cursor-pointer rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-[14px] text-gray-900 outline-none focus:ring-2 focus:ring-[#007aff] dark:bg-[#1c1c1e] dark:text-white dark:focus:ring-[#0a84ff] sm:w-44"
+          >
+            {filterOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         )}
       </div>
 
-      {/* نتایج */}
       {isFiltered && totalCount !== undefined && resultCount !== undefined && (
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <div className="flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1.5 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white">
-              {activeFilterCount}
-            </span>
-            فیلتر فعال
-          </div>
-          <span className="text-text-secondary">
-            نمایش{" "}
-            <span className="font-bold text-secondary-900">{resultCount}</span> از{" "}
-            <span className="font-bold text-secondary-900">{totalCount}</span> رکورد
+        <div className="flex flex-wrap items-center gap-2 text-[12px]">
+          <span className="text-gray-500 dark:text-gray-400">
+            نمایش <span className="font-medium text-gray-900 dark:text-white">{resultCount}</span> از{" "}
+            <span className="font-medium text-gray-900 dark:text-white">{totalCount}</span>
           </span>
           <button
-            type="button"
             onClick={clearAll}
-            className="mr-auto flex items-center gap-1 rounded-full px-2 py-1 text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20"
+            className="text-[#007aff] hover:underline dark:text-[#0a84ff]"
           >
-            <X size={12} />
             پاک کردن فیلترها
           </button>
         </div>
