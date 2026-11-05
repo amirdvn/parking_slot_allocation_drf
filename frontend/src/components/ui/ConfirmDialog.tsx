@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+// src/components/ui/ConfirmDialog.tsx
 import { useEffect } from "react";
 import Button from "./Button";
 
@@ -22,60 +22,48 @@ function ConfirmDialog({
   description,
   confirmText = "تایید",
   cancelText = "انصراف",
-  variant = "danger",
+  variant = "primary",
   isLoading = false,
 }: ConfirmDialogProps) {
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "unset";
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div
-        dir="rtl"
-        className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-lg"
-      >
-        <div className="flex items-start gap-4">
-          <div
-            className={`rounded-full p-3 ${
-              variant === "danger"
-                ? "bg-red-100 text-danger dark:bg-red-900/30"
-                : "bg-blue-100 text-primary-600 dark:bg-blue-900/30"
-            }`}
-          >
-            <AlertTriangle size={24} />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-secondary-900">{title}</h2>
-            <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-              {description}
-            </p>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-fade-in dark:bg-black/60">
+      <div className="w-full max-w-[340px] animate-scale-in overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-[#1c1c1e]" dir="rtl">
+        <div className="p-5 text-center">
+          <h2 className="text-[17px] font-semibold text-gray-900 dark:text-white">{title}</h2>
+          <p className="mt-2 text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">
+            {description}
+          </p>
         </div>
-
-        <div className="mt-6 flex gap-3">
-          <Button
-            variant={variant}
-            className="flex-1"
-            onClick={onConfirm}
-            disabled={isLoading}
-          >
-            {isLoading ? "در حال انجام..." : confirmText}
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={onClose}
-            disabled={isLoading}
-          >
-            {cancelText}
-          </Button>
+        <div className="border-t border-gray-200 dark:border-[#38383a]">
+          <div className="grid grid-cols-2">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="border-l border-gray-200 py-3 text-[15px] font-medium text-[#007aff] transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-[#38383a] dark:text-[#0a84ff] dark:hover:bg-[#2c2c2e]"
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className={`py-3 text-[15px] font-semibold transition-colors hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-[#2c2c2e] ${
+                variant === "danger"
+                  ? "text-[#ff3b30] dark:text-[#ff453a]"
+                  : "text-[#007aff] dark:text-[#0a84ff]"
+              }`}
+            >
+              {isLoading ? "..." : confirmText}
+            </button>
+          </div>
         </div>
       </div>
     </div>

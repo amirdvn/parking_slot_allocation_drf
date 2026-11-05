@@ -1,16 +1,11 @@
+// src/features/auth/pages/Register.tsx
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import {
-  ParkingSquare,
-  UserPlus,
-  ShieldCheck,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
+import { UserPlus, CheckCircle2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { authApi } from "../api";
 import Input from "../../../components/ui/Input";
@@ -18,11 +13,9 @@ import Select from "../../../components/ui/Select";
 import Button from "../../../components/ui/Button";
 
 const registerSchema = z.object({
-  full_name: z.string().min(3, "نام و نام خانوادگی باید حداقل ۳ کاراکتر باشد"),
-  email: z.string().email("فرمت ایمیل صحیح نیست"),
-  department: z.enum(["MANAGEMENT", "ADMINISTRATIVE", "WORKERS"], {
-    message: "دپارتمان را انتخاب کنید",
-  }),
+  full_name: z.string().min(3, "نام حداقل ۳ کاراکتر"),
+  email: z.string().email("ایمیل صحیح نیست"),
+  department: z.enum(["MANAGEMENT", "ADMINISTRATIVE", "WORKERS"], { message: "دپارتمان را انتخاب کنید" }),
   role: z.enum(["USER", "GUARD", "MANAGER"], { message: "نقش را انتخاب کنید" }),
 });
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -32,7 +25,6 @@ const departmentOptions = [
   { value: "ADMINISTRATIVE", label: "اداری" },
   { value: "WORKERS", label: "کارگران" },
 ];
-
 const roleOptions = [
   { value: "USER", label: "کاربر عادی" },
   { value: "GUARD", label: "نگهبان" },
@@ -42,6 +34,7 @@ const roleOptions = [
 function Register() {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
   const phoneNumber = urlParams.get("phone") || sessionStorage.getItem("pending_phone");
@@ -55,83 +48,79 @@ function Register() {
       authApi.register({ ...data, phone_number: phoneNumber || "" }),
     onSuccess: () => {
       sessionStorage.removeItem("pending_phone");
-      toast.success("ثبت‌نام با موفقیت انجام شد. لطفاً وارد شوید.");
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 1200);
+      setIsSuccess(true);
+      setTimeout(() => { window.location.href = "/login"; }, 2000);
     },
     onError: (error: any) => {
-      const msg = error.response?.data?.error || "خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.";
+      const msg = error.response?.data?.error || "خطا در ثبت‌نام";
       setServerError(msg);
       toast.error(msg);
     },
   });
 
-  const onSubmit = (data: RegisterFormValues) => {
-    setServerError(null);
-    mutation.mutate(data);
-  };
-
-  // اگر شماره نیست - صفحه خطای زیبا
   if (!phoneNumber) {
     return (
       <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
-            <ShieldCheck size={32} />
+        <div className="w-full max-w-[360px] rounded-2xl bg-surface p-6 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-[#ff3b30] dark:bg-[#ff453a]/10 dark:text-[#ff453a]">
+            <UserPlus size={28} />
           </div>
-          <h1 className="text-xl font-bold text-secondary-900">شماره موبایل یافت نشد</h1>
-          <p className="mt-2 text-sm text-text-secondary">
-            برای ثبت‌نام ابتدا باید شماره موبایل خود را در صفحه ورود تایید کنید.
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">خطا</h1>
+          <p className="mt-1 text-[13px] text-gray-500 dark:text-gray-400">
+            لطفاً از ابتدا وارد شوید
           </p>
-          <Button onClick={() => navigate("/login")} className="mt-6 w-full">
-            بازگشت به صفحه ورود
+          <Button onClick={() => navigate("/login")} className="mt-5 w-full">
+            بازگشت
           </Button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div dir="rtl" className="flex min-h-screen">
-      {/* ستون فرم (راست) */}
-      <div className="flex w-full items-center justify-center bg-background p-6 lg:w-1/2">
-        <div className="w-full max-w-md">
-          {/* لوگو در موبایل */}
-          <div className="mb-8 flex items-center justify-center gap-3 lg:hidden">
-            <div className="rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 p-3 shadow-lg">
-              <ParkingSquare size={28} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-secondary-900">پارکینگ هوشمند</h1>
-              <p className="text-xs text-text-secondary">سیستم مدیریت پارکینگ</p>
-            </div>
+  if (isSuccess) {
+    return (
+      <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="w-full max-w-[360px] animate-scale-in rounded-2xl bg-surface p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
+            <CheckCircle2 size={36} />
           </div>
+          <h1 className="text-[20px] font-semibold text-gray-900 dark:text-white">
+            ثبت‌نام موفق
+          </h1>
+          <p className="mt-2 text-[13px] text-gray-500 dark:text-gray-400">
+            در حال انتقال...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-          {/* دکمه بازگشت */}
+  return (
+    <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="w-full max-w-[400px] animate-fade-in">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#007aff] shadow-lg shadow-[#007aff]/20 dark:bg-[#0a84ff]">
+            <UserPlus size={32} className="text-white" strokeWidth={2.5} />
+          </div>
+          <h1 className="text-[26px] font-bold text-gray-900 dark:text-white">تکمیل ثبت‌نام</h1>
+          <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
+            اطلاعات خود را وارد کنید
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-surface p-6 shadow-sm">
           <button
             onClick={() => navigate("/login")}
-            className="mb-4 flex items-center gap-1 text-xs text-text-secondary transition-colors hover:text-primary-600"
+            className="mb-4 flex items-center gap-1 text-[12px] text-[#007aff] hover:underline dark:text-[#0a84ff]"
           >
-            <ArrowRight size={14} />
-            بازگشت به ورود
+            <ArrowRight size={12} />
+            بازگشت
           </button>
 
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-secondary-900">تکمیل ثبت‌نام</h2>
-            <p className="mt-2 text-sm text-text-secondary">
-              شماره موبایل{" "}
-              <span className="font-bold text-primary-600" dir="ltr">
-                {phoneNumber}
-              </span>{" "}
-              تایید شد. اطلاعات خود را تکمیل کنید.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })} className="space-y-4">
             <Input
               label="نام و نام خانوادگی"
-              placeholder="مثلا: امیر داوری"
+              placeholder="امیر داوری"
               error={errors.full_name?.message}
               {...register("full_name")}
             />
@@ -143,99 +132,19 @@ function Register() {
               error={errors.email?.message}
               {...register("email")}
             />
-            <Select
-              label="دپارتمان"
-              options={departmentOptions}
-              error={errors.department?.message}
-              {...register("department")}
-            />
-            <Select
-              label="نقش"
-              options={roleOptions}
-              error={errors.role?.message}
-              {...register("role")}
-            />
+            <Select label="دپارتمان" options={departmentOptions} error={errors.department?.message} {...register("department")} />
+            <Select label="نقش" options={roleOptions} error={errors.role?.message} {...register("role")} />
 
             {serverError && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-danger dark:bg-red-900/20 dark:text-red-400">
+              <div className="rounded-xl bg-red-50 p-3 text-[13px] text-[#ff3b30] dark:bg-[#ff453a]/10 dark:text-[#ff453a]">
                 {serverError}
               </div>
             )}
 
-            <Button
-              type="submit"
-              disabled={mutation.isPending}
-              className="mt-2 w-full bg-gradient-to-l from-primary-600 to-primary-500 shadow-lg shadow-primary-600/20 hover:shadow-primary-600/30"
-            >
-              {mutation.isPending ? "در حال ثبت‌نام..." : "تکمیل ثبت‌نام"}
+            <Button type="submit" disabled={mutation.isPending} className="w-full py-3">
+              {mutation.isPending ? "در حال ثبت..." : "تکمیل ثبت‌نام"}
             </Button>
           </form>
-
-          <p className="mt-6 text-center text-xs text-text-secondary">
-            با ثبت‌نام، قوانین و مقررات سیستم را می‌پذیرید.
-          </p>
-        </div>
-      </div>
-
-      {/* ستون تصویری (چپ) - فقط دسکتاپ */}
-      <div className="relative hidden w-1/2 overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-primary-900 lg:block">
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)",
-            backgroundSize: "30px 30px",
-          }}
-        />
-        <div className="absolute -top-20 -left-20 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-emerald-400/20 blur-3xl" />
-
-        <div className="relative flex h-full flex-col items-center justify-center p-12 text-white">
-          <div className="mb-8 rounded-3xl bg-white/10 p-6 backdrop-blur-sm ring-1 ring-white/20">
-            <UserPlus size={64} className="text-white" />
-          </div>
-
-          <h2 className="mb-4 text-center text-4xl font-bold leading-tight">
-            به ما بپیوندید
-          </h2>
-          <p className="mb-12 max-w-md text-center text-lg text-white/80">
-            در چند ثانیه ثبت‌نام کنید و از سیستم هوشمند پارکینگ بهره‌مند شوید
-          </p>
-
-          <div className="grid w-full max-w-md grid-cols-1 gap-4">
-            <FeatureCard
-              icon={<Sparkles size={22} />}
-              title="راه‌اندازی سریع"
-              description="فقط با شماره موبایل، بدون نیاز به رمز عبور"
-            />
-            <FeatureCard
-              icon={<ShieldCheck size={22} />}
-              title="امنیت تضمینی"
-              description="احراز هویت با رمز یکبار مصرف"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-white/20">
-      <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-white/20 p-2 text-white">{icon}</div>
-        <div>
-          <h3 className="font-bold text-white">{title}</h3>
-          <p className="mt-1 text-sm text-white/70">{description}</p>
         </div>
       </div>
     </div>

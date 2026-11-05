@@ -1,16 +1,14 @@
+/* src/index.css */
 @font-face {
   font-family: "Vazirmatn";
   src: url("/fonts/vazirmatn-arabic-400-normal.woff2") format("woff2");
   font-weight: 400;
-  font-style: normal;
   font-display: swap;
 }
-
 @font-face {
   font-family: "Vazirmatn";
   src: url("/fonts/vazirmatn-arabic-700-normal.woff2") format("woff2");
   font-weight: 700;
-  font-style: normal;
   font-display: swap;
 }
 
@@ -19,63 +17,56 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Vazirmatn", sans-serif;
+  --font-sans: "Vazirmatn", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 
   --color-primary-50: #eff6ff;
   --color-primary-100: #dbeafe;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
+  --color-primary-500: #0a84ff;
+  --color-primary-600: #007aff;
+  --color-primary-700: #0062cc;
 
-  --color-secondary-900: #0f172a;
-  --color-secondary-800: #1e293b;
+  --color-secondary-900: #1c1c1e;
+  --color-secondary-800: #2c2c2e;
 
   --color-surface: #ffffff;
-  --color-background: #f8fafc;
+  --color-background: #f2f2f7;
 
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #64748b;
+  --color-text-primary: #1c1c1e;
+  --color-text-secondary: #8e8e93;
 
-  --color-border: #e2e8f0;
+  --color-border: #e5e5ea;
 
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+  --color-danger: #ff3b30;
 }
 
 html.dark {
-  --color-primary-50: #1e3a8a;
-  --color-primary-100: #1e40af;
-  --color-primary-500: #60a5fa;
-  --color-primary-600: #3b82f6;
-  --color-primary-700: #93c5fd;
+  --color-secondary-900: #f5f5f7;
+  --color-secondary-800: #d1d1d6;
 
-  --color-secondary-900: #f8fafc;
-  --color-secondary-800: #e2e8f0;
+  --color-surface: #1c1c1e;
+  --color-background: #000000;
 
-  --color-surface: #1e293b;
-  --color-background: #0f172a;
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #8e8e93;
 
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #94a3b8;
+  --color-border: #38383a;
 
-  --color-border: #334155;
-
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #f87171;
+  --color-success: #30d158;
+  --color-warning: #ff9f0a;
+  --color-danger: #ff453a;
 
   color-scheme: dark;
 }
 
 :root {
-  font-family: "Vazirmatn", sans-serif;
+  font-family: "Vazirmatn", -apple-system, BlinkMacSystemFont, sans-serif;
   direction: rtl;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
   color: var(--color-text-primary);
   background: var(--color-background);
 }
@@ -98,15 +89,13 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-button,
-input,
-textarea,
-select {
+button, input, textarea, select {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 a {
@@ -118,59 +107,32 @@ a {
   min-height: 100vh;
 }
 
-html.dark ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-html.dark ::-webkit-scrollbar-track {
-  background: #0f172a;
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c7c7cc;
+  border-radius: 4px;
 }
 html.dark ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 5px;
+  background: #3a3a3c;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #aeaeb2;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 @keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.2s ease-out;
-}
+.animate-fade-in { animation: fadeIn 0.2s ease-out; }
+.animate-scale-in { animation: scaleIn 0.15s ease-out; }

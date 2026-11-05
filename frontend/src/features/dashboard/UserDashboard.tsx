@@ -1,48 +1,19 @@
+// src/features/dashboard/UserDashboard.tsx
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  Car,
-  ClipboardList,
-  CheckCircle,
-  Clock,
-  Plus,
-  ArrowLeft,
-  UserPlus,
-  TrendingUp,
-  Calendar,
-  ParkingSquare,
+  Car, ClipboardList, CheckCircle, Clock, Plus, ArrowLeft, UserPlus,
 } from "lucide-react";
 import { parkingApi } from "../parking/api";
 import { useAuth } from "../auth/AuthContext";
-import { Skeleton } from "../../components/ui/Skeleton";
-import Button from "../../components/ui/Button";
 
-// مپر وضعیت
-const statusMap: Record<string, { label: string; color: string }> = {
-  PENDING: {
-    label: "در انتظار",
-    color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  },
-  APPROVED: {
-    label: "تایید شده",
-    color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  },
-  REJECTED: {
-    label: "رد شده",
-    color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  },
-  CANCELED: {
-    label: "لغو شده",
-    color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
-  },
-  IN_USE: {
-    label: "در حال استفاده",
-    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  },
-  COMPLETED: {
-    label: "تکمیل شده",
-    color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  },
+const statusMap: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "در انتظار", className: "bg-gray-100 text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300" },
+  APPROVED: { label: "تایید شده", className: "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]" },
+  REJECTED: { label: "رد شده", className: "bg-red-50 text-[#ff3b30] dark:bg-[#ff453a]/10 dark:text-[#ff453a]" },
+  IN_USE: { label: "در حال استفاده", className: "bg-blue-50 text-[#007aff] dark:bg-[#0a84ff]/10 dark:text-[#0a84ff]" },
+  COMPLETED: { label: "تکمیل شده", className: "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]" },
+  CANCELED: { label: "لغو شده", className: "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500" },
 };
 
 function UserDashboard() {
@@ -54,203 +25,105 @@ function UserDashboard() {
     queryFn: parkingApi.getUserDashboard,
   });
 
-  const { data: recentRequests, isLoading: isLoadingRequests } = useQuery({
+  const { data: requests } = useQuery({
     queryKey: ["parking-requests"],
     queryFn: parkingApi.getMyRequests,
   });
 
-  // ۳ درخواست آخر
-  const latestRequests = recentRequests?.slice(0, 3) || [];
-
-  const greeting =
-    new Date().getHours() < 12
-      ? "صبح بخیر"
-      : new Date().getHours() < 18
-        ? "روز بخیر"
-        : "شب بخیر";
+  const latestRequests = requests?.slice(0, 3) || [];
 
   return (
     <div className="space-y-6">
-      {/* 👇 Hero Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-emerald-600 via-teal-600 to-primary-700 p-6 text-white shadow-xl sm:p-8">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-20 right-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl" />
-
-        <div className="relative flex items-center justify-between">
-          <div>
-            <p className="text-sm text-white/80">{greeting}</p>
-            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
-              {user?.full_name || "کاربر عزیز"}
-            </h1>
-            <p className="mt-2 text-sm text-white/70">
-              به پنل کاربری خود خوش آمدید
-            </p>
-          </div>
-          <div className="hidden rounded-2xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-white/20 sm:block">
-            <TrendingUp size={32} />
-          </div>
-        </div>
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          سلام، {user?.full_name?.split(" ")[0] || "کاربر"} 👋
+        </h2>
+        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
+          به داشبورد خود خوش آمدید
+        </p>
       </div>
 
-      {/* 👇 Stat Cards */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-2xl border border-border bg-surface p-5"
-            >
-              <Skeleton className="mb-3 h-10 w-10 rounded-xl" />
-              <Skeleton className="mb-2 h-3 w-20" />
-              <Skeleton className="h-7 w-12" />
-            </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
           ))}
         </div>
       ) : data ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard
-            title="کل خودروها"
-            value={data.vehicles.total}
-            icon={<Car size={24} />}
-            gradient="from-blue-500 to-blue-600"
-            shadow="shadow-blue-500/30"
-            onClick={() => navigate("/vehicles")}
-          />
-          <StatCard
-            title="خودروهای فعال"
-            value={data.vehicles.active}
-            icon={<CheckCircle size={24} />}
-            gradient="from-emerald-500 to-green-600"
-            shadow="shadow-emerald-500/30"
-            onClick={() => navigate("/vehicles")}
-          />
-          <StatCard
-            title="در انتظار بررسی"
-            value={data.requests.pending}
-            icon={<Clock size={24} />}
-            gradient="from-amber-500 to-orange-500"
-            shadow="shadow-amber-500/30"
-            onClick={() => navigate("/requests")}
-          />
-          <StatCard
-            title="تایید شده"
-            value={data.requests.approved}
-            icon={<ClipboardList size={24} />}
-            gradient="from-purple-500 to-indigo-600"
-            shadow="shadow-purple-500/30"
-            onClick={() => navigate("/requests")}
-          />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard title="کل خودروها" value={data.vehicles.total} icon={<Car size={20} />} onClick={() => navigate("/vehicles")} />
+          <StatCard title="خودروهای فعال" value={data.vehicles.active} icon={<CheckCircle size={20} />} onClick={() => navigate("/vehicles")} />
+          <StatCard title="در انتظار" value={data.requests.pending} icon={<Clock size={20} />} onClick={() => navigate("/requests")} />
+          <StatCard title="تایید شده" value={data.requests.approved} icon={<ClipboardList size={20} />} onClick={() => navigate("/requests")} />
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* 👇 Quick Actions */}
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <div className="rounded-lg bg-primary-100 p-2 dark:bg-primary-900/30">
-              <TrendingUp size={18} className="text-primary-600 dark:text-primary-400" />
-            </div>
-            <h2 className="font-bold text-secondary-900">عملیات سریع</h2>
-          </div>
-
-          <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl bg-surface p-5 shadow-sm">
+          <h2 className="mb-4 text-[15px] font-semibold text-gray-900 dark:text-white">
+            دسترسی سریع
+          </h2>
+          <div className="space-y-1.5">
             <QuickAction
-              icon={<Plus size={20} />}
+              icon={<Plus size={18} />}
               title="ثبت خودرو جدید"
-              description="برای شروع استفاده از پارکینگ، خودروی خود را ثبت کنید"
-              color="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+              description="خودروی خود را ثبت کنید"
               onClick={() => navigate("/vehicles")}
             />
             <QuickAction
-              icon={<ClipboardList size={20} />}
-              title="ثبت درخواست پارکینگ"
-              description="رزرو جایگاه پارکینگ برای بازه زمانی مشخص"
-              color="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+              icon={<ClipboardList size={18} />}
+              title="ثبت درخواست"
+              description="درخواست جایگاه پارکینگ"
               onClick={() => navigate("/requests")}
             />
             <QuickAction
-              icon={<UserPlus size={20} />}
+              icon={<UserPlus size={18} />}
               title="درخواست مهمان"
-              description="ثبت درخواست پارکینگ برای مهمانان"
-              color="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+              description="ثبت برای مهمانان"
               onClick={() => navigate("/guest-request")}
             />
           </div>
         </div>
 
-        {/* 👇 Recent Requests */}
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+        <div className="rounded-2xl bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-900/30">
-                <Calendar size={18} className="text-amber-600 dark:text-amber-400" />
-              </div>
-              <h2 className="font-bold text-secondary-900">آخرین درخواست‌ها</h2>
-            </div>
-            <button
-              onClick={() => navigate("/requests")}
-              className="flex items-center gap-1 text-xs text-primary-600 hover:underline dark:text-primary-400"
-            >
-              مشاهده همه
-              <ArrowLeft size={14} />
-            </button>
+            <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+              آخرین درخواست‌ها
+            </h2>
+            {latestRequests.length > 0 && (
+              <button
+                onClick={() => navigate("/requests")}
+                className="flex items-center gap-1 text-[12px] text-[#007aff] hover:underline dark:text-[#0a84ff]"
+              >
+                همه
+                <ArrowLeft size={12} />
+              </button>
+            )}
           </div>
 
-          {isLoadingRequests ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full rounded-xl" />
-              ))}
-            </div>
-          ) : latestRequests.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="rounded-full bg-background p-4 text-text-secondary">
-                <ParkingSquare size={40} />
+          {latestRequests.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-[#2c2c2e]">
+                <ClipboardList size={24} />
               </div>
-              <p className="mt-3 text-sm font-medium text-secondary-900">
-                هنوز درخواستی ثبت نکرده‌اید
-              </p>
-              <p className="mt-1 text-xs text-text-secondary">
-                اولین درخواست پارکینگ خود را ثبت کنید
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => navigate("/requests")}
-              >
-                <Plus size={16} />
-                ثبت درخواست
-              </Button>
+              <p className="text-[13px] text-gray-500">هنوز درخواستی ندارید</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {latestRequests.map((req) => (
                 <div
                   key={req.id}
-                  onClick={() => navigate("/requests")}
-                  className="group flex cursor-pointer items-center justify-between rounded-xl border border-border bg-background/50 p-3 transition-all hover:bg-background hover:shadow-sm"
+                  className="flex items-center justify-between rounded-xl bg-gray-50 p-3 dark:bg-[#2c2c2e]"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-secondary-900">
+                  <div>
+                    <p className="text-[13px] font-medium text-gray-900 dark:text-white">
                       درخواست #{req.id}
                     </p>
-                    <p className="mt-0.5 text-xs text-text-secondary" dir="ltr">
-                      {new Date(req.start_time).toLocaleString("fa-IR")}
+                    <p className="mt-0.5 text-[11px] text-gray-500" dir="ltr">
+                      {new Date(req.start_time).toLocaleDateString("fa-IR")}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${
-                      statusMap[req.status]?.color || "bg-gray-100"
-                    }`}
-                  >
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusMap[req.status]?.className || ""}`}>
                     {statusMap[req.status]?.label || req.status}
                   </span>
                 </div>
@@ -263,68 +136,37 @@ function UserDashboard() {
   );
 }
 
-// 👇 Stat Card
-function StatCard({
-  title,
-  value,
-  icon,
-  gradient,
-  shadow,
-  onClick,
-}: {
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  gradient: string;
-  shadow: string;
-  onClick?: () => void;
-}) {
+function StatCard({ title, value, icon, onClick }: { title: string; value: number; icon: React.ReactNode; onClick?: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 text-right shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
+      className="group flex flex-col gap-3 rounded-2xl bg-surface p-4 text-right shadow-sm transition-shadow hover:shadow-md"
     >
-      <div
-        className={`mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg ${gradient} ${shadow} transition-transform group-hover:scale-110`}
-      >
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300">
         {icon}
       </div>
-      <p className="text-xs text-text-secondary">{title}</p>
-      <p className="mt-1 text-2xl font-bold text-secondary-900">{value}</p>
+      <div>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">{title}</p>
+        <p className="mt-0.5 text-[22px] font-semibold text-gray-900 dark:text-white">{value}</p>
+      </div>
     </button>
   );
 }
 
-// 👇 Quick Action
-function QuickAction({
-  icon,
-  title,
-  description,
-  color,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: string;
-  onClick: () => void;
-}) {
+function QuickAction({ icon, title, description, onClick }: { icon: React.ReactNode; title: string; description: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="group flex w-full items-center gap-3 rounded-xl border border-border bg-background/50 p-3 text-right transition-all hover:bg-background hover:shadow-sm"
+      className="group flex w-full items-center gap-3 rounded-xl bg-gray-50 p-3 text-right transition-colors hover:bg-gray-100 dark:bg-[#2c2c2e] dark:hover:bg-[#3a3a3c]"
     >
-      <div className={`shrink-0 rounded-lg p-2.5 ${color}`}>{icon}</div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-secondary-900">{title}</p>
-        <p className="mt-0.5 text-xs text-text-secondary line-clamp-1">
-          {description}
-        </p>
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#007aff]/10 text-[#007aff] dark:bg-[#0a84ff]/15 dark:text-[#0a84ff]">
+        {icon}
       </div>
-      <ArrowLeft
-        size={18}
-        className="shrink-0 text-text-secondary transition-transform group-hover:-translate-x-1"
-      />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-medium text-gray-900 dark:text-white">{title}</p>
+        <p className="mt-0.5 truncate text-[11px] text-gray-500 dark:text-gray-500">{description}</p>
+      </div>
+      <ArrowLeft size={16} className="shrink-0 text-gray-400 transition-transform group-hover:-translate-x-1" />
     </button>
   );
 }

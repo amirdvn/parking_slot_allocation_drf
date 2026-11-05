@@ -1,11 +1,10 @@
 // src/components/ui/Select.tsx
 import type { SelectHTMLAttributes } from "react";
-import { AlertCircle, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
-  helperText?: string;
   options: { value: string; label: string }[];
   placeholder?: string;
 }
@@ -13,9 +12,8 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 function Select({
   label,
   error,
-  helperText,
   options,
-  placeholder = "انتخاب کنید...",
+  placeholder = "انتخاب کنید",
   id,
   className = "",
   ...props
@@ -23,12 +21,9 @@ function Select({
   const inputId = id ?? props.name;
 
   return (
-    <div className="flex w-full flex-col gap-2">
+    <div className="flex w-full flex-col gap-1.5">
       {label && (
-        <label
-          htmlFor={inputId}
-          className="text-sm font-medium text-text-primary"
-        >
+        <label htmlFor={inputId} className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
           {label}
         </label>
       )}
@@ -37,52 +32,32 @@ function Select({
         <select
           id={inputId}
           className={`
-            w-full cursor-pointer appearance-none rounded-lg border bg-surface
+            w-full cursor-pointer appearance-none rounded-xl border-0 bg-gray-100
             px-4 py-3 pl-10
-            text-sm text-text-primary outline-none
+            text-[15px] text-gray-900 outline-none
             transition-all
-            focus:ring-2
-            disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary
-            ${
-              error
-                ? "border-danger focus:border-danger focus:ring-red-100 dark:focus:ring-red-900/30"
-                : "border-border focus:border-primary-500 focus:ring-primary-100 dark:focus:ring-primary-900/30"
-            }
+            focus:bg-white focus:ring-2 focus:ring-[#007aff]
+            dark:bg-[#1c1c1e] dark:text-white
+            dark:focus:bg-[#2c2c2e] dark:focus:ring-[#0a84ff]
+            ${error ? "ring-2 ring-[#ff3b30]" : ""}
             ${className}
           `}
           {...props}
         >
-          <option value="">{placeholder}</option>
+          <option value="" className="bg-white dark:bg-[#1c1c1e]">{placeholder}</option>
           {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
+            <option key={opt.value} value={opt.value} className="bg-white dark:bg-[#1c1c1e]">
               {opt.label}
             </option>
           ))}
         </select>
 
-        {/* فلش سفارشی */}
-        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
-          <ChevronDown size={16} />
+        <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+          <ChevronDown size={18} />
         </div>
-
-        {/* آیکون خطا */}
-        {error && (
-          <div className="pointer-events-none absolute left-9 top-1/2 -translate-y-1/2 text-danger">
-            <AlertCircle size={16} />
-          </div>
-        )}
       </div>
 
-      {error && (
-        <span className="flex items-center gap-1 text-xs text-danger">
-          <AlertCircle size={12} />
-          {error}
-        </span>
-      )}
-
-      {!error && helperText && (
-        <span className="text-xs text-text-secondary">{helperText}</span>
-      )}
+      {error && <span className="text-xs text-[#ff3b30] dark:text-[#ff453a]">{error}</span>}
     </div>
   );
 }

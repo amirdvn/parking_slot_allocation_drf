@@ -2,36 +2,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip as RechartsTooltip,
-  Legend,
-  ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  Download,
-  Users,
-  ParkingSquare,
-  FileSpreadsheet,
-  Car,
-  Trophy,
-  Medal,
-  Award,
-  TrendingUp,
-  AlertCircle,
-  Phone,
-  MapPin,
-  Crown,
+  Download, Users, ParkingSquare, FileSpreadsheet, Car, AlertCircle, Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { managerApi } from "../api";
-import { useAuth } from "../../auth/AuthContext";
-import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
-import { Skeleton } from "../../../components/ui/Skeleton";
+import Button from "../../../components/ui/Button";
 
-const COLORS = ["#16a34a", "#3b82f6", "#dc2626"];
+const COLORS = ["#007aff", "#a1a1aa", "#ff3b30"];
 
 const getDefaultDates = () => {
   const today = new Date();
@@ -43,43 +24,7 @@ const getDefaultDates = () => {
   };
 };
 
-// 🏆 استایل رتبه‌ها
-const getRankStyle = (index: number) => {
-  if (index === 0)
-    return {
-      cardBg: "bg-gradient-to-l from-yellow-50 to-white dark:from-yellow-900/20 dark:to-surface",
-      border: "border-yellow-300/60 dark:border-yellow-500/30",
-      badge: "bg-gradient-to-br from-yellow-400 to-amber-600 shadow-lg shadow-yellow-500/40",
-      icon: <Crown size={16} className="text-white" />,
-      bar: "bg-gradient-to-l from-yellow-400 to-amber-500",
-    };
-  if (index === 1)
-    return {
-      cardBg: "bg-gradient-to-l from-slate-50 to-white dark:from-slate-700/20 dark:to-surface",
-      border: "border-slate-300/60 dark:border-slate-500/30",
-      badge: "bg-gradient-to-br from-slate-300 to-slate-500 shadow-lg shadow-slate-400/40",
-      icon: <Medal size={16} className="text-white" />,
-      bar: "bg-gradient-to-l from-slate-300 to-slate-500",
-    };
-  if (index === 2)
-    return {
-      cardBg: "bg-gradient-to-l from-orange-50 to-white dark:from-orange-900/20 dark:to-surface",
-      border: "border-orange-300/60 dark:border-orange-500/30",
-      badge: "bg-gradient-to-br from-orange-400 to-orange-700 shadow-lg shadow-orange-500/40",
-      icon: <Award size={16} className="text-white" />,
-      bar: "bg-gradient-to-l from-orange-400 to-orange-600",
-    };
-  return {
-    cardBg: "bg-surface",
-    border: "border-border",
-    badge: "bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 dark:from-gray-700 dark:to-gray-800 dark:text-gray-300 shadow-sm",
-    icon: null,
-    bar: "bg-gradient-to-l from-primary-400 to-primary-600",
-  };
-};
-
 function ManagerReportsPage() {
-  const { user } = useAuth();
   const defaults = getDefaultDates();
   const [startDate, setStartDate] = useState(defaults.start);
   const [endDate, setEndDate] = useState(defaults.end);
@@ -93,17 +38,13 @@ function ManagerReportsPage() {
 
   const handleDownloadEntryExit = async () => {
     if (!startDate || !endDate) {
-      toast.error("لطفاً تاریخ شروع و پایان را وارد کنید");
-      return;
-    }
-    if (new Date(startDate) > new Date(endDate)) {
-      toast.error("تاریخ شروع باید قبل از تاریخ پایان باشد");
+      toast.error("تاریخ شروع و پایان را وارد کنید");
       return;
     }
     setIsDownloadingEntry(true);
     try {
       await managerApi.downloadEntryExitReport(startDate, endDate);
-      toast.success("گزارش با موفقیت دانلود شد");
+      toast.success("گزارش دانلود شد");
     } catch {
       toast.error("خطا در دانلود گزارش");
     } finally {
@@ -117,7 +58,7 @@ function ManagerReportsPage() {
       await managerApi.downloadVehicleReport();
       toast.success("گزارش خودروها دانلود شد");
     } catch {
-      toast.error("خطا در دانلود گزارش خودروها");
+      toast.error("خطا در دانلود");
     } finally {
       setIsDownloadingVehicle(false);
     }
@@ -128,186 +69,102 @@ function ManagerReportsPage() {
         { name: "آزاد", value: dashboard.parking_spaces.available },
         { name: "اشغال", value: dashboard.parking_spaces.occupied },
         { name: "مسدود", value: dashboard.parking_spaces.blocked },
-      ].filter((item) => item.value > 0)
+      ].filter((i) => i.value > 0)
     : [];
-
-  const topSpaces = dashboard?.top_parking_spaces || [];
-  const topUsers = dashboard?.top_users || [];
-  const maxSpaceUsage = Math.max(...topSpaces.map((s) => s.usage_count), 1);
-  const maxUserCount = Math.max(...topUsers.map((u) => u.request_count), 1);
-  const greeting = new Date().getHours() < 12 ? "صبح بخیر" : new Date().getHours() < 18 ? "روز بخیر" : "شب بخیر";
 
   return (
     <div className="space-y-6">
-      {/* 👇 Hero Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary-600 via-primary-700 to-indigo-900 p-6 text-white shadow-xl sm:p-8">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-20 right-20 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
-
-        <div className="relative flex items-center justify-between">
-          <div>
-            <p className="text-sm text-white/80">{greeting}</p>
-            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
-              {user?.full_name || "مدیر عزیز"}
-            </h1>
-            <p className="mt-2 text-sm text-white/70">
-              خلاصه وضعیت لحظه‌ای سیستم پارکینگ
-            </p>
-          </div>
-          <div className="hidden rounded-2xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-white/20 sm:block">
-            <TrendingUp size={32} />
-          </div>
-        </div>
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">گزارش‌ها</h2>
+        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
+          آمار و تحلیل سیستم پارکینگ
+        </p>
       </div>
 
-      {/* 👇 Stat Cards */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-border bg-surface p-5">
-              <Skeleton className="mb-3 h-10 w-10 rounded-xl" />
-              <Skeleton className="mb-2 h-3 w-20" />
-              <Skeleton className="h-7 w-12" />
-            </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
           ))}
         </div>
       ) : dashboard ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard
-            title="کل جایگاه‌ها"
-            value={dashboard.parking_spaces.total}
-            icon={<ParkingSquare size={24} />}
-            gradient="from-blue-500 to-blue-600"
-            shadow="shadow-blue-500/30"
-          />
-          <StatCard
-            title="جایگاه‌های آزاد"
-            value={dashboard.parking_spaces.available}
-            icon={<ParkingSquare size={24} />}
-            gradient="from-emerald-500 to-green-600"
-            shadow="shadow-emerald-500/30"
-          />
-          <StatCard
-            title="در انتظار بررسی"
-            value={dashboard.requests.pending}
-            icon={<Users size={24} />}
-            gradient="from-amber-500 to-orange-500"
-            shadow="shadow-amber-500/30"
-          />
-          <StatCard
-            title="نیازمند بررسی"
-            value={dashboard.requests.needs_review}
-            icon={<AlertCircle size={24} />}
-            gradient="from-rose-500 to-red-600"
-            shadow="shadow-rose-500/30"
-          />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard title="کل جایگاه‌ها" value={dashboard.parking_spaces.total} icon={<ParkingSquare size={20} />} />
+          <StatCard title="جایگاه آزاد" value={dashboard.parking_spaces.available} icon={<ParkingSquare size={20} />} />
+          <StatCard title="در انتظار" value={dashboard.requests.pending} icon={<Users size={20} />} />
+          <StatCard title="نیازمند بررسی" value={dashboard.requests.needs_review} icon={<AlertCircle size={20} />} />
         </div>
       ) : null}
 
-      {/* 👇 Pie Chart + Top Parking Spaces */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Pie Chart */}
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30">
-              <ParkingSquare size={18} className="text-blue-600 dark:text-blue-400" />
-            </div>
-            <h2 className="font-bold text-secondary-900">وضعیت کلی جایگاه‌ها</h2>
-          </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl bg-surface p-5 shadow-sm">
+          <h2 className="mb-4 text-[15px] font-semibold text-gray-900 dark:text-white">
+            وضعیت جایگاه‌ها
+          </h2>
           {isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <div className="h-48 animate-pulse rounded-xl bg-gray-100 dark:bg-[#2c2c2e]" />
           ) : pieData.length === 0 ? (
-            <div className="flex h-64 items-center justify-center text-sm text-text-secondary">
-              اطلاعاتی برای نمایش وجود ندارد
+            <div className="flex h-48 items-center justify-center text-[13px] text-gray-500">
+              اطلاعاتی نیست
             </div>
           ) : (
-            <div className="h-64">
+            <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={85}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {pieData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={3} dataKey="value">
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip formatter={(value) => [`${value} جایگاه`, "تعداد"]} />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1c1c1e",
+                      border: "none",
+                      borderRadius: "12px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           )}
         </div>
 
-        {/* Top Parking Spaces - Ranked Cards */}
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+        <div className="rounded-2xl bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-900/30">
-              <Trophy size={18} className="text-amber-600 dark:text-amber-400" />
-            </div>
-            <h2 className="font-bold text-secondary-900">پرکاربردترین جایگاه‌ها</h2>
+            <Crown size={16} className="text-gray-700 dark:text-gray-300" />
+            <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+              پرکاربردترین جایگاه‌ها
+            </h2>
           </div>
-
           {isLoading ? (
             <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full rounded-xl" />
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100 dark:bg-[#2c2c2e]" />
               ))}
             </div>
-          ) : topSpaces.length === 0 ? (
-            <div className="flex h-48 items-center justify-center text-sm text-text-secondary">
-              هنوز آماری برای جایگاه‌ها ثبت نشده است
+          ) : !dashboard?.top_parking_spaces?.length ? (
+            <div className="flex h-48 items-center justify-center text-[13px] text-gray-500">
+              آماری نیست
             </div>
           ) : (
             <div className="space-y-2">
-              {topSpaces.map((space, idx) => {
-                const style = getRankStyle(idx);
-                const percentage = (space.usage_count / maxSpaceUsage) * 100;
+              {dashboard.top_parking_spaces.map((space, idx) => {
+                const max = Math.max(...dashboard.top_parking_spaces.map((s) => s.usage_count), 1);
+                const percent = (space.usage_count / max) * 100;
                 return (
-                  <div
-                    key={space.id}
-                    className={`group flex items-center gap-3 rounded-xl border p-3 transition-all hover:shadow-md ${style.cardBg} ${style.border}`}
-                  >
-                    <div
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${style.badge}`}
-                    >
-                      {style.icon || <span className="text-gray-700 dark:text-gray-300">{idx + 1}</span>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-bold text-secondary-900" dir="ltr">
-                            {space.code}
-                          </span>
-                          {idx < 3 && (
-                            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                              {idx === 0 ? "برترین" : idx === 1 ? "دوم" : "سوم"}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs font-bold text-secondary-900">
-                          {space.usage_count} <span className="text-text-secondary font-normal">بار</span>
+                  <div key={space.id} className="flex items-center gap-3">
+                    <span className="w-5 text-[12px] font-medium text-gray-400">{idx + 1}</span>
+                    <div className="flex-1">
+                      <div className="mb-1 flex justify-between">
+                        <span className="font-mono text-[12px] font-medium text-gray-900 dark:text-white" dir="ltr">
+                          {space.code}
                         </span>
+                        <span className="text-[11px] text-gray-500">{space.usage_count} بار</span>
                       </div>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border/60">
-                        <div
-                          className={`h-full rounded-full transition-all duration-1000 ${style.bar}`}
-                          style={{ width: `${percentage}%` }}
-                        />
+                      <div className="h-1 overflow-hidden rounded-full bg-gray-100 dark:bg-[#2c2c2e]">
+                        <div className="h-full rounded-full bg-[#007aff] dark:bg-[#0a84ff]" style={{ width: `${percent}%` }} />
                       </div>
                     </div>
                   </div>
@@ -318,79 +175,50 @@ function ManagerReportsPage() {
         </div>
       </div>
 
-      {/* 👇 Top Users - Ranked Cards */}
-      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-2xl bg-surface p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
-          <div className="rounded-lg bg-purple-100 p-2 dark:bg-purple-900/30">
-            <Crown size={18} className="text-purple-600 dark:text-purple-400" />
-          </div>
-          <h2 className="font-bold text-secondary-900">فعال‌ترین کاربران</h2>
-          <span className="ml-auto text-xs text-text-secondary">Top 5</span>
+          <Users size={16} className="text-gray-700 dark:text-gray-300" />
+          <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+            فعال‌ترین کاربران
+          </h2>
         </div>
-
         {isLoading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-100 dark:bg-[#2c2c2e]" />
             ))}
           </div>
-        ) : topUsers.length === 0 ? (
-          <div className="flex h-32 items-center justify-center text-sm text-text-secondary">
-            هنوز آماری برای کاربران ثبت نشده است
+        ) : !dashboard?.top_users?.length ? (
+          <div className="flex h-32 items-center justify-center text-[13px] text-gray-500">
+            آماری نیست
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {topUsers.map((u, idx) => {
-              const style = getRankStyle(idx);
-              const percentage = (u.request_count / maxUserCount) * 100;
-              const initial = u.full_name?.charAt(0) || "?";
-              const avatarColors = [
-                "from-yellow-400 to-amber-600",
-                "from-slate-400 to-slate-600",
-                "from-orange-400 to-orange-600",
-                "from-emerald-400 to-green-600",
-                "from-blue-400 to-indigo-600",
-              ];
-
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {dashboard.top_users.map((user, idx) => {
+              const max = Math.max(...dashboard.top_users.map((u) => u.request_count), 1);
+              const percent = (user.request_count / max) * 100;
               return (
-                <div
-                  key={u.id}
-                  className={`group relative flex flex-col items-center rounded-xl border p-4 text-center transition-all hover:-translate-y-1 hover:shadow-lg ${style.cardBg} ${style.border}`}
-                >
-                  {/* Rank Badge */}
-                  <div
-                    className={`absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${style.badge}`}
-                  >
-                    {style.icon || idx + 1}
-                  </div>
-
-                  {/* Avatar */}
-                  <div
-                    className={`flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br text-xl font-bold text-white shadow-lg ${avatarColors[idx % avatarColors.length]}`}
-                  >
-                    {initial}
-                  </div>
-
-                  {/* Name */}
-                  <p className="mt-3 line-clamp-1 text-sm font-bold text-secondary-900">
-                    {u.full_name}
-                  </p>
-                  <p className="mt-0.5 flex items-center gap-1 font-mono text-[10px] text-text-secondary" dir="ltr">
-                    <Phone size={10} />
-                    {u.phone_number}
-                  </p>
-
-                  {/* Progress */}
-                  <div className="mt-3 w-full">
-                    <div className="h-1.5 overflow-hidden rounded-full bg-border/60">
-                      <div
-                        className={`h-full rounded-full transition-all duration-1000 ${style.bar}`}
-                        style={{ width: `${percentage}%` }}
-                      />
+                <div key={user.id} className="rounded-xl bg-gray-50 p-3 dark:bg-[#2c2c2e]">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-700 dark:bg-[#3a3a3c] dark:text-gray-300">
+                      {idx + 1}
+                    </span>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-[12px] font-semibold text-white dark:bg-[#0a84ff]">
+                      {user.full_name?.charAt(0) || "?"}
                     </div>
-                    <p className="mt-2 text-xs font-bold text-secondary-900">
-                      {u.request_count}
-                      <span className="mr-1 font-normal text-text-secondary">درخواست</span>
+                  </div>
+                  <p className="mt-2 truncate text-[12px] font-medium text-gray-900 dark:text-white">
+                    {user.full_name}
+                  </p>
+                  <p className="mt-0.5 truncate font-mono text-[10px] text-gray-500" dir="ltr">
+                    {user.phone_number}
+                  </p>
+                  <div className="mt-2">
+                    <div className="h-1 overflow-hidden rounded-full bg-gray-200 dark:bg-[#3a3a3c]">
+                      <div className="h-full rounded-full bg-[#007aff] dark:bg-[#0a84ff]" style={{ width: `${percent}%` }} />
+                    </div>
+                    <p className="mt-1 text-[11px] font-medium text-gray-900 dark:text-white">
+                      {user.request_count} <span className="font-normal text-gray-500">درخواست</span>
                     </p>
                   </div>
                 </div>
@@ -400,72 +228,39 @@ function ManagerReportsPage() {
         )}
       </div>
 
-      {/* 👇 Download Section */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-emerald-500/5 blur-2xl" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <div className="rounded-lg bg-emerald-100 p-2 dark:bg-emerald-900/30">
-              <FileSpreadsheet size={18} className="text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <h2 className="font-bold text-secondary-900">گزارش ورود و خروج</h2>
+            <FileSpreadsheet size={16} className="text-gray-700 dark:text-gray-300" />
+            <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+              گزارش ورود و خروج
+            </h2>
           </div>
-          <p className="mb-4 text-sm text-text-secondary">
-            دریافت فایل Excel از سوابق تردد خودروها در بازه زمانی مشخص
-          </p>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                type="date"
-                label="از تاریخ"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-              <Input
-                type="date"
-                label="تا تاریخ"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="date" label="از" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input type="date" label="تا" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
-            <Button
-              onClick={handleDownloadEntryExit}
-              disabled={isDownloadingEntry}
-              className="w-full"
-            >
-              <Download size={18} />
-              {isDownloadingEntry ? "در حال دانلود..." : "دریافت گزارش"}
+            <Button onClick={handleDownloadEntryExit} disabled={isDownloadingEntry} className="w-full">
+              <Download size={16} />
+              {isDownloadingEntry ? "در حال دانلود..." : "دانلود Excel"}
             </Button>
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-blue-500/5 blur-2xl" />
+        <div className="rounded-2xl bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30">
-              <Car size={18} className="text-blue-600 dark:text-blue-400" />
-            </div>
-            <h2 className="font-bold text-secondary-900">گزارش خودروها</h2>
+            <Car size={16} className="text-gray-700 dark:text-gray-300" />
+            <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+              گزارش خودروها
+            </h2>
           </div>
-          <p className="mb-4 text-sm text-text-secondary">
-            لیست کامل تمام خودروهای ثبت‌شده در سیستم
+          <p className="mb-4 text-[13px] text-gray-500 dark:text-gray-400">
+            لیست کامل خودروهای ثبت‌شده
           </p>
-
-          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-800/50 dark:bg-blue-900/20 dark:text-blue-300">
-            <p className="flex items-start gap-2">
-              <AlertCircle size={16} className="mt-0.5 shrink-0" />
-              شامل اطلاعات مالک، پلاک، نوع و رنگ تمام خودروها
-            </p>
-          </div>
-
-          <Button
-            onClick={handleDownloadVehicles}
-            disabled={isDownloadingVehicle}
-            variant="outline"
-            className="w-full"
-          >
-            <Download size={18} />
-            {isDownloadingVehicle ? "در حال دانلود..." : "دریافت گزارش خودروها"}
+          <Button onClick={handleDownloadVehicles} disabled={isDownloadingVehicle} variant="outline" className="w-full">
+            <Download size={16} />
+            {isDownloadingVehicle ? "در حال دانلود..." : "دانلود Excel"}
           </Button>
         </div>
       </div>
@@ -473,29 +268,16 @@ function ManagerReportsPage() {
   );
 }
 
-// 👇 Stat Card با طراحی جدید
-function StatCard({
-  title,
-  value,
-  icon,
-  gradient,
-  shadow,
-}: {
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  gradient: string;
-  shadow: string;
-}) {
+function StatCard({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
-      <div
-        className={`mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg ${gradient} ${shadow} transition-transform group-hover:scale-110`}
-      >
+    <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-sm">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300">
         {icon}
       </div>
-      <p className="text-xs text-text-secondary">{title}</p>
-      <p className="mt-1 text-2xl font-bold text-secondary-900">{value}</p>
+      <div>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">{title}</p>
+        <p className="mt-0.5 text-[22px] font-semibold text-gray-900 dark:text-white">{value}</p>
+      </div>
     </div>
   );
 }

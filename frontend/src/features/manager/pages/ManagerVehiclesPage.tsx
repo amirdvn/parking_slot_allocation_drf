@@ -1,334 +1,206 @@
+// src/features/manager/pages/ManagerVehiclesPage.tsx
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Car,
-  Power,
-  User as UserIcon,
-  Phone,
-  Shield,
-  AlertCircle,
-} from "lucide-react";
+import { Car, Power } from "lucide-react";
 import { toast } from "sonner";
 import { managerApi } from "../api";
 import type { ManagerVehicle } from "../../../types/manager";
 import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
-import EmptyState from "../../../components/ui/EmptyState";
 import Pagination from "../../../components/ui/Pagination";
-import TableToolbar from "../../../components/ui/TableToolbar";
-import { TableSkeleton } from "../../../components/ui/Skeleton";
 
-const vehicleTypeOptions = [
-  { value: "CAR", label: "ماشین" },
-  { value: "MOTORCYCLE", label: "موتورسیکلت" },
-  { value: "BICYCLE", label: "دوچرخه" },
-];
+const typeLabels: Record<string, string> = {
+  CAR: "ماشین",
+  MOTORCYCLE: "موتور",
+  BICYCLE: "دوچرخه",
+};
 
-const subTypeOptions = [
-  { value: "PASSENGER", label: "عادی / سواری" },
-  { value: "CARGO", label: "باری" },
-  { value: "ELECTRIC", label: "برقی" },
-  { value: "DISABLED", label: "معلولین" },
-];
-
-const vehicleTypeColors: Record<string, string> = {
-  CAR: "from-blue-500 to-blue-600",
-  MOTORCYCLE: "from-orange-500 to-red-600",
-  BICYCLE: "from-emerald-500 to-green-600",
+const subLabels: Record<string, string> = {
+  PASSENGER: "سواری",
+  CARGO: "باری",
+  ELECTRIC: "برقی",
+  DISABLED: "معلولین",
 };
 
 function ManagerVehiclesPage() {
   const queryClient = useQueryClient();
   const [confirmToggle, setConfirmToggle] = useState<ManagerVehicle | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const PAGE_SIZE = 10;
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["manager-vehicles", currentPage],
-    queryFn: () => managerApi.getAllVehicles(currentPage),
+    queryKey: ["manager-vehicles", page],
+    queryFn: () => managerApi.getAllVehicles(page),
   });
 
-  // گرفتن لیست کاربران برای نمایش اسم مالک
   const { data: usersData } = useQuery({
     queryKey: ["manager-users-all"],
     queryFn: () => managerApi.getUsers(1),
   });
 
   const vehicles = data?.results || [];
-  const totalCount = data?.count || 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const total = data?.count || 0;
+  const pageSize = 10;
+  const totalPages = Math.ceil(total / pageSize);
 
-  // مپ کردن user id به اطلاعات کاربر
   const usersMap = useMemo(() => {
     const map: Record<number, any> = {};
-    usersData?.results?.forEach((u) => {
-      map[u.id] = u;
-    });
+    usersData?.results?.forEach((u) => { map[u.id] = u; });
     return map;
   }, [usersData]);
 
-  const filteredVehicles = useMemo(() => {
+  const filtered = useMemo(() => {
+    if (!search) return vehicles;
     return vehicles.filter((v) => {
-      const matchesSearch =
-        !searchQuery ||
-        v.plate_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        usersMap[v.user]?.full_name?.includes(searchQuery) ||
-        usersMap[v.user]?.phone_number?.includes(searchQuery);
-      const matchesType = !typeFilter || v.vehicle_type === typeFilter;
-      return matchesSearch && matchesType;
+      const owner = usersMap[v.user];
+      return (
+        v.plate_number.includes(search) ||
+        owner?.full_name?.includes(search) ||
+        owner?.phone_number?.includes(search)
+      );
     });
-  }, [vehicles, searchQuery, typeFilter, usersMap]);
+  }, [vehicles, search, usersMap]);
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
       managerApi.toggleVehicleStatus(id, isActive),
-    onSuccess: (_, variables) => {
+    onSuccess: (_, v) => {
       queryClient.invalidateQueries({ queryKey: ["manager-vehicles"] });
-      toast.success(
-        variables.isActive ? "خودرو فعال شد" : "خودرو غیرفعال شد"
-      );
-      setConfirmToggle(null);
-    },
-    onError: () => {
-      toast.error("خطا در تغییر وضعیت خودرو");
+      toast.success(v.isActive ? "فعال شد" : "غیرفعال شد");
       setConfirmToggle(null);
     },
   });
 
-  // آمار
-  const stats = useMemo(() => {
-    return {
-      total: totalCount,
-      active: vehicles.filter((v) => v.is_active).length,
-      inactive: vehicles.filter((v) => !v.is_active).length,
-    };
-  }, [vehicles, totalCount]);
-
   return (
     <div className="space-y-6">
-      {/* 👇 Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-slate-700 via-slate-800 to-gray-900 p-6 text-white shadow-xl sm:p-8">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm ring-1 ring-white/20">
-              <Car size={28} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">مدیریت خودروها</h1>
-              <p className="mt-1 text-sm text-white/70">
-                تمام خودروهای ثبت‌شده در سیستم
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm ring-1 ring-white/20">
-              <p className="text-[10px] text-white/70">کل</p>
-              <p className="text-lg font-bold">{stats.total}</p>
-            </div>
-            <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm ring-1 ring-white/20">
-              <p className="text-[10px] text-white/70">فعال</p>
-              <p className="text-lg font-bold text-emerald-300">
-                {stats.active}
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Header - Simple */}
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          مدیریت خودروها
+        </h2>
+        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
+          {total} خودرو در سیستم
+        </p>
       </div>
 
-      {/* 👇 Toolbar */}
-      <TableToolbar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="جستجو بر اساس پلاک، نام یا شماره مالک..."
-        filterValue={typeFilter}
-        onFilterChange={setTypeFilter}
-        filterOptions={[
-          { value: "", label: "همه انواع" },
-          ...vehicleTypeOptions,
-        ]}
-        filterLabel="فیلتر نوع"
-        resultCount={filteredVehicles.length}
-        totalCount={vehicles.length}
-      />
+      {/* Search */}
+      <div className="max-w-sm">
+        <Input
+          placeholder="جستجو بر اساس پلاک یا نام..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-      {/* 👇 Table */}
       {isLoading ? (
-        <TableSkeleton rows={6} cols={5} />
-      ) : filteredVehicles.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-surface">
-          <EmptyState
-            icon={<Car size={48} />}
-            title={
-              searchQuery || typeFilter
-                ? "خودرویی یافت نشد"
-                : "هیچ خودرویی در سیستم ثبت نشده است"
-            }
-            description={
-              searchQuery || typeFilter
-                ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد."
-                : "هنگامی که کاربران خودرو ثبت کنند، اینجا نمایش داده می‌شود."
-            }
-            action={
-              (searchQuery || typeFilter) && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setTypeFilter("");
-                  }}
-                >
-                  پاک کردن فیلترها
-                </Button>
-              )
-            }
-          />
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
+          ))}
+        </div>
+      ) : !filtered.length ? (
+        <div className="rounded-2xl bg-surface p-12 text-center shadow-sm">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-[#2c2c2e]">
+            <Car size={28} />
+          </div>
+          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+            خودرویی یافت نشد
+          </h3>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-sm">
-              <thead className="bg-background text-text-secondary">
-                <tr>
-                  <th className="px-4 py-3 font-medium">مالک</th>
-                  <th className="px-4 py-3 font-medium">پلاک</th>
-                  <th className="px-4 py-3 font-medium">نوع</th>
-                  <th className="px-4 py-3 font-medium">وضعیت</th>
-                  <th className="px-4 py-3 font-medium">عملیات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredVehicles.map((vehicle) => {
-                  const owner = usersMap[vehicle.user];
-                  const typeColor =
-                    vehicleTypeColors[vehicle.vehicle_type] ||
-                    "from-slate-500 to-slate-700";
-
-                  return (
-                    <tr
-                      key={vehicle.id}
-                      className="group hover:bg-background/50 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-500 to-slate-700 text-xs font-bold text-white">
-                            {owner?.full_name?.charAt(0) || "?"}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold text-secondary-900">
-                              {owner?.full_name || `کاربر #${vehicle.user}`}
+        <div className="overflow-hidden rounded-2xl bg-surface shadow-sm">
+          <table className="w-full text-right text-[13px]">
+            <thead className="border-b border-gray-200 dark:border-[#38383a]">
+              <tr className="text-gray-500 dark:text-gray-400">
+                <th className="px-4 py-3 text-right font-medium">مالک</th>
+                <th className="px-4 py-3 text-right font-medium">پلاک</th>
+                <th className="px-4 py-3 text-right font-medium">نوع</th>
+                <th className="px-4 py-3 text-right font-medium">وضعیت</th>
+                <th className="px-4 py-3 text-left font-medium">عملیات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-[#38383a]">
+              {filtered.map((vehicle) => {
+                const owner = usersMap[vehicle.user];
+                return (
+                  <tr key={vehicle.id} className="hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-[12px] font-semibold text-white dark:bg-[#0a84ff]">
+                          {owner?.full_name?.charAt(0) || "?"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-gray-900 dark:text-white">
+                            {owner?.full_name || `کاربر #${vehicle.user}`}
+                          </p>
+                          {owner?.phone_number && (
+                            <p className="truncate text-[11px] text-gray-500" dir="ltr">
+                              {owner.phone_number}
                             </p>
-                            {owner?.phone_number && (
-                              <p
-                                className="text-xs text-text-secondary font-mono"
-                                dir="ltr"
-                              >
-                                {owner.phone_number}
-                              </p>
-                            )}
-                          </div>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`rounded-lg bg-gradient-to-br ${typeColor} p-1.5 text-white shadow-sm`}
-                          >
-                            <Car size={14} />
-                          </div>
-                          <span
-                            className="font-mono font-bold text-secondary-900"
-                            dir="ltr"
-                          >
-                            {vehicle.plate_number}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        <p className="font-medium text-secondary-900">
-                          {vehicleTypeOptions.find(
-                            (o) => o.value === vehicle.vehicle_type
-                          )?.label}
-                        </p>
-                        <p className="text-text-secondary">
-                          {subTypeOptions.find(
-                            (o) => o.value === vehicle.sub_type
-                          )?.label}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs ${
-                            vehicle.is_active
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                          }`}
-                        >
-                          {vehicle.is_active ? "فعال" : "غیرفعال"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button
-                          variant={vehicle.is_active ? "danger" : "primary"}
-                          className={`gap-2 py-1.5 px-3 text-xs ${
-                            !vehicle.is_active
-                              ? "bg-green-600 hover:bg-green-700"
-                              : ""
-                          }`}
-                          onClick={() => setConfirmToggle(vehicle)}
-                          disabled={toggleMutation.isPending}
-                        >
-                          <Power size={14} />
-                          {vehicle.is_active ? "غیرفعال" : "فعال"}
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono font-medium text-gray-900 dark:text-white" dir="ltr">
+                        {vehicle.plate_number}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                      <p>{typeLabels[vehicle.vehicle_type]}</p>
+                      <p className="text-[11px] text-gray-500">{subLabels[vehicle.sub_type]}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          vehicle.is_active
+                            ? "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]"
+                            : "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500"
+                        }`}
+                      >
+                        {vehicle.is_active ? "فعال" : "غیرفعال"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-left">
+                      <button
+                        onClick={() => setConfirmToggle(vehicle)}
+                        className="text-[12px] font-medium text-[#007aff] hover:underline dark:text-[#0a84ff]"
+                      >
+                        {vehicle.is_active ? "غیرفعال" : "فعال"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            totalItems={totalCount}
-            pageSize={PAGE_SIZE}
-          />
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalItems={total}
+              pageSize={pageSize}
+            />
+          )}
         </div>
       )}
 
       <ConfirmDialog
         isOpen={!!confirmToggle}
         onClose={() => setConfirmToggle(null)}
-        onConfirm={() => {
-          if (confirmToggle) {
-            toggleMutation.mutate({
-              id: confirmToggle.id,
-              isActive: !confirmToggle.is_active,
-            });
-          }
-        }}
-        title="تغییر وضعیت خودرو"
-        description={`آیا از ${
-          confirmToggle?.is_active ? "غیرفعال" : "فعال"
-        } کردن خودرو با پلاک «${confirmToggle?.plate_number}» مطمئن هستید؟`}
-        confirmText="بله، تغییر بده"
-        variant="primary"
+        onConfirm={() =>
+          confirmToggle &&
+          toggleMutation.mutate({
+            id: confirmToggle.id,
+            isActive: !confirmToggle.is_active,
+          })
+        }
+        title="تغییر وضعیت"
+        description={`آیا ${confirmToggle?.is_active ? "غیرفعال" : "فعال"} کردن خودرو ${confirmToggle?.plate_number} مطمئنید؟`}
+        confirmText="تایید"
         isLoading={toggleMutation.isPending}
       />
     </div>

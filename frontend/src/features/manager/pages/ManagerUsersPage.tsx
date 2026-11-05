@@ -1,232 +1,129 @@
 // src/features/manager/pages/ManagerUsersPage.tsx
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserCheck, UserX, Shield, User as UserIcon, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { toast } from "sonner";
 import { managerApi } from "../api";
 import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
-import TableToolbar from "../../../components/ui/TableToolbar";
-import EmptyState from "../../../components/ui/EmptyState";
-import Pagination from "../../../components/ui/Pagination";
-import { TableSkeleton } from "../../../components/ui/Skeleton";
 import type { ManagerUser } from "../../../types/manager";
 
-const roleTranslations: Record<string, string> = {
-  USER: "کاربر عادی",
-  GUARD: "نگهبان",
-  MANAGER: "مدیر",
-};
-const deptTranslations: Record<string, string> = {
-  MANAGEMENT: "مدیریت",
-  ADMINISTRATIVE: "اداری",
-  WORKERS: "کارگران",
-};
-
-const roleFilterOptions = [
-  { value: "", label: "همه نقش‌ها" },
-  { value: "USER", label: "کاربر عادی" },
-  { value: "GUARD", label: "نگهبان" },
-  { value: "MANAGER", label: "مدیر" },
-];
+const roleLabels: Record<string, string> = { USER: "کاربر", GUARD: "نگهبان", MANAGER: "مدیر" };
 
 function ManagerUsersPage() {
   const queryClient = useQueryClient();
   const [confirmToggle, setConfirmToggle] = useState<ManagerUser | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
-  const PAGE_SIZE = 10;
-
-  // 👇 دریافت داده صفحه‌بندی شده
   const { data, isLoading } = useQuery({
-    queryKey: ["manager-users", currentPage],
-    queryFn: () => managerApi.getUsers(currentPage),
+    queryKey: ["manager-users", page],
+    queryFn: () => managerApi.getUsers(page),
   });
 
   const users = data?.results || [];
-  const totalCount = data?.count || 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const total = data?.count || 0;
 
-  // 👇 فیلتر فقط روی داده صفحه فعلی
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const matchesSearch =
-        !searchQuery ||
-        user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.phone_number.includes(searchQuery) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesRole = !roleFilter || user.role === roleFilter;
-      return matchesSearch && matchesRole;
-    });
-  }, [users, searchQuery, roleFilter]);
+  const filtered = useMemo(() => {
+    if (!search) return users;
+    return users.filter((u) =>
+      u.full_name.includes(search) || u.phone_number.includes(search) || u.email.includes(search)
+    );
+  }, [users, search]);
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
-      managerApi.toggleUserStatus(id, isActive),
-    onSuccess: (_, variables) => {
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) => managerApi.toggleUserStatus(id, isActive),
+    onSuccess: (_, v) => {
       queryClient.invalidateQueries({ queryKey: ["manager-users"] });
-      toast.success(variables.isActive ? "کاربر فعال شد" : "کاربر غیرفعال شد");
-      setConfirmToggle(null);
-    },
-    onError: () => {
-      toast.error("خطا در تغییر وضعیت کاربر");
+      toast.success(v.isActive ? "فعال شد" : "غیرفعال شد");
       setConfirmToggle(null);
     },
   });
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-secondary-900">مدیریت کاربران</h1>
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">مدیریت کاربران</h2>
+        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">{total} کاربر</p>
+      </div>
 
-      <TableToolbar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="جستجو در این صفحه..."
-        filterValue={roleFilter}
-        onFilterChange={setRoleFilter}
-        filterOptions={roleFilterOptions}
-        filterLabel="فیلتر نقش"
-        resultCount={filteredUsers.length}
-        totalCount={users.length}
-      />
+      <div className="max-w-sm">
+        <Input placeholder="جستجو..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
 
       {isLoading ? (
-        <TableSkeleton rows={6} cols={5} />
-      ) : filteredUsers.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface">
-          <EmptyState
-            icon={<Users size={48} />}
-            title={
-              searchQuery || roleFilter
-                ? "کاربری یافت نشد"
-                : "هیچ کاربری وجود ندارد"
-            }
-            description={
-              searchQuery || roleFilter
-                ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد. فیلترها را پاک کنید."
-                : "هنوز هیچ کاربری در سیستم ثبت نشده است."
-            }
-            action={
-              (searchQuery || roleFilter) && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setRoleFilter("");
-                  }}
-                >
-                  پاک کردن فیلترها
-                </Button>
-              )
-            }
-          />
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl bg-surface p-12 text-center shadow-sm">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-[#2c2c2e]">
+            <Users size={28} />
+          </div>
+          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">کاربری یافت نشد</h3>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-sm">
-              <thead className="bg-background text-text-secondary">
-                <tr>
-                  <th className="px-4 py-3 font-medium">نام و نام خانوادگی</th>
-                  <th className="px-4 py-3 font-medium">شماره تماس</th>
-                  <th className="px-4 py-3 font-medium">نقش / دپارتمان</th>
-                  <th className="px-4 py-3 font-medium">وضعیت</th>
-                  <th className="px-4 py-3 font-medium">عملیات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-background/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {user.role === "MANAGER" ? (
-                          <Shield size={18} className="text-primary-600" />
-                        ) : (
-                          <UserIcon size={18} className="text-text-secondary" />
-                        )}
-                        <span className="font-semibold text-secondary-900">
-                          {user.full_name}
-                        </span>
+        <div className="overflow-hidden rounded-2xl bg-surface shadow-sm">
+          <table className="w-full text-right text-[13px]">
+            <thead className="border-b border-gray-200 dark:border-[#38383a]">
+              <tr className="text-gray-500 dark:text-gray-400">
+                <th className="px-4 py-3 text-right font-medium">کاربر</th>
+                <th className="px-4 py-3 text-right font-medium">نقش</th>
+                <th className="px-4 py-3 text-right font-medium">وضعیت</th>
+                <th className="px-4 py-3 text-left font-medium">عملیات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-[#38383a]">
+              {filtered.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-[12px] font-semibold text-white dark:bg-[#0a84ff]">
+                        {user.full_name.charAt(0)}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono" dir="ltr">
-                      {user.phone_number}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <p className="font-medium">
-                        {roleTranslations[user.role] || user.role}
-                      </p>
-                      <p className="text-text-secondary">
-                        {deptTranslations[user.department] || user.department}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs ${
-                          user.is_active
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
-                      >
-                        {user.is_active ? "فعال" : "غیرفعال"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button
-                        variant={user.is_active ? "danger" : "primary"}
-                        className={`gap-2 py-1.5 px-3 text-xs ${
-                          !user.is_active ? "bg-green-600 hover:bg-green-700" : ""
-                        }`}
-                        onClick={() => setConfirmToggle(user)}
-                        disabled={toggleMutation.isPending}
-                      >
-                        {user.is_active ? (
-                          <>
-                            <UserX size={14} /> غیرفعال
-                          </>
-                        ) : (
-                          <>
-                            <UserCheck size={14} /> فعال
-                          </>
-                        )}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* 👇 Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            totalItems={totalCount}
-            pageSize={PAGE_SIZE}
-          />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">{user.full_name}</p>
+                        <p className="text-[11px] text-gray-500" dir="ltr">{user.phone_number}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                    {roleLabels[user.role] || user.role}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      user.is_active
+                        ? "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]"
+                        : "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500"
+                    }`}>
+                      {user.is_active ? "فعال" : "غیرفعال"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-left">
+                    <button
+                      onClick={() => setConfirmToggle(user)}
+                      className="text-[12px] font-medium text-[#007aff] hover:underline dark:text-[#0a84ff]"
+                    >
+                      {user.is_active ? "غیرفعال" : "فعال"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
       <ConfirmDialog
         isOpen={!!confirmToggle}
         onClose={() => setConfirmToggle(null)}
-        onConfirm={() => {
-          if (confirmToggle) {
-            toggleMutation.mutate({
-              id: confirmToggle.id,
-              isActive: !confirmToggle.is_active,
-            });
-          }
-        }}
-        title="تغییر وضعیت کاربر"
-        description={`آیا از ${
-          confirmToggle?.is_active ? "غیرفعال" : "فعال"
-        } کردن «${confirmToggle?.full_name}» مطمئن هستید؟`}
-        confirmText="بله، تغییر بده"
-        variant="primary"
+        onConfirm={() => confirmToggle && toggleMutation.mutate({ id: confirmToggle.id, isActive: !confirmToggle.is_active })}
+        title="تغییر وضعیت"
+        description={`آیا ${confirmToggle?.is_active ? "غیرفعال" : "فعال"} کردن «${confirmToggle?.full_name}» مطمئنید؟`}
+        confirmText="تایید"
         isLoading={toggleMutation.isPending}
       />
     </div>

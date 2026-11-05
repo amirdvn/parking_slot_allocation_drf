@@ -23,17 +23,12 @@ function Modal({ isOpen, onClose, title, children, size = "md" }: ModalProps) {
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "unset";
-    return () => {
-      document.body.style.overflow = "unset";
-    };
+    return () => { document.body.style.overflow = "unset"; };
   }, [isOpen]);
 
-  // بستن با کلید ESC
   useEffect(() => {
     if (!isOpen) return;
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
@@ -42,25 +37,25 @@ function Modal({ isOpen, onClose, title, children, size = "md" }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-fade-in dark:bg-black/60"
       onClick={onClose}
     >
       <div
-        className={`w-full ${sizeClasses[size]} rounded-2xl bg-surface shadow-2xl animate-scale-in`}
+        className={`w-full ${sizeClasses[size]} animate-scale-in overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-[#1c1c1e]`}
         dir="rtl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border p-4">
-          <h2 className="text-lg font-bold text-secondary-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-[#38383a]">
+          <h2 className="text-[17px] font-semibold text-gray-900 dark:text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-text-secondary transition-colors hover:bg-background hover:text-danger"
+            className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-[#2c2c2e] dark:hover:text-white"
             aria-label="بستن"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="max-h-[70vh] overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   );

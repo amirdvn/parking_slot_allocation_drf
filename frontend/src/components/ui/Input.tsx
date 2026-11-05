@@ -1,15 +1,13 @@
 // src/components/ui/Input.tsx
 import type { InputHTMLAttributes, ReactNode } from "react";
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   helperText?: string;
-  success?: boolean;
   icon?: ReactNode;
-  iconPosition?: "left" | "right";
   showPasswordToggle?: boolean;
 }
 
@@ -17,9 +15,7 @@ function Input({
   label,
   error,
   helperText,
-  success,
   icon,
-  iconPosition = "right",
   showPasswordToggle,
   id,
   className = "",
@@ -30,51 +26,18 @@ function Input({
   const [showPassword, setShowPassword] = useState(false);
   const actualType = showPasswordToggle && type === "password" && showPassword ? "text" : type;
 
-  // آیکون داخلی
-  const hasIcon = !!icon || showPasswordToggle;
-  const paddingClass = hasIcon
-    ? iconPosition === "right"
-      ? "pr-11 pl-11"
-      : "pl-11 pr-11"
-    : "";
-
   return (
-    <div className="flex w-full flex-col gap-2">
+    <div className="flex w-full flex-col gap-1.5">
       {label && (
-        <label
-          htmlFor={inputId}
-          className="text-sm font-medium text-text-primary"
-        >
+        <label htmlFor={inputId} className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
           {label}
         </label>
       )}
 
       <div className="relative">
-        {/* آیکون سمت راست (پیش‌فرض) */}
-        {icon && iconPosition === "right" && (
-          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary">
+        {icon && (
+          <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
             {icon}
-          </div>
-        )}
-
-        {/* آیکون سمت چپ (مثلاً برای وضعیت موفقیت) */}
-        {icon && iconPosition === "left" && (
-          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
-            {icon}
-          </div>
-        )}
-
-        {/* آیکون وضعیت موفقیت خودکار */}
-        {success && !error && (
-          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600">
-            <CheckCircle2 size={18} />
-          </div>
-        )}
-
-        {/* آیکون خطا خودکار */}
-        {error && (
-          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-danger">
-            <AlertCircle size={18} />
           </div>
         )}
 
@@ -82,47 +45,42 @@ function Input({
           id={inputId}
           type={actualType}
           className={`
-            w-full rounded-lg border bg-surface px-4 py-3
-            text-sm text-text-primary outline-none
+            w-full rounded-xl border-0 bg-gray-100 px-4 py-3
+            text-[15px] text-gray-900 outline-none
             transition-all
-            placeholder:text-text-secondary/60
-            focus:ring-2
-            disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary
-            ${paddingClass}
-            ${
-              error
-                ? "border-danger focus:border-danger focus:ring-red-100 dark:focus:ring-red-900/30"
-                : success
-                  ? "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-100 dark:focus:ring-emerald-900/30"
-                  : "border-border focus:border-primary-500 focus:ring-primary-100 dark:focus:ring-primary-900/30"
-            }
+            placeholder:text-gray-400
+            focus:bg-white focus:ring-2 focus:ring-[#007aff]
+            disabled:cursor-not-allowed disabled:opacity-50
+            dark:bg-[#1c1c1e] dark:text-white dark:placeholder:text-gray-500
+            dark:focus:bg-[#2c2c2e] dark:focus:ring-[#0a84ff]
+            ${icon ? "pr-11" : ""}
+            ${showPasswordToggle ? "pl-11" : ""}
+            ${error ? "ring-2 ring-[#ff3b30] dark:ring-[#ff453a]" : ""}
             ${className}
           `}
           {...props}
         />
 
-        {/* دکمه نمایش/مخفی کردن رمز */}
         {showPasswordToggle && type === "password" && (
           <button
             type="button"
             onClick={() => setShowPassword((s) => !s)}
-            className="absolute left-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-secondary transition-colors hover:bg-background hover:text-text-primary"
-            aria-label={showPassword ? "مخفی کردن رمز" : "نمایش رمز"}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            aria-label={showPassword ? "مخفی کردن" : "نمایش"}
           >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         )}
       </div>
 
       {error && (
-        <span className="flex items-center gap-1 text-xs text-danger">
+        <span className="flex items-center gap-1 text-xs text-[#ff3b30] dark:text-[#ff453a]">
           <AlertCircle size={12} />
           {error}
         </span>
       )}
-
       {!error && helperText && (
-        <span className="text-xs text-text-secondary">{helperText}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-500">{helperText}</span>
       )}
     </div>
   );

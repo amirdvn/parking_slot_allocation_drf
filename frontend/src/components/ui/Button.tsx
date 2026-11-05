@@ -10,15 +10,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-l from-primary-600 to-primary-500 text-white shadow-md shadow-primary-600/20 hover:shadow-lg hover:shadow-primary-600/30 active:shadow-sm",
+    "bg-[#007aff] text-white hover:bg-[#0069d9] active:bg-[#005cbf] dark:bg-[#0a84ff] dark:hover:bg-[#0077e6]",
   secondary:
-    "bg-secondary-800 text-white shadow-md hover:bg-secondary-900",
+    "bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300 dark:bg-[#2c2c2e] dark:text-white dark:hover:bg-[#3a3a3c]",
   danger:
-    "bg-gradient-to-l from-red-600 to-red-500 text-white shadow-md shadow-red-600/20 hover:shadow-lg hover:shadow-red-600/30",
+    "bg-[#ff3b30] text-white hover:bg-[#e63429] active:bg-[#cc2e24] dark:bg-[#ff453a] dark:hover:bg-[#e63e34]",
   outline:
-    "border border-border bg-surface text-text-primary hover:bg-background hover:border-primary-300",
+    "border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 dark:border-[#38383a] dark:bg-transparent dark:text-white dark:hover:bg-[#1c1c1e]",
   ghost:
-    "text-text-secondary hover:bg-background hover:text-secondary-900",
+    "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-[#2c2c2e] dark:hover:text-white",
 };
 
 function Button({
@@ -33,10 +33,10 @@ function Button({
       disabled={disabled}
       className={`
         inline-flex items-center justify-center gap-2
-        rounded-lg px-5 py-2.5
-        text-sm font-semibold
-        transition-all duration-200
-        disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none
+        rounded-xl px-4 py-2.5
+        text-[15px] font-medium
+        transition-all duration-150
+        disabled:cursor-not-allowed disabled:opacity-40
         ${variantStyles[variant]}
         ${className}
       `}
