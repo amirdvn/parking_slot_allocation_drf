@@ -23,22 +23,33 @@ const pageTitles: Record<string, string> = {
 
 function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
 
   const currentTitle = pageTitles[location.pathname] || "پنل مدیریت";
 
   return (
     <div dir="rtl" className="flex h-screen overflow-hidden bg-background">
-      <NavFrame />
+      {/* نخ و قاب فقط برای صفحات غیر از تنظیمات */}
+      {location.pathname !== "/settings" && <NavFrame />}
 
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      {/* سایدبار */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        isCollapsed={isCollapsed}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
+      {/* بخش اصلی */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Header title={currentTitle} onMenuClick={() => setIsSidebarOpen(true)} />
+        <Header
+          title={currentTitle}
+          onMenuClick={() => setIsSidebarOpen(true)}
+          isCollapsed={isCollapsed}
+          onCollapseToggle={() => setIsCollapsed(!isCollapsed)}
+        />
 
-        {/* 👇 main فقط padding داره، رنگ پس‌زمینه از والد ارث می‌بره */}
         <main className="flex-1 overflow-hidden p-3 sm:p-4 lg:p-5">
-          {/* 👇 Wrapper حالا bg-background هست (شفاف روی والد) - کارت‌ها جدا دیده می‌شن */}
           <div
             key={location.pathname}
             data-nav-content

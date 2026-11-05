@@ -14,9 +14,7 @@ function App() {
         closeButton
         dir="rtl"
         toastOptions={{
-          style: {
-            fontFamily: "Vazirmatn, sans-serif",
-          },
+          style: { fontFamily: "Vazirmatn, sans-serif" },
         }}
       />
     </AuthProvider>

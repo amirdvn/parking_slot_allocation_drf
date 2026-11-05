@@ -1,6 +1,9 @@
 // src/components/shared/Header.tsx
 import { useState, useRef, useEffect } from "react";
-import { Bell, Menu, Sun, Moon, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import {
+  Bell, Menu, Sun, Moon, User, Settings, LogOut, ChevronDown,
+  PanelRightClose, PanelRightOpen
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -11,6 +14,8 @@ import { notificationsApi } from "../../features/notifications/api";
 interface HeaderProps {
   onMenuClick: () => void;
   title: string;
+  isCollapsed?: boolean;
+  onCollapseToggle?: () => void;
 }
 
 const roleTranslations: Record<string, string> = {
@@ -19,7 +24,7 @@ const roleTranslations: Record<string, string> = {
   MANAGER: "مدیر",
 };
 
-function Header({ onMenuClick, title }: HeaderProps) {
+function Header({ onMenuClick, title, isCollapsed, onCollapseToggle }: HeaderProps) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -56,7 +61,8 @@ function Header({ onMenuClick, title }: HeaderProps) {
   return (
     <header
       dir="rtl"
-      className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-200 bg-white/80 px-4 backdrop-blur-xl dark:border-[#38383a] dark:bg-[#1c1c1e]/80 sm:px-6"
+      data-dashboard-header
+      className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface/80 px-4 backdrop-blur-xl sm:px-6"
     >
       <div className="flex items-center gap-3">
         <button
@@ -66,6 +72,16 @@ function Header({ onMenuClick, title }: HeaderProps) {
         >
           <Menu size={20} />
         </button>
+
+        {onCollapseToggle && (
+          <button
+            onClick={onCollapseToggle}
+            className="hidden rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-[#2c2c2e] lg:block"
+            title={isCollapsed ? "باز کردن منو" : "بستن منو"}
+          >
+            {isCollapsed ? <PanelRightOpen size={20} /> : <PanelRightClose size={20} />}
+          </button>
+        )}
 
         <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{title}</h1>
       </div>
@@ -112,8 +128,8 @@ function Header({ onMenuClick, title }: HeaderProps) {
           </button>
 
           {profileOpen && (
-            <div className="absolute left-0 top-full mt-2 w-56 animate-scale-in overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-[#38383a] dark:bg-[#1c1c1e]">
-              <div className="border-b border-gray-200 p-4 dark:border-[#38383a]">
+            <div className="absolute left-0 top-full mt-2 w-56 animate-scale-in overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
+              <div className="border-b border-border p-4">
                 <p className="truncate text-[14px] font-semibold text-gray-900 dark:text-white">
                   {user?.full_name}
                 </p>
@@ -138,7 +154,7 @@ function Header({ onMenuClick, title }: HeaderProps) {
                   تنظیمات
                 </button>
 
-                <div className="my-1 h-px bg-gray-200 dark:bg-[#38383a]" />
+                <div className="my-1 h-px bg-border" />
 
                 <button
                   onClick={handleLogout}

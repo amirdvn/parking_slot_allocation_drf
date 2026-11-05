@@ -14,11 +14,10 @@ import ManagerRequestsPage from "../features/manager/pages/ManagerRequestsPage";
 import ManagerParkingPage from "../features/manager/pages/ManagerParkingPage";
 import ManagerUsersPage from "../features/manager/pages/ManagerUsersPage";
 import ManagerReportsPage from "../features/manager/pages/ManagerReportsPage";
-import ManagerVehiclesPage from "../features/manager/pages/ManagerVehiclesPage";
 import NotificationsPage from "../features/notifications/pages/NotificationsPage";
 import SettingsPage from "../features/profile/pages/SettingsPage";
+import ManagerVehiclesPage from "../features/manager/pages/ManagerVehiclesPage";
 
-// NotFoundPage
 function NotFoundPage() {
   return (
     <main dir="rtl" className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-6">
@@ -50,10 +49,12 @@ function NotFoundPage() {
 }
 
 export const router = createBrowserRouter([
+  // مسیرهای عمومی
   { path: "/login", element: <Login /> },
   { path: "/verify-otp", element: <VerifyOtp /> },
   { path: "/register", element: <Register /> },
 
+  // مسیرهای محافظت شده (فقط یک لایه DashboardLayout)
   {
     element: <ProtectedRoute />,
     children: [
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { index: true, element: <DashboardRouter /> },
+          { path: "vehicles", element: <VehiclesPage /> },
           { path: "my-vehicles", element: <VehiclesPage /> },
           { path: "manage-vehicles", element: <ManagerVehiclesPage /> },
           { path: "requests", element: <RequestsPage /> },
@@ -78,5 +80,6 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // مسیر ۴۰۴
   { path: "*", element: <NotFoundPage /> },
 ]);
