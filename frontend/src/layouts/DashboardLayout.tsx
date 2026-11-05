@@ -28,13 +28,23 @@ function DashboardLayout() {
 
   return (
     <div dir="rtl" className="flex min-h-screen bg-background">
+      {/* Sidebar - ثابت */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Header - ثابت */}
         <Header title={currentTitle} onMenuClick={() => setIsSidebarOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <Outlet />
+        {/* Main - فقط محتوا انیمیشن داره */}
+        <main className="flex-1 overflow-hidden">
+          <div
+            key={location.pathname}
+            className="h-full animate-page-enter overflow-y-auto"
+          >
+            <div className="p-4 sm:p-6 lg:p-8">
+              <Outlet />
+            </div>
+          </div>
         </main>
       </div>
     </div>
