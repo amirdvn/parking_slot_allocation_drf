@@ -16,10 +16,33 @@ import ManagerUsersPage from "../features/manager/pages/ManagerUsersPage";
 import ManagerReportsPage from "../features/manager/pages/ManagerReportsPage";
 import NotificationsPage from "../features/notifications/pages/NotificationsPage";
 import SettingsPage from "../features/profile/pages/SettingsPage";
+// NotFoundPage داخل router.tsx
 function NotFoundPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <h1 className="text-xl font-bold">صفحه موردنظر پیدا نشد!</h1>
+    <main dir="rtl" className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-6">
+      <div className="text-[120px] font-bold leading-none text-primary-600/20 select-none">
+        404
+      </div>
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-bold text-secondary-900">صفحه‌ای که دنبالش بودید پیدا نشد</h1>
+        <p className="text-sm text-text-secondary">
+          ممکن است آدرس را اشتباه وارد کرده باشید یا این صفحه حذف شده باشد.
+        </p>
+      </div>
+      <div className="flex gap-3">
+        <a
+          href="/"
+          className="rounded-lg bg-primary-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+        >
+          بازگشت به داشبورد
+        </a>
+        <button
+          onClick={() => window.history.back()}
+          className="rounded-lg border border-border bg-surface px-6 py-3 text-sm font-semibold text-text-primary transition-colors hover:bg-background"
+        >
+          صفحه قبل
+        </button>
+      </div>
     </main>
   );
 }

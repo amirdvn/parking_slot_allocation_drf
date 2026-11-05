@@ -1,3 +1,4 @@
+// src/features/manager/pages/ManagerUsersPage.tsx
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserCheck, UserX, Shield, User as UserIcon, Users } from "lucide-react";
@@ -7,6 +8,7 @@ import Button from "../../../components/ui/Button";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import TableToolbar from "../../../components/ui/TableToolbar";
 import EmptyState from "../../../components/ui/EmptyState";
+import Pagination from "../../../components/ui/Pagination";
 import { TableSkeleton } from "../../../components/ui/Skeleton";
 import type { ManagerUser } from "../../../types/manager";
 
@@ -33,14 +35,22 @@ function ManagerUsersPage() {
   const [confirmToggle, setConfirmToggle] = useState<ManagerUser | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: users, isLoading } = useQuery({
-    queryKey: ["manager-users"],
-    queryFn: managerApi.getUsers,
+  const PAGE_SIZE = 10;
+
+  // 👇 دریافت داده صفحه‌بندی شده
+  const { data, isLoading } = useQuery({
+    queryKey: ["manager-users", currentPage],
+    queryFn: () => managerApi.getUsers(currentPage),
   });
 
+  const users = data?.results || [];
+  const totalCount = data?.count || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  // 👇 فیلتر فقط روی داده صفحه فعلی
   const filteredUsers = useMemo(() => {
-    if (!users) return [];
     return users.filter((user) => {
       const matchesSearch =
         !searchQuery ||
@@ -73,23 +83,26 @@ function ManagerUsersPage() {
       <TableToolbar
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="جستجو بر اساس نام، شماره یا ایمیل..."
+        searchPlaceholder="جستجو در این صفحه..."
         filterValue={roleFilter}
         onFilterChange={setRoleFilter}
         filterOptions={roleFilterOptions}
         filterLabel="فیلتر نقش"
         resultCount={filteredUsers.length}
-        totalCount={users?.length}
+        totalCount={users.length}
       />
 
-      {/* 👇 حالا Skeleton نشون می‌ده */}
       {isLoading ? (
         <TableSkeleton rows={6} cols={5} />
       ) : filteredUsers.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface">
           <EmptyState
             icon={<Users size={48} />}
-            title={searchQuery || roleFilter ? "کاربری یافت نشد" : "هیچ کاربری وجود ندارد"}
+            title={
+              searchQuery || roleFilter
+                ? "کاربری یافت نشد"
+                : "هیچ کاربری وجود ندارد"
+            }
             description={
               searchQuery || roleFilter
                 ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد. فیلترها را پاک کنید."
@@ -111,76 +124,89 @@ function ManagerUsersPage() {
           />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
-          <table className="w-full text-right text-sm">
-            <thead className="bg-background text-text-secondary">
-              <tr>
-                <th className="px-4 py-3 font-medium">نام و نام خانوادگی</th>
-                <th className="px-4 py-3 font-medium">شماره تماس</th>
-                <th className="px-4 py-3 font-medium">نقش / دپارتمان</th>
-                <th className="px-4 py-3 font-medium">وضعیت</th>
-                <th className="px-4 py-3 font-medium">عملیات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-background/50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {user.role === "MANAGER" ? (
-                        <Shield size={18} className="text-primary-600" />
-                      ) : (
-                        <UserIcon size={18} className="text-text-secondary" />
-                      )}
-                      <span className="font-semibold text-secondary-900">
-                        {user.full_name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 font-mono" dir="ltr">
-                    {user.phone_number}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    <p className="font-medium">{roleTranslations[user.role] || user.role}</p>
-                    <p className="text-text-secondary">
-                      {deptTranslations[user.department] || user.department}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs ${
-                        user.is_active
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                      }`}
-                    >
-                      {user.is_active ? "فعال" : "غیرفعال"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button
-                      variant={user.is_active ? "danger" : "primary"}
-                      className={`gap-2 py-1.5 px-3 text-xs ${
-                        !user.is_active ? "bg-green-600 hover:bg-green-700" : ""
-                      }`}
-                      onClick={() => setConfirmToggle(user)}
-                      disabled={toggleMutation.isPending}
-                    >
-                      {user.is_active ? (
-                        <>
-                          <UserX size={14} /> غیرفعال کردن
-                        </>
-                      ) : (
-                        <>
-                          <UserCheck size={14} /> فعال کردن
-                        </>
-                      )}
-                    </Button>
-                  </td>
+        <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-sm">
+              <thead className="bg-background text-text-secondary">
+                <tr>
+                  <th className="px-4 py-3 font-medium">نام و نام خانوادگی</th>
+                  <th className="px-4 py-3 font-medium">شماره تماس</th>
+                  <th className="px-4 py-3 font-medium">نقش / دپارتمان</th>
+                  <th className="px-4 py-3 font-medium">وضعیت</th>
+                  <th className="px-4 py-3 font-medium">عملیات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-background/50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {user.role === "MANAGER" ? (
+                          <Shield size={18} className="text-primary-600" />
+                        ) : (
+                          <UserIcon size={18} className="text-text-secondary" />
+                        )}
+                        <span className="font-semibold text-secondary-900">
+                          {user.full_name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-mono" dir="ltr">
+                      {user.phone_number}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      <p className="font-medium">
+                        {roleTranslations[user.role] || user.role}
+                      </p>
+                      <p className="text-text-secondary">
+                        {deptTranslations[user.department] || user.department}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs ${
+                          user.is_active
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        }`}
+                      >
+                        {user.is_active ? "فعال" : "غیرفعال"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button
+                        variant={user.is_active ? "danger" : "primary"}
+                        className={`gap-2 py-1.5 px-3 text-xs ${
+                          !user.is_active ? "bg-green-600 hover:bg-green-700" : ""
+                        }`}
+                        onClick={() => setConfirmToggle(user)}
+                        disabled={toggleMutation.isPending}
+                      >
+                        {user.is_active ? (
+                          <>
+                            <UserX size={14} /> غیرفعال
+                          </>
+                        ) : (
+                          <>
+                            <UserCheck size={14} /> فعال
+                          </>
+                        )}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 👇 Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={totalCount}
+            pageSize={PAGE_SIZE}
+          />
         </div>
       )}
 

@@ -21,7 +21,7 @@ export interface VehiclePayload {
   color: ColorType;
 }
 
-// ✅ تایپ جدید برای پاسخ صفحه‌بندی شده (قابل استفاده برای همه لیست‌ها)
+
 export interface PaginatedResponse<T> {
   count: number;
   next: string | null;
