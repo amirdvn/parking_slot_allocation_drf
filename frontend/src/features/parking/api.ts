@@ -1,36 +1,39 @@
 // src/features/parking/api.ts
 import { api } from "../../lib/api";
 import type { PaginatedResponse } from "../../types/vehicle";
-import type { ParkingRequest, ParkingSpace, CreateRequestPayload } from "../../types/parking";
-import type { ParkingSpacePayload } from "../../types/parking";
+import type {
+  ParkingRequest,
+  ParkingSpace,
+  CreateRequestPayload,
+  ParkingSpacePayload,
+} from "../../types/parking";
 
 export const parkingApi = {
-  // دریافت لیست جایگاه‌ها
+  // بخش کاربر
   getSpaces: async () => {
     const response = await api.get<PaginatedResponse<ParkingSpace>>("/api/parking/list/");
     return response.data.results;
   },
 
-  // دریافت درخواست‌های کاربر
   getMyRequests: async () => {
     const response = await api.get<PaginatedResponse<ParkingRequest>>("/api/parking/requests/list/");
     return response.data.results;
   },
 
-  // ثبت درخواست جدید
   createRequest: async (data: CreateRequestPayload) => {
     const response = await api.post<ParkingRequest>("/api/parking/requests/create/", data);
     return response.data;
   },
 
-  // لغو درخواست
   cancelRequest: async (id: number, reason: string) => {
     const response = await api.patch(`/api/parking/requests/cancel/${id}/`, {
       cancellation_reason: reason,
     });
     return response.data;
   },
-    createSpace: async (data: ParkingSpacePayload) => {
+
+  // بخش مدیریت
+  createSpace: async (data: ParkingSpacePayload) => {
     const response = await api.post<ParkingSpace>("/api/parking/create/", data);
     return response.data;
   },
@@ -44,12 +47,24 @@ export const parkingApi = {
     await api.delete(`/api/parking/delete/${id}/`);
   },
 
-    getUserDashboard: async () => {
-    const response = await api.get<UserDashboardData>("/api/parking/user/dashboard/");
+  // 👇 انسداد جایگاه
+  getBlocks: async () => {
+    const response = await api.get<PaginatedResponse<any>>("/api/parking/blocks/list/");
+    return response.data.results;
+  },
+
+  createBlock: async (data: {
+    parking_space: string;
+    start_time: string;
+    end_time: string;
+    reason: string;
+    description?: string;
+  }) => {
+    const response = await api.post("/api/parking/blocks/create/", data);
     return response.data;
   },
-    createGuestRequest: async (data: GuestRequestPayload) => {
-    const response = await api.post("/api/parking/requests/guest/create/", data);
-    return response.data;
+
+  deleteBlock: async (id: number) => {
+    await api.delete(`/api/parking/blocks/delete/${id}/`);
   },
 };
