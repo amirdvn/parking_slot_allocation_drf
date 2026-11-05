@@ -1,4 +1,5 @@
-import { Bell, Menu, Search, Sun, Moon } from "lucide-react";
+// src/components/shared/Header.tsx
+import { Bell, Menu, Sun, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../features/auth/AuthContext";
@@ -61,14 +62,7 @@ function Header({ onMenuClick, title }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2">
-        <button
-          type="button"
-          className="rounded-xl p-2.5 text-text-secondary transition-colors hover:bg-background"
-          aria-label="جستجو"
-        >
-          <Search size={20} />
-        </button>
-
+        {/* دکمه تغییر تم */}
         <button
           type="button"
           onClick={toggleTheme}
@@ -79,6 +73,7 @@ function Header({ onMenuClick, title }: HeaderProps) {
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
+        {/* اعلان‌ها */}
         <button
           type="button"
           onClick={() => navigate("/notifications")}
@@ -95,6 +90,7 @@ function Header({ onMenuClick, title }: HeaderProps) {
 
         <div className="mx-1 h-8 w-px bg-border" />
 
+        {/* آواتار کاربر */}
         <div className="flex items-center gap-2 rounded-xl p-2">
           <div
             className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white ${avatarColor}`}
