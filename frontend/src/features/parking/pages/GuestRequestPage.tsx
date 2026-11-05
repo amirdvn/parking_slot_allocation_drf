@@ -10,6 +10,7 @@ import { parkingApi } from "../api";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
+import PageHeader from "../../../components/shared/PageHeader";
 
 const guestSchema = z.object({
   guest_name: z.string().min(1, "نام مهمان الزامی است"),
@@ -44,12 +45,11 @@ function GuestRequestPage() {
 
   const mutation = useMutation({
     mutationFn: (data: GuestFormValues) => {
-      const payload = {
+      return parkingApi.createGuestRequest({
         ...data,
         start_time: new Date(data.start_time).toISOString(),
         end_time: new Date(data.end_time).toISOString(),
-      };
-      return parkingApi.createGuestRequest(payload);
+      });
     },
     onSuccess: () => {
       toast.success("درخواست ثبت شد");
@@ -67,35 +67,28 @@ function GuestRequestPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          درخواست مهمان
-        </h2>
-        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
-          برای مهمان خود جایگاه پارکینگ رزرو کنید
-        </p>
-      </div>
+    <div className="mx-auto max-w-3xl">
+      <PageHeader
+        title="درخواست مهمان"
+        subtitle="برای مهمان خود جایگاه پارکینگ رزرو کنید"
+      />
 
-      {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-2xl bg-surface p-4 shadow-sm">
+      <div className="mb-4 flex items-start gap-3 rounded-2xl bg-surface p-4 shadow-sm">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#007aff] dark:bg-[#0a84ff]/10 dark:text-[#0a84ff]">
           <Info size={18} />
         </div>
         <div>
           <p className="text-[13px] font-medium text-gray-900 dark:text-white">
-            درخواست نیاز به تایید مدیر دارد
+            نیاز به تایید مدیر
           </p>
           <p className="mt-0.5 text-[12px] text-gray-500 dark:text-gray-400">
-            پس از ثبت، درخواست برای بررسی ارسال می‌شود و نتیجه از طریق اعلان‌ها اطلاع داده می‌شود.
+            پس از ثبت، درخواست برای بررسی ارسال می‌شود.
           </p>
         </div>
       </div>
 
-      {/* Success message */}
       {successMsg && (
-        <div className="flex items-start gap-3 rounded-2xl bg-surface p-4 shadow-sm">
+        <div className="mb-4 flex items-start gap-3 rounded-2xl bg-surface p-4 shadow-sm">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
             <CheckCircle2 size={18} />
           </div>
@@ -110,49 +103,22 @@ function GuestRequestPage() {
         </div>
       )}
 
-      {/* Form */}
       <div className="rounded-2xl bg-surface p-6 shadow-sm">
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-5">
-          {/* Section 1 */}
           <div>
             <h3 className="mb-3 text-[13px] font-semibold text-gray-900 dark:text-white">
               اطلاعات مهمان
             </h3>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <Input
-                label="نام و نام خانوادگی"
-                placeholder="مثلا: علی رضایی"
-                error={errors.guest_name?.message}
-                {...register("guest_name")}
-              />
-              <Input
-                label="شماره تماس"
-                dir="ltr"
-                placeholder="09xxxxxxxxx"
-                error={errors.guest_phone?.message}
-                {...register("guest_phone")}
-              />
-              <Input
-                label="ایمیل"
-                dir="ltr"
-                type="email"
-                placeholder="guest@example.com"
-                error={errors.guest_email?.message}
-                {...register("guest_email")}
-              />
-              <Input
-                label="شماره پلاک"
-                dir="ltr"
-                placeholder="1234ب123"
-                error={errors.guest_plate_number?.message}
-                {...register("guest_plate_number")}
-              />
+              <Input label="نام" error={errors.guest_name?.message} {...register("guest_name")} />
+              <Input label="شماره تماس" dir="ltr" error={errors.guest_phone?.message} {...register("guest_phone")} />
+              <Input label="ایمیل" dir="ltr" type="email" error={errors.guest_email?.message} {...register("guest_email")} />
+              <Input label="پلاک" dir="ltr" error={errors.guest_plate_number?.message} {...register("guest_plate_number")} />
             </div>
           </div>
 
           <div className="h-px bg-gray-100 dark:bg-[#38383a]" />
 
-          {/* Section 2 */}
           <div>
             <h3 className="mb-3 text-[13px] font-semibold text-gray-900 dark:text-white">
               زمان و جایگاه
@@ -160,60 +126,39 @@ function GuestRequestPage() {
 
             {guestSpaces.length === 0 && (
               <div className="mb-3 rounded-xl bg-amber-50 p-3 text-[13px] text-[#ff9500] dark:bg-[#ff9f0a]/10 dark:text-[#ff9f0a]">
-                ⚠️ در حال حاضر جایگاه مهمان فعالی وجود ندارد. با مدیر تماس بگیرید.
+                ⚠️ جایگاه مهمان فعالی وجود ندارد.
               </div>
             )}
 
             <div className="space-y-3">
               <Select
-                label="جایگاه مهمان"
-                options={guestSpaces.map((s) => ({
-                  value: s.id,
-                  label: `${s.code} (${s.floor})`,
-                }))}
+                label="جایگاه"
+                options={guestSpaces.map((s) => ({ value: s.id, label: `${s.code} (${s.floor})` }))}
                 error={errors.parking_space?.message}
                 {...register("parking_space")}
               />
-
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <Input
-                  type="datetime-local"
-                  label="زمان شروع"
-                  error={errors.start_time?.message}
-                  {...register("start_time")}
-                />
-                <Input
-                  type="datetime-local"
-                  label="زمان پایان"
-                  error={errors.end_time?.message}
-                  {...register("end_time")}
-                />
+                <Input type="datetime-local" label="شروع" error={errors.start_time?.message} {...register("start_time")} />
+                <Input type="datetime-local" label="پایان" error={errors.end_time?.message} {...register("end_time")} />
               </div>
             </div>
           </div>
 
           <div className="h-px bg-gray-100 dark:bg-[#38383a]" />
 
-          {/* Section 3 */}
           <div>
             <h3 className="mb-3 text-[13px] font-semibold text-gray-900 dark:text-white">
-              دلیل مراجعه
+              دلیل
             </h3>
             <div className="space-y-3">
-              <Input
-                label="دلیل"
-                placeholder="مثلا: جلسه کاری، ملاقات..."
-                error={errors.reason?.message}
-                {...register("reason")}
-              />
+              <Input label="دلیل" placeholder="جلسه کاری..." error={errors.reason?.message} {...register("reason")} />
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
                   توضیحات (اختیاری)
                 </label>
                 <textarea
-                  placeholder="اگر توضیح بیشتری دارید، اینجا بنویسید..."
                   rows={3}
-                  className="w-full rounded-xl border-0 bg-gray-100 px-4 py-3 text-[15px] text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#007aff] dark:bg-[#1c1c1e] dark:text-white dark:focus:bg-[#2c2c2e] dark:focus:ring-[#0a84ff]"
+                  className="w-full rounded-xl border-0 bg-gray-100 px-4 py-3 text-[15px] text-gray-900 outline-none placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#007aff] dark:bg-[#1c1c1e] dark:text-white dark:focus:bg-[#2c2c2e] dark:focus:ring-[#0a84ff]"
                   {...register("description")}
                 />
               </div>
@@ -233,14 +178,9 @@ function GuestRequestPage() {
               className="flex-1"
             >
               <UserPlus size={16} />
-              {mutation.isPending ? "در حال ثبت..." : "ثبت درخواست"}
+              {mutation.isPending ? "..." : "ثبت درخواست"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => reset()}
-              disabled={mutation.isPending}
-            >
+            <Button type="button" variant="outline" onClick={() => reset()}>
               پاک کردن
             </Button>
           </div>

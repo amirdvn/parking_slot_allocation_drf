@@ -1,26 +1,19 @@
 // src/features/manager/pages/ManagerVehiclesPage.tsx
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Car, Power } from "lucide-react";
+import { Car } from "lucide-react";
 import { toast } from "sonner";
 import { managerApi } from "../api";
 import type { ManagerVehicle } from "../../../types/manager";
-import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import Pagination from "../../../components/ui/Pagination";
+import PageHeader from "../../../components/shared/PageHeader";
 
 const typeLabels: Record<string, string> = {
   CAR: "ماشین",
   MOTORCYCLE: "موتور",
   BICYCLE: "دوچرخه",
-};
-
-const subLabels: Record<string, string> = {
-  PASSENGER: "سواری",
-  CARGO: "باری",
-  ELECTRIC: "برقی",
-  DISABLED: "معلولین",
 };
 
 function ManagerVehiclesPage() {
@@ -46,7 +39,9 @@ function ManagerVehiclesPage() {
 
   const usersMap = useMemo(() => {
     const map: Record<number, any> = {};
-    usersData?.results?.forEach((u) => { map[u.id] = u; });
+    usersData?.results?.forEach((u) => {
+      map[u.id] = u;
+    });
     return map;
   }, [usersData]);
 
@@ -73,30 +68,26 @@ function ManagerVehiclesPage() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Header - Simple */}
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          مدیریت خودروها
-        </h2>
-        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
-          {total} خودرو در سیستم
-        </p>
-      </div>
-
-      {/* Search */}
-      <div className="max-w-sm">
-        <Input
-          placeholder="جستجو بر اساس پلاک یا نام..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+    <div>
+      <PageHeader
+        title="مدیریت خودروها"
+        subtitle={`${total} خودرو در سیستم`}
+        toolbar={
+          <Input
+            placeholder="جستجو بر اساس پلاک یا نام..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        }
+      />
 
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
+            <div
+              key={i}
+              className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]"
+            />
           ))}
         </div>
       ) : !filtered.length ? (
@@ -124,7 +115,10 @@ function ManagerVehiclesPage() {
               {filtered.map((vehicle) => {
                 const owner = usersMap[vehicle.user];
                 return (
-                  <tr key={vehicle.id} className="hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50">
+                  <tr
+                    key={vehicle.id}
+                    className="hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-[12px] font-semibold text-white dark:bg-[#0a84ff]">
@@ -135,7 +129,10 @@ function ManagerVehiclesPage() {
                             {owner?.full_name || `کاربر #${vehicle.user}`}
                           </p>
                           {owner?.phone_number && (
-                            <p className="truncate text-[11px] text-gray-500" dir="ltr">
+                            <p
+                              className="truncate text-[11px] text-gray-500"
+                              dir="ltr"
+                            >
                               {owner.phone_number}
                             </p>
                           )}
@@ -143,13 +140,15 @@ function ManagerVehiclesPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-mono font-medium text-gray-900 dark:text-white" dir="ltr">
+                      <span
+                        className="font-mono font-medium text-gray-900 dark:text-white"
+                        dir="ltr"
+                      >
                         {vehicle.plate_number}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      <p>{typeLabels[vehicle.vehicle_type]}</p>
-                      <p className="text-[11px] text-gray-500">{subLabels[vehicle.sub_type]}</p>
+                      {typeLabels[vehicle.vehicle_type]}
                     </td>
                     <td className="px-4 py-3">
                       <span

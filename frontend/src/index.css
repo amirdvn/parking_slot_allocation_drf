@@ -17,7 +17,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Vazirmatn", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  --font-sans: "Vazirmatn", -apple-system, BlinkMacSystemFont, sans-serif;
 
   --color-primary-50: #eff6ff;
   --color-primary-100: #dbeafe;
@@ -44,19 +44,14 @@
 html.dark {
   --color-secondary-900: #f5f5f7;
   --color-secondary-800: #d1d1d6;
-
   --color-surface: #1c1c1e;
   --color-background: #000000;
-
   --color-text-primary: #f5f5f7;
   --color-text-secondary: #8e8e93;
-
   --color-border: #38383a;
-
   --color-success: #30d158;
   --color-warning: #ff9f0a;
   --color-danger: #ff453a;
-
   color-scheme: dark;
 }
 
@@ -78,6 +73,8 @@ html.dark {
 html {
   min-width: 320px;
   scroll-behavior: smooth;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -86,7 +83,7 @@ body {
   min-height: 100vh;
   background-color: var(--color-background);
   color: var(--color-text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 button, input, textarea, select {
@@ -125,14 +122,11 @@ html.dark ::-webkit-scrollbar-thumb {
   background: #aeaeb2;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
 
-.animate-fade-in { animation: fadeIn 0.2s ease-out; }
-.animate-scale-in { animation: scaleIn 0.15s ease-out; }
+.animate-scale-in {
+  animation: scaleIn 0.15s ease-out;
+}

@@ -6,9 +6,9 @@ import { toast } from "sonner";
 import { managerApi } from "../api";
 import type { ManagerParkingRequest } from "../../../types/manager";
 import Button from "../../../components/ui/Button";
-import Input from "../../../components/ui/Input";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import PageHeader from "../../../components/shared/PageHeader";
 
 const statusLabels: Record<string, string> = {
   PENDING: "در انتظار",
@@ -55,7 +55,7 @@ function ManagerRequestsPage() {
       setConfirmApprove(null);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || "خطا در بررسی درخواست");
+      toast.error(error.response?.data?.detail || "خطا");
     },
   });
 
@@ -72,43 +72,38 @@ function ManagerRequestsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          مدیریت درخواست‌ها
-        </h2>
-        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
-          {requests?.length || 0} درخواست
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        title="مدیریت درخواست‌ها"
+        subtitle={`${requests?.length || 0} درخواست`}
+        toolbar={
+          <div className="flex h-full gap-1 rounded-xl bg-gray-100 p-1 dark:bg-[#2c2c2e]">
+            <button
+              onClick={() => setActiveTab("needs_review")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-[13px] font-medium transition-colors ${
+                activeTab === "needs_review"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-[#1c1c1e] dark:text-white"
+                  : "text-gray-600 dark:text-gray-400"
+              }`}
+            >
+              <Clock size={14} />
+              نیازمند بررسی
+            </button>
+            <button
+              onClick={() => setActiveTab("approved")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-[13px] font-medium transition-colors ${
+                activeTab === "approved"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-[#1c1c1e] dark:text-white"
+                  : "text-gray-600 dark:text-gray-400"
+              }`}
+            >
+              <CheckCircle size={14} />
+              تایید شده‌ها
+            </button>
+          </div>
+        }
+      />
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-[#2c2c2e]">
-        <button
-          onClick={() => setActiveTab("needs_review")}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium transition-colors ${
-            activeTab === "needs_review"
-              ? "bg-white text-gray-900 shadow-sm dark:bg-[#1c1c1e] dark:text-white"
-              : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <Clock size={14} />
-          نیازمند بررسی
-        </button>
-        <button
-          onClick={() => setActiveTab("approved")}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium transition-colors ${
-            activeTab === "approved"
-              ? "bg-white text-gray-900 shadow-sm dark:bg-[#1c1c1e] dark:text-white"
-              : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <CheckCircle size={14} />
-          تایید شده‌ها
-        </button>
-      </div>
-
-      {/* Content */}
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -126,13 +121,8 @@ function ManagerRequestsPage() {
           <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
             {activeTab === "needs_review"
               ? "درخواستی نیازمند بررسی نیست"
-              : "هیچ درخواست تایید شده‌ای نیست"}
+              : "درخواست تایید شده‌ای نیست"}
           </h3>
-          <p className="mt-1 text-[13px] text-gray-500">
-            {activeTab === "needs_review"
-              ? "همه درخواست‌ها بررسی شده‌اند"
-              : "هنوز درخواستی تایید نشده"}
-          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -211,7 +201,6 @@ function ManagerRequestsPage() {
         </div>
       )}
 
-      {/* Reject Modal */}
       <Modal
         isOpen={!!rejectingRequest}
         onClose={() => setRejectingRequest(null)}
@@ -219,7 +208,7 @@ function ManagerRequestsPage() {
       >
         <div className="space-y-4">
           <p className="text-[13px] text-gray-500 dark:text-gray-400">
-            درخواست #{rejectingRequest?.id} رد خواهد شد. لطفاً دلیل را وارد کنید.
+            درخواست #{rejectingRequest?.id} رد خواهد شد. دلیل را وارد کنید.
           </p>
           <div>
             <label className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
@@ -253,7 +242,6 @@ function ManagerRequestsPage() {
         </div>
       </Modal>
 
-      {/* Approve Confirm */}
       <ConfirmDialog
         isOpen={!!confirmApprove}
         onClose={() => setConfirmApprove(null)}

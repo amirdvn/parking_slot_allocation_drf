@@ -13,6 +13,7 @@ import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import PageHeader from "../../../components/shared/PageHeader";
 
 const schema = z.object({
   plate_number: z.string().min(1, "پلاک الزامی است").max(10),
@@ -34,11 +35,16 @@ const subOpts = [
   { value: "DISABLED", label: "معلولین" },
 ];
 const colorOpts = [
-  { value: "BLACK", label: "مشکی" }, { value: "WHITE", label: "سفید" },
-  { value: "RED", label: "قرمز" }, { value: "BLUE", label: "آبی" },
-  { value: "GREEN", label: "سبز" }, { value: "YELLOW", label: "زرد" },
-  { value: "ORANGE", label: "نارنجی" }, { value: "PURPLE", label: "بنفش" },
-  { value: "BROWN", label: "قهوه‌ای" }, { value: "GRAY", label: "خاکستری" },
+  { value: "BLACK", label: "مشکی" },
+  { value: "WHITE", label: "سفید" },
+  { value: "RED", label: "قرمز" },
+  { value: "BLUE", label: "آبی" },
+  { value: "GREEN", label: "سبز" },
+  { value: "YELLOW", label: "زرد" },
+  { value: "ORANGE", label: "نارنجی" },
+  { value: "PURPLE", label: "بنفش" },
+  { value: "BROWN", label: "قهوه‌ای" },
+  { value: "GRAY", label: "خاکستری" },
 ];
 
 function VehiclesPage() {
@@ -58,22 +64,37 @@ function VehiclesPage() {
 
   const createMutation = useMutation({
     mutationFn: vehicleApi.createVehicle,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); toast.success("ثبت شد"); closeModal(); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      toast.success("ثبت شد");
+      closeModal();
+    },
     onError: (e: any) => toast.error(e.response?.data?.plate_number?.[0] || "خطا"),
   });
 
   const updateMutation = useMutation({
     mutationFn: (d: FormValues) => vehicleApi.updateVehicle(editing!.id, d),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); toast.success("ذخیره شد"); closeModal(); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      toast.success("ذخیره شد");
+      closeModal();
+    },
     onError: (e: any) => toast.error(e.response?.data?.plate_number?.[0] || "خطا"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: vehicleApi.deleteVehicle,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["vehicles"] }); toast.success("حذف شد"); setConfirmDelete(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      toast.success("حذف شد");
+      setConfirmDelete(null);
+    },
   });
 
-  const closeModal = () => { setIsModalOpen(false); setEditing(null); };
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditing(null);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -83,23 +104,26 @@ function VehiclesPage() {
 
   const openEdit = (v: Vehicle) => {
     setEditing(v);
-    reset({ plate_number: v.plate_number, vehicle_type: v.vehicle_type, sub_type: v.sub_type, color: v.color });
+    reset({
+      plate_number: v.plate_number,
+      vehicle_type: v.vehicle_type,
+      sub_type: v.sub_type,
+      color: v.color,
+    });
     setIsModalOpen(true);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">خودروهای من</h2>
-          <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
-            {vehicles?.length || 0} خودرو
-          </p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus size={16} /> خودرو جدید
-        </Button>
-      </div>
+    <div>
+      <PageHeader
+        title="خودروهای من"
+        subtitle={`${vehicles?.length || 0} خودرو`}
+        action={
+          <Button onClick={openCreate}>
+            <Plus size={16} /> خودرو جدید
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -115,7 +139,6 @@ function VehiclesPage() {
           <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
             هنوز خودرویی ثبت نکرده‌اید
           </h3>
-          <p className="mt-1 text-[13px] text-gray-500">اولین خودرو خود را ثبت کنید</p>
           <Button onClick={openCreate} className="mt-4">
             <Plus size={16} /> افزودن خودرو
           </Button>
@@ -133,11 +156,13 @@ function VehiclesPage() {
                     {typeOpts.find((o) => o.value === v.vehicle_type)?.label}
                   </p>
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                  v.is_active
-                    ? "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]"
-                    : "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500"
-                }`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    v.is_active
+                      ? "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]"
+                      : "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500"
+                  }`}
+                >
                   {v.is_active ? "فعال" : "غیرفعال"}
                 </span>
               </div>
@@ -160,8 +185,17 @@ function VehiclesPage() {
         </div>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={editing ? "ویرایش" : "خودرو جدید"}>
-        <form onSubmit={handleSubmit((d) => editing ? updateMutation.mutate(d) : createMutation.mutate(d))} className="space-y-3">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={editing ? "ویرایش" : "خودرو جدید"}
+      >
+        <form
+          onSubmit={handleSubmit((d) =>
+            editing ? updateMutation.mutate(d) : createMutation.mutate(d)
+          )}
+          className="space-y-3"
+        >
           <Input label="پلاک" dir="ltr" error={errors.plate_number?.message} {...register("plate_number")} />
           <Select label="نوع" options={typeOpts} error={errors.vehicle_type?.message} {...register("vehicle_type")} />
           <Select label="حالت" options={subOpts} error={errors.sub_type?.message} {...register("sub_type")} />
@@ -170,7 +204,9 @@ function VehiclesPage() {
             <Button type="submit" className="flex-1" disabled={createMutation.isPending || updateMutation.isPending}>
               {editing ? "ذخیره" : "ثبت"}
             </Button>
-            <Button type="button" variant="outline" onClick={closeModal} className="flex-1">انصراف</Button>
+            <Button type="button" variant="outline" onClick={closeModal} className="flex-1">
+              انصراف
+            </Button>
           </div>
         </form>
       </Modal>

@@ -15,6 +15,7 @@ import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import PageHeader from "../../../components/shared/PageHeader";
 
 const spaceSchema = z.object({
   zone: z.enum(["NORTH", "SOUTH", "WEST", "EAST"]),
@@ -67,7 +68,7 @@ const reasonOptions = [
   { value: "EVENT", label: "رویداد" },
   { value: "CLEANING", label: "نظافت" },
   { value: "VIP_RESERVE", label: "رزرو VIP" },
-  { value: "EQUIPMENT_FAILURE", label: "خرابی تجهیزات" },
+  { value: "EQUIPMENT_FAILURE", label: "خرابی" },
   { value: "OTHER", label: "سایر" },
 ];
 
@@ -159,7 +160,7 @@ function ManagerParkingPage() {
     mutationFn: parkingApi.deleteBlock,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["parking-blocks"] });
-      toast.success("انسداد حذف شد");
+      toast.success("حذف شد");
       setConfirmDeleteBlock(null);
     },
   });
@@ -198,55 +199,49 @@ function ManagerParkingPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header - Simple */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            مدیریت پارکینگ
-          </h2>
-          <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
-            {spaces?.length || 0} جایگاه · {spaces?.filter((s) => s.is_active).length || 0} فعال
-          </p>
-        </div>
-        {activeTab === "spaces" ? (
-          <Button onClick={openCreateModal}>
-            <Plus size={16} /> جایگاه جدید
-          </Button>
-        ) : (
-          <Button onClick={openBlockModal}>
-            <Plus size={16} /> انسداد جدید
-          </Button>
-        )}
-      </div>
+    <div>
+      <PageHeader
+        title="مدیریت پارکینگ"
+        subtitle={`${spaces?.length || 0} جایگاه · ${spaces?.filter((s) => s.is_active).length || 0} فعال`}
+        action={
+          activeTab === "spaces" ? (
+            <Button onClick={openCreateModal}>
+              <Plus size={16} /> جایگاه جدید
+            </Button>
+          ) : (
+            <Button onClick={openBlockModal}>
+              <Plus size={16} /> انسداد جدید
+            </Button>
+          )
+        }
+        toolbar={
+          <div className="flex h-full gap-1 rounded-xl bg-gray-100 p-1 dark:bg-[#2c2c2e]">
+            <button
+              onClick={() => setActiveTab("spaces")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-[13px] font-medium transition-colors ${
+                activeTab === "spaces"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-[#1c1c1e] dark:text-white"
+                  : "text-gray-600 dark:text-gray-400"
+              }`}
+            >
+              <ParkingSquare size={14} />
+              جایگاه‌ها
+            </button>
+            <button
+              onClick={() => setActiveTab("blocks")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-[13px] font-medium transition-colors ${
+                activeTab === "blocks"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-[#1c1c1e] dark:text-white"
+                  : "text-gray-600 dark:text-gray-400"
+              }`}
+            >
+              <Ban size={14} />
+              انسدادها
+            </button>
+          </div>
+        }
+      />
 
-      {/* Tabs - iOS style */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-[#2c2c2e]">
-        <button
-          onClick={() => setActiveTab("spaces")}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium transition-colors ${
-            activeTab === "spaces"
-              ? "bg-white text-gray-900 shadow-sm dark:bg-[#1c1c1e] dark:text-white"
-              : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <ParkingSquare size={14} />
-          جایگاه‌ها
-        </button>
-        <button
-          onClick={() => setActiveTab("blocks")}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium transition-colors ${
-            activeTab === "blocks"
-              ? "bg-white text-gray-900 shadow-sm dark:bg-[#1c1c1e] dark:text-white"
-              : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <Ban size={14} />
-          انسدادها
-        </button>
-      </div>
-
-      {/* Content */}
       {activeTab === "spaces" ? (
         isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -260,9 +255,8 @@ function ManagerParkingPage() {
               <ParkingSquare size={28} />
             </div>
             <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
-              هیچ جایگاهی ثبت نشده
+              جایگاهی ثبت نشده
             </h3>
-            <p className="mt-1 text-[13px] text-gray-500">اولین جایگاه را ایجاد کنید</p>
             <Button onClick={openCreateModal} className="mt-4">
               <Plus size={16} /> ایجاد جایگاه
             </Button>
@@ -278,21 +272,16 @@ function ManagerParkingPage() {
               );
 
               return (
-                <div
-                  key={space.id}
-                  className="rounded-2xl bg-surface p-4 shadow-sm transition-shadow hover:shadow-md"
-                >
+                <div key={space.id} className="rounded-2xl bg-surface p-4 shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between">
                     <p className="font-mono text-[14px] font-semibold text-gray-900 dark:text-white" dir="ltr">
                       {space.code}
                     </p>
-                    <div className="flex items-center gap-1">
-                      {space.is_active ? (
-                        <Unlock size={12} className="text-[#34c759] dark:text-[#30d158]" />
-                      ) : (
-                        <Lock size={12} className="text-gray-400" />
-                      )}
-                    </div>
+                    {space.is_active ? (
+                      <Unlock size={12} className="text-[#34c759] dark:text-[#30d158]" />
+                    ) : (
+                      <Lock size={12} className="text-gray-400" />
+                    )}
                   </div>
                   <p className="mt-1 text-[11px] text-gray-500">
                     {zoneOptions.find((z) => z.value === space.zone)?.label} · {floorOptions.find((f) => f.value === space.floor)?.label}
@@ -306,31 +295,23 @@ function ManagerParkingPage() {
                         مسدود
                       </span>
                     )}
-                    {space.requires_permission && (
-                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-[#ff9500] dark:bg-[#ff9f0a]/10 dark:text-[#ff9f0a]">
-                        نیاز به مجوز
-                      </span>
-                    )}
                   </div>
                   <div className="mt-3 flex gap-1">
                     <button
                       onClick={() => setConfirmToggle(space)}
                       className="flex flex-1 items-center justify-center rounded-lg bg-gray-50 py-1.5 text-gray-600 transition-colors hover:bg-gray-100 dark:bg-[#2c2c2e] dark:text-gray-400 dark:hover:bg-[#3a3a3c]"
-                      title="تغییر وضعیت"
                     >
                       <Power size={13} />
                     </button>
                     <button
                       onClick={() => openEditModal(space)}
                       className="flex flex-1 items-center justify-center rounded-lg bg-gray-50 py-1.5 text-gray-600 transition-colors hover:bg-gray-100 dark:bg-[#2c2c2e] dark:text-gray-400 dark:hover:bg-[#3a3a3c]"
-                      title="ویرایش"
                     >
                       <Edit size={13} />
                     </button>
                     <button
                       onClick={() => setConfirmDelete(space)}
                       className="flex flex-1 items-center justify-center rounded-lg bg-gray-50 py-1.5 text-[#ff3b30] transition-colors hover:bg-red-50 dark:bg-[#2c2c2e] dark:hover:bg-[#ff453a]/10"
-                      title="حذف"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -352,9 +333,8 @@ function ManagerParkingPage() {
             <Ban size={28} />
           </div>
           <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
-            هیچ انسدادی ثبت نشده
+            انسدادی ثبت نشده
           </h3>
-          <p className="mt-1 text-[13px] text-gray-500">جایگاه‌ها را برای مدت مشخصی مسدود کنید</p>
           <Button onClick={openBlockModal} className="mt-4">
             <Plus size={16} /> ایجاد انسداد
           </Button>
@@ -409,7 +389,6 @@ function ManagerParkingPage() {
         </div>
       )}
 
-      {/* Space Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
@@ -425,7 +404,6 @@ function ManagerParkingPage() {
           <Select label="طبقه" options={floorOptions} error={spaceForm.formState.errors.floor?.message} {...spaceForm.register("floor")} />
           <Select label="نوع" options={typeOptions} error={spaceForm.formState.errors.space_type?.message} {...spaceForm.register("space_type")} />
           <Input label="توضیحات (اختیاری)" {...spaceForm.register("description")} />
-
           <div className="flex gap-2 pt-2">
             <Button type="submit" className="flex-1" disabled={createMutation.isPending || updateMutation.isPending}>
               {editingSpace ? "ذخیره" : "ثبت"}
@@ -437,7 +415,6 @@ function ManagerParkingPage() {
         </form>
       </Modal>
 
-      {/* Block Modal */}
       <Modal
         isOpen={isBlockModalOpen}
         onClose={() => setIsBlockModalOpen(false)}
@@ -460,21 +437,10 @@ function ManagerParkingPage() {
             {...blockForm.register("reason")}
           />
           <div className="grid grid-cols-2 gap-2">
-            <Input
-              type="datetime-local"
-              label="از"
-              error={blockForm.formState.errors.start_time?.message}
-              {...blockForm.register("start_time")}
-            />
-            <Input
-              type="datetime-local"
-              label="تا"
-              error={blockForm.formState.errors.end_time?.message}
-              {...blockForm.register("end_time")}
-            />
+            <Input type="datetime-local" label="از" error={blockForm.formState.errors.start_time?.message} {...blockForm.register("start_time")} />
+            <Input type="datetime-local" label="تا" error={blockForm.formState.errors.end_time?.message} {...blockForm.register("end_time")} />
           </div>
           <Input label="توضیحات (اختیاری)" {...blockForm.register("description")} />
-
           <div className="flex gap-2 pt-2">
             <Button type="submit" className="flex-1" disabled={createBlockMutation.isPending}>
               {createBlockMutation.isPending ? "..." : "ثبت"}
