@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/shared/Sidebar";
 import Header from "../components/shared/Header";
+import NavFrame from "../components/shared/NavFrame";
 
 const pageTitles: Record<string, string> = {
   "/": "داشبورد",
@@ -27,19 +28,21 @@ function DashboardLayout() {
   const currentTitle = pageTitles[location.pathname] || "پنل مدیریت";
 
   return (
-    <div dir="rtl" className="flex min-h-screen bg-background">
-      {/* Sidebar - ثابت */}
+    <div dir="rtl" className="flex h-screen overflow-hidden bg-background">
+      <NavFrame />
+
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Header - ثابت */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header title={currentTitle} onMenuClick={() => setIsSidebarOpen(true)} />
 
-        {/* Main - فقط محتوا انیمیشن داره */}
-        <main className="flex-1 overflow-hidden">
+        {/* 👇 main فقط padding داره، رنگ پس‌زمینه از والد ارث می‌بره */}
+        <main className="flex-1 overflow-hidden p-3 sm:p-4 lg:p-5">
+          {/* 👇 Wrapper حالا bg-background هست (شفاف روی والد) - کارت‌ها جدا دیده می‌شن */}
           <div
             key={location.pathname}
-            className="h-full animate-page-enter overflow-y-auto"
+            data-nav-content
+            className="h-full animate-page-enter overflow-y-auto rounded-2xl bg-background"
           >
             <div className="p-4 sm:p-6 lg:p-8">
               <Outlet />
