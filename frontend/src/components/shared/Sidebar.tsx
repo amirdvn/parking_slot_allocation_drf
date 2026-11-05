@@ -61,7 +61,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
           onClick={onClose}
         />
       )}
@@ -72,14 +72,18 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
+        {/* لوگو */}
         <div className="flex h-20 items-center justify-between border-b border-border px-6">
-          <div>
-            <h1 className="text-lg font-bold text-secondary-900">
-              پارکینگ هوشمند
-            </h1>
-            <p className="mt-1 text-xs text-text-secondary">
-              سیستم مدیریت پارکینگ
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 p-2.5 shadow-lg shadow-primary-600/30">
+              <ParkingSquare size={22} className="text-white" />
+            </div>
+            <div>
+              <h1 className="bg-gradient-to-l from-primary-600 to-primary-400 bg-clip-text text-lg font-bold text-transparent">
+                پارکینگ هوشمند
+              </h1>
+              <p className="text-xs text-text-secondary">سیستم مدیریت پارکینگ</p>
+            </div>
           </div>
 
           <button
@@ -92,8 +96,9 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
+        {/* منوها */}
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-          <p className="mb-3 px-3 text-xs font-semibold text-text-secondary">
+          <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">
             منوی اصلی
           </p>
 
@@ -105,43 +110,60 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
                 to={item.path}
                 onClick={onClose}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${
+                  `group relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-primary-50 text-primary-700"
+                      ? "bg-gradient-to-l from-primary-500/10 to-primary-600/5 text-primary-700 shadow-sm ring-1 ring-primary-500/20 dark:from-primary-500/20 dark:to-primary-600/10 dark:text-primary-400"
                       : "text-text-secondary hover:bg-background hover:text-secondary-900"
                   }`
                 }
               >
-                <Icon size={20} />
-                <span>{item.title}</span>
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <span className="absolute right-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-l-full bg-primary-600" />
+                    )}
+                    <Icon
+                      size={20}
+                      className={isActive ? "text-primary-600" : "group-hover:scale-110 transition-transform"}
+                    />
+                    <span>{item.title}</span>
+                  </>
+                )}
               </NavLink>
             );
           })}
         </nav>
 
+        {/* پایین */}
         <div className="space-y-1 border-t border-border p-4">
-          {/* 👇 تنظیمات حساب حالا NavLink هست */}
           <NavLink
             to="/settings"
             onClick={onClose}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors ${
+              `group relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all ${
                 isActive
-                  ? "bg-primary-50 text-primary-700"
+                  ? "bg-gradient-to-l from-primary-500/10 to-primary-600/5 text-primary-700 ring-1 ring-primary-500/20 dark:text-primary-400"
                   : "text-text-secondary hover:bg-background hover:text-secondary-900"
               }`
             }
           >
-            <Settings size={20} />
-            تنظیمات حساب
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <span className="absolute right-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-l-full bg-primary-600" />
+                )}
+                <Settings size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                <span>تنظیمات حساب</span>
+              </>
+            )}
           </NavLink>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/20"
+            className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-danger transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
           >
-            <LogOut size={20} />
+            <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
             خروج از حساب
           </button>
         </div>

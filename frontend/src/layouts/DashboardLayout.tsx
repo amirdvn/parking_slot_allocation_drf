@@ -16,6 +16,7 @@ const pageTitles: Record<string, string> = {
   "/users": "مدیریت کاربران",
   "/reports": "گزارش‌ها",
   "/notifications": "اعلان‌ها",
+  "/settings": "تنظیمات حساب", // 👈 اضافه شد
 };
 
 function DashboardLayout() {
@@ -38,7 +39,11 @@ function DashboardLayout() {
           onMenuClick={() => setIsSidebarOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        {/* 👇 animate-fade-in اضافه شد - با کلید یکتا برای هر مسیر */}
+        <main
+          key={location.pathname}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 animate-fade-in"
+        >
           <Outlet />
         </main>
       </div>
