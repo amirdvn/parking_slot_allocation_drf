@@ -1,6 +1,13 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { api } from '../../lib/api';
-import type { UserProfile, AuthTokens } from '../../types/auth';
+// src/features/auth/AuthContext.tsx
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+import { api } from "../../lib/api";
+import type { UserProfile, AuthTokens } from "../../types/auth";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -8,6 +15,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (tokens: AuthTokens) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,20 +24,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // در زمان لود اولیه، چک می‌کنیم ببینیم کاربر توکن داره یا نه
   useEffect(() => {
     const initAuth = async () => {
-      const accessToken = localStorage.getItem('access_token');
+      const accessToken = localStorage.getItem("access_token");
 
       if (accessToken) {
         try {
-          // گرفتن پروفایل کاربر با توکنی که داریم
-          const response = await api.get<UserProfile>('/api/profile/me/');
+          const response = await api.get<UserProfile>("/api/profile/me/");
           setUser(response.data);
         } catch (error) {
           console.error("Failed to fetch user profile", error);
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
         }
       }
 
@@ -40,30 +46,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (tokens: AuthTokens) => {
-    localStorage.setItem('access_token', tokens.access);
-    localStorage.setItem('refresh_token', tokens.refresh);
-
-    // بعد از گرفتن توکن، پروفایل رو می‌گیریم
-    const response = await api.get<UserProfile>('/api/profile/me/');
+    localStorage.setItem("access_token", tokens.access);
+    localStorage.setItem("refresh_token", tokens.refresh);
+    const response = await api.get<UserProfile>("/api/profile/me/");
     setUser(response.data);
   };
 
   const logout = async () => {
-    const refresh = localStorage.getItem('refresh_token');
+    const refresh = localStorage.getItem("refresh_token");
 
     if (refresh) {
       try {
-        // باطل کردن توکن در بک‌اند
-        await api.post('/api/auth/logout/', { refresh });
+        await api.post("/api/auth/logout/", { refresh });
       } catch (error) {
         console.error("Logout failed in backend", error);
       }
     }
 
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     setUser(null);
-    window.location.href = '/login'; // هدایت به صفحه ورود
+    window.location.href = "/login";
+  };
+
+  const refreshUser = async () => {
+    try {
+      const response = await api.get<UserProfile>("/api/profile/me/");
+      setUser(response.data);
+    } catch (error) {
+      console.error("Failed to refresh user", error);
+    }
   };
 
   return (
@@ -74,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
+        refreshUser,
       }}
     >
       {children}
@@ -81,10 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// ✅ این خط حیاتی است - مطمئن شو وجود داره
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

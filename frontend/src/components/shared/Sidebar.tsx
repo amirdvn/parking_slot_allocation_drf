@@ -14,19 +14,18 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
+import { toast } from "sonner";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// منوهای مشترک برای همه
 const commonItems = [
   { title: "داشبورد", path: "/", icon: LayoutDashboard },
   { title: "اعلان‌ها", path: "/notifications", icon: Bell },
 ];
 
-// منوهای اختصاصی هر نقش
 const roleBasedItems = {
   USER: [
     { title: "خودروهای من", path: "/vehicles", icon: Car },
@@ -38,7 +37,7 @@ const roleBasedItems = {
   ],
   MANAGER: [
     { title: "مدیریت پارکینگ", path: "/parking", icon: ParkingSquare },
-    { title: "مدیریت درخواست‌ها", path: "/manage-requests", icon: ClipboardList }, // 👈 دقت کن این مسیر
+    { title: "مدیریت درخواست‌ها", path: "/manage-requests", icon: ClipboardList },
     { title: "مدیریت کاربران", path: "/users", icon: Users },
     { title: "مدیریت خودروها", path: "/vehicles", icon: Car },
     { title: "گزارش‌ها", path: "/reports", icon: FileBarChart },
@@ -50,8 +49,13 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const navigationItems = [
     ...commonItems,
-    ...(user ? roleBasedItems[user.role] : []),
+    ...(user ? roleBasedItems[user.role as keyof typeof roleBasedItems] || [] : []),
   ];
+
+  const handleLogout = () => {
+    toast.success("با موفقیت خارج شدید");
+    setTimeout(() => logout(), 500);
+  };
 
   return (
     <>
@@ -116,18 +120,26 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="space-y-1 border-t border-border p-4">
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-text-secondary hover:bg-background"
+          {/* 👇 تنظیمات حساب حالا NavLink هست */}
+          <NavLink
+            to="/settings"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors ${
+                isActive
+                  ? "bg-primary-50 text-primary-700"
+                  : "text-text-secondary hover:bg-background hover:text-secondary-900"
+              }`
+            }
           >
             <Settings size={20} />
             تنظیمات حساب
-          </button>
+          </NavLink>
 
           <button
             type="button"
-            onClick={logout}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-danger hover:bg-red-50"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/20"
           >
             <LogOut size={20} />
             خروج از حساب

@@ -15,7 +15,7 @@ import ManagerParkingPage from "../features/manager/pages/ManagerParkingPage";
 import ManagerUsersPage from "../features/manager/pages/ManagerUsersPage";
 import ManagerReportsPage from "../features/manager/pages/ManagerReportsPage";
 import NotificationsPage from "../features/notifications/pages/NotificationsPage";
-
+import SettingsPage from "../features/profile/pages/SettingsPage";
 function NotFoundPage() {
   return (
     <main className="flex min-h-screen items-center justify-center">
@@ -48,6 +48,7 @@ export const router = createBrowserRouter([
           { path: "users", element: <ManagerUsersPage /> },
           { path: "reports", element: <ManagerReportsPage /> },
           { path: "notifications", element: <NotificationsPage /> },
+          { path: "settings", element: <SettingsPage /> },
         ],
       },
     ],
