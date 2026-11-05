@@ -30,8 +30,8 @@ function DashboardLayout() {
 
   return (
     <div dir="rtl" className="flex h-screen overflow-hidden bg-background">
-      {/* نخ و قاب فقط برای صفحات غیر از تنظیمات */}
-      {location.pathname !== "/settings" && <NavFrame />}
+      {/* 👇 NavFrame بدون هیچ شرطی برای کل سایت فعال شد */}
+      <NavFrame />
 
       {/* سایدبار */}
       <Sidebar

@@ -1,44 +1,33 @@
-
-import { useEffect, useState, useCallback, useRef } from "react";
+// src/components/shared/NavFrame.tsx
+import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
-interface FrameData {
-  iconX: number;
-  iconY: number;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-}
-
 function NavFrame() {
-  const [frame, setFrame] = useState<FrameData | null>(null);
-  const [isDesktop, setIsDesktop] = useState(
-    () => window.innerWidth >= 1024
-  );
+  const [frame, setFrame] = useState<{
+    iconX: number;
+    iconY: number;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  } | null>(null);
 
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
   const { pathname } = useLocation();
-
-  const animationRef = useRef<number | null>(null);
-  const frameRef = useRef<FrameData | null>(null);
 
   const computeFrame = useCallback(() => {
     if (window.innerWidth < 1024) {
-      frameRef.current = null;
       setFrame(null);
       return;
     }
 
+    // پیدا کردن آیکون فعال و کادر محتوا
     const icon = document.querySelector(
       '[data-active-nav="true"] [data-icon="true"]'
     ) as HTMLElement | null;
-
-    const content = document.querySelector(
-      "[data-nav-content]"
-    ) as HTMLElement | null;
+    const content = document.querySelector("[data-nav-content]") as HTMLElement | null;
 
     if (!icon || !content) {
-      frameRef.current = null;
       setFrame(null);
       return;
     }
@@ -46,176 +35,63 @@ function NavFrame() {
     const ir = icon.getBoundingClientRect();
     const cr = content.getBoundingClientRect();
 
-    if (
-      ir.width === 0 ||
-      ir.height === 0 ||
-      cr.width === 0 ||
-      cr.height === 0
-    ) {
+    if (ir.width === 0 || ir.height === 0 || cr.width === 0 || cr.height === 0) {
       return;
     }
 
-    const nextFrame: FrameData = {
+    setFrame({
       iconX: ir.left + ir.width / 2,
       iconY: ir.top + ir.height / 2,
-
       x1: cr.left,
       y1: cr.top,
-
       x2: cr.right,
       y2: cr.bottom,
-    };
-
-    const previous = frameRef.current;
-
-    // جلوگیری از رندرهای غیرضروری
-    if (
-      previous &&
-      Math.abs(previous.iconX - nextFrame.iconX) < 0.2 &&
-      Math.abs(previous.iconY - nextFrame.iconY) < 0.2 &&
-      Math.abs(previous.x1 - nextFrame.x1) < 0.2 &&
-      Math.abs(previous.y1 - nextFrame.y1) < 0.2 &&
-      Math.abs(previous.x2 - nextFrame.x2) < 0.2 &&
-      Math.abs(previous.y2 - nextFrame.y2) < 0.2
-    ) {
-      return;
-    }
-
-    frameRef.current = nextFrame;
-    setFrame(nextFrame);
+    });
   }, []);
 
-  // زمان‌بندی محاسبه برای جلوگیری از چند رندر در یک فریم
-  const scheduleCompute = useCallback(() => {
-    if (animationRef.current !== null) {
-      return;
-    }
-
-    animationRef.current = requestAnimationFrame(() => {
-      animationRef.current = null;
-      computeFrame();
-    });
-  }, [computeFrame]);
-
-  // تشخیص اندازه صفحه
   useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-      scheduleCompute();
-    };
-
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
     window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [scheduleCompute]);
-
-  // مشاهده تغییر اندازه عناصر
-  useEffect(() => {
-    if (!isDesktop) {
-      frameRef.current = null;
-      setFrame(null);
-      return;
-    }
-
-    const content = document.querySelector(
-      "[data-nav-content]"
-    ) as HTMLElement | null;
-
-    const sidebar = document.querySelector(
-      "[data-sidebar]"
-    ) as HTMLElement | null;
-
-    const icon = document.querySelector(
-      '[data-active-nav="true"] [data-icon="true"]'
-    ) as HTMLElement | null;
-
-    if (!content || !icon) {
-      scheduleCompute();
-      return;
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      scheduleCompute();
-    });
-
-    resizeObserver.observe(content);
-
-    if (sidebar) {
-      resizeObserver.observe(sidebar);
-    }
-
-    resizeObserver.observe(icon);
-
-    // تغییر موقعیت هنگام اسکرول
-    window.addEventListener("scroll", scheduleCompute, true);
-
-    // تغییر مسیر یا تغییرات DOM
-    const mutationObserver = new MutationObserver(() => {
-      scheduleCompute();
-    });
-
-    mutationObserver.observe(document.body, {
-      attributes: true,
-      childList: true,
-      subtree: true,
-      attributeFilter: [
-        "class",
-        "style",
-        "data-active-nav",
-      ],
-    });
-
-    scheduleCompute();
-
-    return () => {
-      resizeObserver.disconnect();
-      mutationObserver.disconnect();
-
-      window.removeEventListener("scroll", scheduleCompute, true);
-    };
-  }, [isDesktop, pathname, scheduleCompute]);
-
-  // پاکسازی RAF
-  useEffect(() => {
-    return () => {
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  if (!isDesktop || !frame) {
-    return null;
-  }
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    let raf: number;
+    // هر بار که اندازه کارت یا سایدبار عوض شد، نخ رو دوباره محاسبه کن
+    const observer = new ResizeObserver(() => {
+      raf = requestAnimationFrame(computeFrame);
+    });
+
+    const content = document.querySelector("[data-nav-content]");
+    const icon = document.querySelector('[data-active-nav="true"] [data-icon="true"]');
+    const sidebar = document.querySelector("[data-sidebar]");
+
+    if (content) observer.observe(content);
+    if (icon) observer.observe(icon);
+    if (sidebar) observer.observe(sidebar);
+
+    // محاسبه اولیه
+    computeFrame();
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [isDesktop, pathname, computeFrame]);
+
+  if (!isDesktop || !frame) return null;
 
   const { iconX, iconY, x1, y1, x2, y2 } = frame;
+  const r = 16;
+  const w = x2 - x1;
+  const h = y2 - y1;
+  const perimeter = 2 * (w + h) + 40;
 
-  // شعاع گوشه‌ها متناسب با اندازه قاب
-  const r = Math.min(
-    20,
-    Math.max(8, (x2 - x1) / 30),
-    Math.max(8, (y2 - y1) / 30)
-  );
-
-  const width = x2 - x1;
-  const height = y2 - y1;
-
-  if (width <= r * 2 || height <= r * 2) {
-    return null;
-  }
-
-  // نقطه اتصال نخ به قاب
-  const entryY = Math.max(
-    y1 + r + 4,
-    Math.min(y2 - r - 4, iconY)
-  );
-
-  const connectorLen = Math.hypot(
-    iconX - x2,
-    iconY - entryY
-  );
+  // نقطه اتصال نخ به لبه راست کادر
+  const entryY = Math.max(y1 + r + 4, Math.min(y2 - r - 4, iconY));
+  const connectorLen = Math.hypot(iconX - x2, iconY - entryY);
 
   // مسیر قاب
   const framePath = `
@@ -233,20 +109,10 @@ function NavFrame() {
 
   return (
     <svg
-      aria-hidden="true"
-      className="
-        pointer-events-none
-        fixed inset-0
-        z-[35]
-        h-screen w-screen
-        overflow-visible
-      "
-      width="100%"
-      height="100%"
-      viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}
-      preserveAspectRatio="none"
+      key={pathname}
+      className="pointer-events-none fixed inset-0 z-40 h-full w-full"
     >
-      {/* نخ اتصال آیکون به قاب */}
+      {/* 👇 نخ اتصال */}
       <line
         x1={iconX}
         y1={iconY}
@@ -256,9 +122,13 @@ function NavFrame() {
         strokeWidth="1.5"
         strokeLinecap="round"
         className="text-gray-400 dark:text-gray-600"
+        style={{
+          strokeDasharray: connectorLen,
+          strokeDashoffset: connectorLen,
+          animation: "navframe-line 0.3s ease-out forwards",
+        }}
       />
-
-      {/* قاب دور محتوای اصلی */}
+      {/* 👇 قاب */}
       <path
         d={framePath}
         fill="none"
@@ -267,7 +137,16 @@ function NavFrame() {
         strokeLinecap="round"
         strokeLinejoin="round"
         className="text-gray-400 dark:text-gray-600"
+        style={{
+          strokeDasharray: perimeter,
+          strokeDashoffset: perimeter,
+          animation: "navframe-draw 0.7s ease-out 0.3s forwards",
+        }}
       />
+      <style>{`
+        @keyframes navframe-line { to { stroke-dashoffset: 0; } }
+        @keyframes navframe-draw { to { stroke-dashoffset: 0; } }
+      `}</style>
     </svg>
   );
 }
