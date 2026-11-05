@@ -4,7 +4,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, XCircle, ClipboardList } from "lucide-react";
+import {
+  Plus,
+  XCircle,
+  ClipboardList,
+  Car,
+  MapPin,
+  Calendar,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { parkingApi } from "../api";
 import { vehicleApi } from "../../vehicles/api";
@@ -14,23 +24,64 @@ import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
-import TableToolbar from "../../../components/ui/TableToolbar";
 import EmptyState from "../../../components/ui/EmptyState";
-import { TableSkeleton } from "../../../components/ui/Skeleton";
+import { Skeleton } from "../../../components/ui/Skeleton";
 
-// --- تنظیمات وضعیت‌ها ---
-const statusMap: Record<RequestStatus, { label: string; color: string }> = {
-  PENDING: { label: "در انتظار بررسی", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
-  APPROVED: { label: "تایید شده", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-  REJECTED: { label: "رد شده", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-  CANCELED: { label: "لغو شده", color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400" },
-  EXPIRED: { label: "منقضی شده", color: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500" },
-  IN_USE: { label: "در حال استفاده", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  COMPLETED: { label: "تکمیل شده", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-  NEEDS_REVIEW: { label: "نیازمند بررسی", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+// --- تنظیمات وضعیت ---
+const statusConfig: Record<
+  RequestStatus,
+  { label: string; color: string; gradient: string; icon: React.ReactNode }
+> = {
+  PENDING: {
+    label: "در انتظار",
+    color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    gradient: "from-yellow-400 to-amber-500",
+    icon: <Clock size={14} />,
+  },
+  APPROVED: {
+    label: "تایید شده",
+    color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    gradient: "from-emerald-400 to-green-500",
+    icon: <CheckCircle size={14} />,
+  },
+  REJECTED: {
+    label: "رد شده",
+    color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    gradient: "from-red-400 to-rose-500",
+    icon: <XCircle size={14} />,
+  },
+  CANCELED: {
+    label: "لغو شده",
+    color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+    gradient: "from-gray-400 to-gray-500",
+    icon: <XCircle size={14} />,
+  },
+  EXPIRED: {
+    label: "منقضی",
+    color: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500",
+    gradient: "from-gray-300 to-gray-400",
+    icon: <Clock size={14} />,
+  },
+  IN_USE: {
+    label: "در حال استفاده",
+    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    gradient: "from-blue-400 to-indigo-500",
+    icon: <Car size={14} />,
+  },
+  COMPLETED: {
+    label: "تکمیل شده",
+    color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
+    gradient: "from-teal-400 to-cyan-500",
+    icon: <CheckCircle size={14} />,
+  },
+  NEEDS_REVIEW: {
+    label: "نیازمند بررسی",
+    color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    gradient: "from-orange-400 to-amber-500",
+    icon: <AlertCircle size={14} />,
+  },
 };
 
-// --- فیلتر وضعیت ---
 const statusFilterOptions = [
   { value: "", label: "همه وضعیت‌ها" },
   { value: "PENDING", label: "در انتظار بررسی" },
@@ -41,7 +92,6 @@ const statusFilterOptions = [
   { value: "COMPLETED", label: "تکمیل شده" },
 ];
 
-// --- اسکیمای فرم ثبت درخواست ---
 const requestSchema = z
   .object({
     vehicle: z.string().min(1, "انتخاب خودرو الزامی است"),
@@ -64,8 +114,6 @@ function RequestsPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-
-  // 👇 stateهای جستجو و فیلتر
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
@@ -84,7 +132,6 @@ function RequestsPage() {
     queryFn: parkingApi.getSpaces,
   });
 
-  // 👇 فیلتر کردن داده‌ها
   const filteredRequests = useMemo(() => {
     if (!requests) return [];
     return requests.filter((req) => {
@@ -103,12 +150,7 @@ function RequestsPage() {
     });
   }, [requests, vehicles, spaces, searchQuery, statusFilter]);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<RequestFormValues>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<RequestFormValues>({
     resolver: zodResolver(requestSchema),
   });
 
@@ -162,40 +204,100 @@ function RequestsPage() {
     createMutation.mutate(data);
   };
 
+  const stats = useMemo(() => {
+    if (!requests) return { total: 0, pending: 0, approved: 0 };
+    return {
+      total: requests.length,
+      pending: requests.filter((r) => r.status === "PENDING").length,
+      approved: requests.filter((r) => r.status === "APPROVED").length,
+    };
+  }, [requests]);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-secondary-900">درخواست‌های من</h1>
-        <Button
-          onClick={() => {
-            setIsCreateOpen(true);
-            setServerError(null);
-            reset();
+      {/* 👇 Hero Card */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-emerald-600 via-teal-700 to-primary-800 p-6 text-white shadow-xl sm:p-8">
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
           }}
-          className="gap-2"
-        >
-          <Plus size={18} /> ثبت درخواست جدید
-        </Button>
+        />
+        <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm ring-1 ring-white/20">
+              <ClipboardList size={28} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">درخواست‌های من</h1>
+              <p className="mt-1 text-sm text-white/70">
+                مدیریت و پیگیری درخواست‌های پارکینگ
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => {
+              setIsCreateOpen(true);
+              setServerError(null);
+              reset();
+            }}
+            className="bg-white text-emerald-700 shadow-lg hover:bg-white/90"
+          >
+            <Plus size={18} /> ثبت درخواست جدید
+          </Button>
+        </div>
+
+        {/* Mini Stats */}
+        <div className="relative mt-4 grid grid-cols-3 gap-3">
+          <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm ring-1 ring-white/20">
+            <p className="text-[10px] text-white/70">کل</p>
+            <p className="text-lg font-bold">{stats.total}</p>
+          </div>
+          <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm ring-1 ring-white/20">
+            <p className="text-[10px] text-white/70">در انتظار</p>
+            <p className="text-lg font-bold text-yellow-300">{stats.pending}</p>
+          </div>
+          <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm ring-1 ring-white/20">
+            <p className="text-[10px] text-white/70">تایید شده</p>
+            <p className="text-lg font-bold text-green-300">{stats.approved}</p>
+          </div>
+        </div>
       </div>
 
-      {/* 👇 نوار ابزار جستجو و فیلتر */}
-      <TableToolbar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="جستجو بر اساس شناسه، پلاک یا کد جایگاه..."
-        filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
-        filterOptions={statusFilterOptions}
-        filterLabel="فیلتر وضعیت"
-        resultCount={filteredRequests.length}
-        totalCount={requests?.length}
-      />
+      {/* 👇 Toolbar */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Input
+          placeholder="جستجو بر اساس شناسه، پلاک یا کد جایگاه..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+        >
+          {statusFilterOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      {/* 👇 جدول با Skeleton و EmptyState */}
+      {/* 👇 Content */}
       {isLoadingRequests ? (
-        <TableSkeleton rows={5} cols={6} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-2xl" />
+          ))}
+        </div>
       ) : filteredRequests.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface">
+        <div className="rounded-2xl border border-border bg-surface">
           <EmptyState
             icon={<ClipboardList size={48} />}
             title={
@@ -205,7 +307,7 @@ function RequestsPage() {
             }
             description={
               searchQuery || statusFilter
-                ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد. فیلترها را پاک کنید."
+                ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد."
                 : "اولین درخواست پارکینگ خود را ثبت کنید."
             }
             action={
@@ -225,7 +327,6 @@ function RequestsPage() {
                     setIsCreateOpen(true);
                     reset();
                   }}
-                  className="gap-2"
                 >
                   <Plus size={18} /> ثبت درخواست جدید
                 </Button>
@@ -234,61 +335,100 @@ function RequestsPage() {
           />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full text-right text-sm">
-            <thead className="bg-background text-text-secondary">
-              <tr>
-                <th className="px-4 py-3 font-medium">شناسه</th>
-                <th className="px-4 py-3 font-medium">خودرو</th>
-                <th className="px-4 py-3 font-medium">جایگاه</th>
-                <th className="px-4 py-3 font-medium">زمان شروع</th>
-                <th className="px-4 py-3 font-medium">وضعیت</th>
-                <th className="px-4 py-3 font-medium">عملیات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredRequests.map((req) => (
-                <tr key={req.id} className="hover:bg-background/50">
-                  <td className="px-4 py-3 font-mono">#{req.id}</td>
-                  <td className="px-4 py-3">
-                    {vehicles?.find((v) => v.id === req.vehicle)?.plate_number || req.vehicle}
-                  </td>
-                  <td className="px-4 py-3">
-                    {spaces?.find((s) => s.id === req.parking_space)?.code || req.parking_space}
-                  </td>
-                  <td className="px-4 py-3 text-xs" dir="ltr">
-                    {new Date(req.start_time).toLocaleString("fa-IR")}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs ${
-                        statusMap[req.status]?.color || "bg-gray-100"
-                      }`}
-                    >
-                      {statusMap[req.status]?.label || req.status}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {filteredRequests.map((req) => {
+            const config = statusConfig[req.status];
+            const vehicle = vehicles?.find((v) => v.id === req.vehicle);
+            const space = spaces?.find((s) => s.id === req.parking_space);
+            const canCancel = req.status === "PENDING" || req.status === "APPROVED";
+
+            return (
+              <div
+                key={req.id}
+                className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all hover:shadow-lg"
+              >
+                {/* نوار بالای کارت بر اساس وضعیت */}
+                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-l ${config.gradient}`} />
+
+                {/* Header */}
+                <div className="mb-4 flex items-start justify-between">
+                  <div>
+                    <p className="text-xs text-text-secondary">درخواست</p>
+                    <p className="font-mono text-lg font-bold text-secondary-900">
+                      #{req.id}
+                    </p>
+                  </div>
+                  <span
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${config.color}`}
+                  >
+                    {config.icon}
+                    {config.label}
+                  </span>
+                </div>
+
+                {/* Info */}
+                <div className="mb-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="rounded-lg bg-blue-100 p-1.5 dark:bg-blue-900/30">
+                      <Car size={14} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <span className="font-mono font-bold text-secondary-900" dir="ltr">
+                      {vehicle?.plate_number || "---"}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {(req.status === "PENDING" || req.status === "APPROVED") && (
-                      <button
-                        onClick={() => {
-                          setCancelingRequest(req);
-                          setCancelReason("");
-                        }}
-                        className="flex items-center gap-1 text-xs text-danger hover:underline"
-                      >
-                        <XCircle size={14} /> لغو
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="rounded-lg bg-emerald-100 p-1.5 dark:bg-emerald-900/30">
+                      <MapPin size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <span className="text-secondary-900">
+                      جایگاه: <span className="font-bold">{space?.code || "---"}</span>
+                      {space && (
+                        <span className="text-text-secondary text-xs mr-1">
+                          ({space.floor})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs text-text-secondary">
+                    <Calendar size={14} />
+                    <div dir="ltr">
+                      <p>از {new Date(req.start_time).toLocaleString("fa-IR")}</p>
+                      <p>تا {new Date(req.end_time).toLocaleString("fa-IR")}</p>
+                    </div>
+                  </div>
+
+                  {req.description && (
+                    <div className="rounded-lg bg-background/50 p-2 text-xs text-text-secondary">
+                      <span className="font-medium">توضیحات: </span>
+                      {req.description}
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                {canCancel && (
+                  <div className="border-t border-border pt-3">
+                    <Button
+                      variant="danger"
+                      className="w-full"
+                      onClick={() => {
+                        setCancelingRequest(req);
+                        setCancelReason("");
+                      }}
+                    >
+                      <XCircle size={16} /> لغو درخواست
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* مودال ثبت درخواست */}
+      {/* 👇 Modal ثبت درخواست */}
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
@@ -327,11 +467,17 @@ function RequestsPage() {
           <Input label="توضیحات (اختیاری)" {...register("description")} />
 
           {serverError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-danger">{serverError}</div>
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-danger dark:bg-red-900/20 dark:text-red-400">
+              {serverError}
+            </div>
           )}
 
           <div className="mt-2 flex gap-3">
-            <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
+            <Button
+              type="submit"
+              className="flex-1 bg-gradient-to-l from-emerald-600 to-green-600 shadow-md shadow-emerald-500/20"
+              disabled={createMutation.isPending}
+            >
               {createMutation.isPending ? "در حال ثبت..." : "ثبت درخواست"}
             </Button>
             <Button
@@ -346,24 +492,34 @@ function RequestsPage() {
         </form>
       </Modal>
 
-      {/* مودال دلیل لغو */}
+      {/* 👇 Modal دلیل لغو */}
       <Modal
         isOpen={!!cancelingRequest}
         onClose={() => setCancelingRequest(null)}
         title="لغو درخواست"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-text-secondary">
-            آیا از لغو درخواست <span className="font-bold">#{cancelingRequest?.id}</span> مطمئن
-            هستید؟ لطفاً دلیل لغو را وارد کنید.
-          </p>
-          <Input
-            label="دلیل لغو"
-            value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-            placeholder="مثلا: تغییر برنامه"
-          />
-          <div className="flex gap-3 mt-2">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300">
+            <p className="flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>
+                درخواست <span className="font-bold">#{cancelingRequest?.id}</span> لغو خواهد شد. دلیل را وارد کنید.
+              </span>
+            </p>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-primary">
+              دلیل لغو (الزامی)
+            </label>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="مثلا: تغییر برنامه..."
+              rows={3}
+              className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+            />
+          </div>
+          <div className="flex gap-3">
             <Button
               variant="danger"
               className="flex-1"
@@ -378,7 +534,7 @@ function RequestsPage() {
               onClick={() => setCancelingRequest(null)}
               className="flex-1"
             >
-              بستن
+              انصراف
             </Button>
           </div>
         </div>
