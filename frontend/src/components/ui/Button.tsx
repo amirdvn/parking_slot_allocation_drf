@@ -12,7 +12,7 @@ const variantStyles: Record<ButtonVariant, string> = {
   secondary: "bg-secondary-800 text-white hover:bg-secondary-900",
   danger: "bg-danger text-white hover:bg-red-700",
   outline:
-    "border border-border bg-white text-text-primary hover:bg-gray-50",
+    "border border-border bg-surface text-text-primary hover:bg-background",
 };
 
 function Button({

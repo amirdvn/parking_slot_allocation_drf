@@ -1,8 +1,8 @@
-// src/components/shared/Header.tsx
-import { Bell, Menu, Search, UserCircle } from "lucide-react";
+import { Bell, Menu, Search, Sun, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../features/auth/AuthContext";
+import { useTheme } from "../../features/theme/ThemeContext";
 import { notificationsApi } from "../../features/notifications/api";
 
 interface HeaderProps {
@@ -18,21 +18,29 @@ const roleTranslations: Record<string, string> = {
 
 function Header({ onMenuClick, title }: HeaderProps) {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-  // دریافت تعداد اعلان‌های خوانده نشده
   const { data: unreadData } = useQuery({
     queryKey: ["unread-count"],
     queryFn: notificationsApi.getUnreadCount,
-    refetchInterval: 60000, // هر ۶۰ ثانیه
+    refetchInterval: 60000,
   });
 
   const unreadCount = unreadData?.unread_count || 0;
 
+  const avatarLetter = user?.full_name?.charAt(0) || "؟";
+  const avatarColor =
+    user?.role === "MANAGER"
+      ? "bg-purple-600"
+      : user?.role === "GUARD"
+        ? "bg-blue-600"
+        : "bg-emerald-600";
+
   return (
     <header
       dir="rtl"
-      className="flex h-20 items-center justify-between border-b border-border bg-surface px-4 sm:px-6 lg:px-8"
+      className="flex h-20 items-center justify-between border-b border-border bg-surface px-4 sm:px-6 lg:px-8 transition-colors"
     >
       <div className="flex items-center gap-3">
         <button
@@ -52,13 +60,23 @@ function Header({ onMenuClick, title }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-1 sm:gap-2">
         <button
           type="button"
           className="rounded-xl p-2.5 text-text-secondary transition-colors hover:bg-background"
           aria-label="جستجو"
         >
           <Search size={20} />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="rounded-xl p-2.5 text-text-secondary transition-colors hover:bg-background"
+          aria-label={theme === "dark" ? "روشن کردن تم" : "تاریک کردن تم"}
+          title={theme === "dark" ? "حالت روشن" : "حالت تاریک"}
+        >
+          {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
         <button
@@ -78,7 +96,11 @@ function Header({ onMenuClick, title }: HeaderProps) {
         <div className="mx-1 h-8 w-px bg-border" />
 
         <div className="flex items-center gap-2 rounded-xl p-2">
-          <UserCircle size={28} className="text-primary-600" />
+          <div
+            className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white ${avatarColor}`}
+          >
+            {avatarLetter}
+          </div>
           <div className="hidden text-right sm:block">
             <p className="text-sm font-semibold text-secondary-900">
               {user?.full_name || "کاربر سیستم"}
