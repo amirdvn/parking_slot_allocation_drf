@@ -1,10 +1,10 @@
 // src/features/parking/pages/RequestsPage.tsx
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, XCircle } from "lucide-react";
+import { Plus, XCircle, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { parkingApi } from "../api";
 import { vehicleApi } from "../../vehicles/api";
@@ -14,18 +14,32 @@ import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import TableToolbar from "../../../components/ui/TableToolbar";
+import EmptyState from "../../../components/ui/EmptyState";
+import { TableSkeleton } from "../../../components/ui/Skeleton";
 
 // --- تنظیمات وضعیت‌ها ---
 const statusMap: Record<RequestStatus, { label: string; color: string }> = {
-  PENDING: { label: "در انتظار بررسی", color: "bg-yellow-100 text-yellow-700" },
-  APPROVED: { label: "تایید شده", color: "bg-green-100 text-green-700" },
-  REJECTED: { label: "رد شده", color: "bg-red-100 text-red-700" },
-  CANCELED: { label: "لغو شده", color: "bg-gray-100 text-gray-700" },
-  EXPIRED: { label: "منقضی شده", color: "bg-gray-100 text-gray-500" },
-  IN_USE: { label: "در حال استفاده", color: "bg-blue-100 text-blue-700" },
-  COMPLETED: { label: "تکمیل شده", color: "bg-emerald-100 text-emerald-700" },
-  NEEDS_REVIEW: { label: "نیازمند بررسی", color: "bg-orange-100 text-orange-700" },
+  PENDING: { label: "در انتظار بررسی", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  APPROVED: { label: "تایید شده", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  REJECTED: { label: "رد شده", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  CANCELED: { label: "لغو شده", color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400" },
+  EXPIRED: { label: "منقضی شده", color: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500" },
+  IN_USE: { label: "در حال استفاده", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  COMPLETED: { label: "تکمیل شده", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  NEEDS_REVIEW: { label: "نیازمند بررسی", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
 };
+
+// --- فیلتر وضعیت ---
+const statusFilterOptions = [
+  { value: "", label: "همه وضعیت‌ها" },
+  { value: "PENDING", label: "در انتظار بررسی" },
+  { value: "APPROVED", label: "تایید شده" },
+  { value: "REJECTED", label: "رد شده" },
+  { value: "CANCELED", label: "لغو شده" },
+  { value: "IN_USE", label: "در حال استفاده" },
+  { value: "COMPLETED", label: "تکمیل شده" },
+];
 
 // --- اسکیمای فرم ثبت درخواست ---
 const requestSchema = z
@@ -45,14 +59,16 @@ type RequestFormValues = z.infer<typeof requestSchema>;
 function RequestsPage() {
   const queryClient = useQueryClient();
 
-  // Stateهای مربوط به مودال‌ها
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [cancelingRequest, setCancelingRequest] = useState<ParkingRequest | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // دریافت داده‌ها
+  // 👇 stateهای جستجو و فیلتر
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
   const { data: requests, isLoading: isLoadingRequests } = useQuery({
     queryKey: ["parking-requests"],
     queryFn: parkingApi.getMyRequests,
@@ -68,7 +84,25 @@ function RequestsPage() {
     queryFn: parkingApi.getSpaces,
   });
 
-  // فرم ثبت درخواست
+  // 👇 فیلتر کردن داده‌ها
+  const filteredRequests = useMemo(() => {
+    if (!requests) return [];
+    return requests.filter((req) => {
+      const vehiclePlate = vehicles?.find((v) => v.id === req.vehicle)?.plate_number || "";
+      const spaceCode = spaces?.find((s) => s.id === req.parking_space)?.code || "";
+
+      const matchesSearch =
+        !searchQuery ||
+        String(req.id).includes(searchQuery) ||
+        vehiclePlate.includes(searchQuery) ||
+        spaceCode.includes(searchQuery);
+
+      const matchesStatus = !statusFilter || req.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [requests, vehicles, spaces, searchQuery, statusFilter]);
+
   const {
     register,
     handleSubmit,
@@ -78,7 +112,6 @@ function RequestsPage() {
     resolver: zodResolver(requestSchema),
   });
 
-  // Mutation ثبت
   const createMutation = useMutation({
     mutationFn: (data: RequestFormValues) => {
       const payload = {
@@ -109,7 +142,6 @@ function RequestsPage() {
     },
   });
 
-  // Mutation لغو
   const cancelMutation = useMutation({
     mutationFn: () => parkingApi.cancelRequest(cancelingRequest!.id, cancelReason),
     onSuccess: () => {
@@ -130,8 +162,6 @@ function RequestsPage() {
     createMutation.mutate(data);
   };
 
-  if (isLoadingRequests) return <div className="p-4">در حال بارگذاری...</div>;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -148,10 +178,60 @@ function RequestsPage() {
         </Button>
       </div>
 
-      {/* جدول/لیست درخواست‌ها */}
-      {requests?.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface p-8 text-center text-text-secondary">
-          هنوز هیچ درخواستی ثبت نکرده‌اید.
+      {/* 👇 نوار ابزار جستجو و فیلتر */}
+      <TableToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="جستجو بر اساس شناسه، پلاک یا کد جایگاه..."
+        filterValue={statusFilter}
+        onFilterChange={setStatusFilter}
+        filterOptions={statusFilterOptions}
+        filterLabel="فیلتر وضعیت"
+        resultCount={filteredRequests.length}
+        totalCount={requests?.length}
+      />
+
+      {/* 👇 جدول با Skeleton و EmptyState */}
+      {isLoadingRequests ? (
+        <TableSkeleton rows={5} cols={6} />
+      ) : filteredRequests.length === 0 ? (
+        <div className="rounded-xl border border-border bg-surface">
+          <EmptyState
+            icon={<ClipboardList size={48} />}
+            title={
+              searchQuery || statusFilter
+                ? "درخواستی یافت نشد"
+                : "هنوز درخواستی ثبت نکرده‌اید"
+            }
+            description={
+              searchQuery || statusFilter
+                ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد. فیلترها را پاک کنید."
+                : "اولین درخواست پارکینگ خود را ثبت کنید."
+            }
+            action={
+              searchQuery || statusFilter ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("");
+                  }}
+                >
+                  پاک کردن فیلترها
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    setIsCreateOpen(true);
+                    reset();
+                  }}
+                  className="gap-2"
+                >
+                  <Plus size={18} /> ثبت درخواست جدید
+                </Button>
+              )
+            }
+          />
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
@@ -167,7 +247,7 @@ function RequestsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {requests?.map((req) => (
+              {filteredRequests.map((req) => (
                 <tr key={req.id} className="hover:bg-background/50">
                   <td className="px-4 py-3 font-mono">#{req.id}</td>
                   <td className="px-4 py-3">
@@ -304,7 +384,6 @@ function RequestsPage() {
         </div>
       </Modal>
 
-      {/* دیالوگ تایید نهایی لغو */}
       <ConfirmDialog
         isOpen={confirmCancel}
         onClose={() => setConfirmCancel(false)}

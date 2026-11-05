@@ -1,12 +1,13 @@
-// src/features/manager/pages/ManagerUsersPage.tsx
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserCheck, UserX, Shield, User as UserIcon } from "lucide-react";
+import { UserCheck, UserX, Shield, User as UserIcon, Users } from "lucide-react";
 import { toast } from "sonner";
 import { managerApi } from "../api";
 import Button from "../../../components/ui/Button";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import TableToolbar from "../../../components/ui/TableToolbar";
+import EmptyState from "../../../components/ui/EmptyState";
+import { TableSkeleton } from "../../../components/ui/Skeleton";
 import type { ManagerUser } from "../../../types/manager";
 
 const roleTranslations: Record<string, string> = {
@@ -38,7 +39,6 @@ function ManagerUsersPage() {
     queryFn: managerApi.getUsers,
   });
 
-  // 👇 فیلتر کردن داده‌ها
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     return users.filter((user) => {
@@ -66,8 +66,6 @@ function ManagerUsersPage() {
     },
   });
 
-  if (isLoading) return <div className="p-4">در حال بارگذاری...</div>;
-
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold text-secondary-900">مدیریت کاربران</h1>
@@ -84,12 +82,36 @@ function ManagerUsersPage() {
         totalCount={users?.length}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
-        {filteredUsers.length === 0 ? (
-          <div className="p-8 text-center text-text-secondary">
-            هیچ کاربری با این مشخصات یافت نشد.
-          </div>
-        ) : (
+      {/* 👇 حالا Skeleton نشون می‌ده */}
+      {isLoading ? (
+        <TableSkeleton rows={6} cols={5} />
+      ) : filteredUsers.length === 0 ? (
+        <div className="rounded-xl border border-border bg-surface">
+          <EmptyState
+            icon={<Users size={48} />}
+            title={searchQuery || roleFilter ? "کاربری یافت نشد" : "هیچ کاربری وجود ندارد"}
+            description={
+              searchQuery || roleFilter
+                ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد. فیلترها را پاک کنید."
+                : "هنوز هیچ کاربری در سیستم ثبت نشده است."
+            }
+            action={
+              (searchQuery || roleFilter) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setRoleFilter("");
+                  }}
+                >
+                  پاک کردن فیلترها
+                </Button>
+              )
+            }
+          />
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
           <table className="w-full text-right text-sm">
             <thead className="bg-background text-text-secondary">
               <tr>
@@ -159,8 +181,8 @@ function ManagerUsersPage() {
               ))}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={!!confirmToggle}
