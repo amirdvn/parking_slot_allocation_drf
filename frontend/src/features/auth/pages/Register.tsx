@@ -11,6 +11,7 @@ import { authApi } from "../api";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Button from "../../../components/ui/Button";
+import ThemeToggle from "../../../components/shared/ThemeToggle";
 
 const registerSchema = z.object({
   full_name: z.string().min(3, "نام حداقل ۳ کاراکتر"),
@@ -61,6 +62,7 @@ function Register() {
   if (!phoneNumber) {
     return (
       <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
+        <ThemeToggle />
         <div className="w-full max-w-[360px] rounded-2xl bg-surface p-6 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-[#ff3b30] dark:bg-[#ff453a]/10 dark:text-[#ff453a]">
             <UserPlus size={28} />
@@ -80,6 +82,7 @@ function Register() {
   if (isSuccess) {
     return (
       <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
+        <ThemeToggle />
         <div className="w-full max-w-[360px] animate-scale-in rounded-2xl bg-surface p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
             <CheckCircle2 size={36} />
@@ -97,6 +100,8 @@ function Register() {
 
   return (
     <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
+      <ThemeToggle />
+
       <div className="w-full max-w-[400px] animate-fade-in">
         <div className="mb-8 flex flex-col items-center">
           <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#007aff] shadow-lg shadow-[#007aff]/20 dark:bg-[#0a84ff]">
@@ -117,7 +122,10 @@ function Register() {
             بازگشت
           </button>
 
-          <form onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })} className="space-y-4">
+          <form
+            onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })}
+            className="space-y-4"
+          >
             <Input
               label="نام و نام خانوادگی"
               placeholder="امیر داوری"

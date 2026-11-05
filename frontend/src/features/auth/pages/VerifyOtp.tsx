@@ -11,6 +11,7 @@ import { authApi } from "../api";
 import { useAuth } from "../AuthContext";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
+import ThemeToggle from "../../../components/shared/ThemeToggle";
 
 const otpSchema = z.object({
   code: z.string().length(4, "کد تایید باید ۴ رقم باشد"),
@@ -73,6 +74,7 @@ function VerifyOtp() {
   if (!phoneNumber) {
     return (
       <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
+        <ThemeToggle />
         <div className="w-full max-w-[360px] rounded-2xl bg-surface p-6 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-[#ff3b30] dark:bg-[#ff453a]/10 dark:text-[#ff453a]">
             <KeyRound size={28} />
@@ -91,6 +93,8 @@ function VerifyOtp() {
 
   return (
     <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
+      <ThemeToggle />
+
       <div className="w-full max-w-[360px] animate-fade-in">
         <div className="mb-10 flex flex-col items-center">
           <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#007aff] shadow-lg shadow-[#007aff]/20 dark:bg-[#0a84ff]">
@@ -118,7 +122,10 @@ function VerifyOtp() {
             </span>
           </p>
 
-          <form onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })} className="space-y-4">
+          <form
+            onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })}
+            className="space-y-4"
+          >
             <Input
               label="کد تایید"
               placeholder="----"

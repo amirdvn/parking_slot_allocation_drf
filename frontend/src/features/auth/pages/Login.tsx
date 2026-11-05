@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { authApi } from "../api";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
+import ThemeToggle from "../../../components/shared/ThemeToggle";
 
 const loginSchema = z.object({
   phone_number: z
@@ -35,7 +36,7 @@ function Login() {
       navigate(`/verify-otp?phone=${encodeURIComponent(variables.phone_number)}`);
     },
     onError: (error: any) => {
-      const msg = error.response?.data?.error || "خطایی رخ داد";
+      const msg = error.response?.data?.error || "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
       setServerError(msg);
       toast.error(msg);
     },
@@ -43,9 +44,11 @@ function Login() {
 
   return (
     <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
+      <ThemeToggle />
+
       <div className="w-full max-w-[360px] animate-fade-in">
         <div className="mb-10 flex flex-col items-center">
-          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#007aff] shadow-lg shadow-[#007aff]/20 dark:bg-[#0a84ff] dark:shadow-[#0a84ff]/20">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#007aff] shadow-lg shadow-[#007aff]/20 dark:bg-[#0a84ff]">
             <ParkingSquare size={32} className="text-white" strokeWidth={2.5} />
           </div>
           <h1 className="text-[26px] font-bold text-gray-900 dark:text-white">
@@ -66,10 +69,13 @@ function Login() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })} className="space-y-4">
+          <form
+            onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })}
+            className="space-y-4"
+          >
             <Input
               label="شماره موبایل"
-              placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+              placeholder="09123456789"
               dir="ltr"
               type="tel"
               error={errors.phone_number?.message}

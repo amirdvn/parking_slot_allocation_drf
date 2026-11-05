@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>سیستم مدیریت پارکینگ</title>
 
-    <!-- 🎨 جلوگیری از FOUC (فلش سفید قبل از اعمال دارک مود) -->
     <script>
       (function () {
         try {
@@ -15,9 +14,7 @@
           if (theme === "dark" || (!theme && prefersDark)) {
             document.documentElement.classList.add("dark");
           }
-        } catch (e) {
-          /* اگر localStorage خطا داد، بی‌خیال شو */
-        }
+        } catch (e) {}
       })();
     </script>
   </head>
