@@ -77,8 +77,7 @@ function VehiclesPage() {
     if (!vehicles) return [];
     return vehicles.filter((v) => {
       const matchesSearch =
-        !searchQuery ||
-        v.plate_number.toLowerCase().includes(searchQuery.toLowerCase());
+        !searchQuery || v.plate_number.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesType = !typeFilter || v.vehicle_type === typeFilter;
       return matchesSearch && matchesType;
     });
@@ -164,7 +163,7 @@ function VehiclesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-secondary-900">خودروهای من</h1>
-        <Button onClick={openCreateModal} className="gap-2">
+        <Button onClick={openCreateModal}>
           <Plus size={18} /> افزودن خودرو
         </Button>
       </div>
@@ -184,27 +183,21 @@ function VehiclesPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-border bg-surface p-5">
-              <div className="flex justify-between mb-4">
-                <Skeleton className="h-8 w-32" />
+            <div key={i} className="rounded-2xl border border-border bg-surface p-5">
+              <div className="mb-4 flex justify-between">
+                <Skeleton className="h-10 w-32" />
                 <Skeleton className="h-6 w-16 rounded-full" />
               </div>
-              <div className="space-y-2 mb-4">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-16" />
-              </div>
+              <Skeleton className="mb-4 h-20 w-full rounded-xl" />
               <Skeleton className="h-10 w-full" />
             </div>
           ))}
         </div>
       ) : filteredVehicles.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface">
+        <div className="rounded-2xl border border-border bg-surface">
           <EmptyState
             icon={<Car size={48} />}
-            title={
-              searchQuery || typeFilter ? "خودرویی یافت نشد" : "هنوز خودرویی ثبت نکرده‌اید"
-            }
+            title={searchQuery || typeFilter ? "خودرویی یافت نشد" : "هنوز خودرویی ثبت نکرده‌اید"}
             description={
               searchQuery || typeFilter
                 ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد."
@@ -222,7 +215,7 @@ function VehiclesPage() {
                   پاک کردن فیلترها
                 </Button>
               ) : (
-                <Button onClick={openCreateModal} className="gap-2">
+                <Button onClick={openCreateModal}>
                   <Plus size={18} /> افزودن اولین خودرو
                 </Button>
               )
@@ -231,52 +224,80 @@ function VehiclesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredVehicles.map((vehicle) => (
-            <div
-              key={vehicle.id}
-              className="rounded-xl border border-border bg-surface p-5 shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <span
-                  className="rounded-lg bg-gray-100 px-3 py-1 font-mono text-lg font-bold tracking-widest text-secondary-900 dark:bg-gray-800"
-                  dir="ltr"
-                >
-                  {vehicle.plate_number}
-                </span>
-                <span
-                  className={`rounded-full px-2 py-1 text-xs ${
-                    vehicle.is_active
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                  }`}
-                >
-                  {vehicle.is_active ? "فعال" : "غیرفعال"}
-                </span>
+          {filteredVehicles.map((vehicle) => {
+            const vehicleTypeColor =
+              vehicle.vehicle_type === "CAR"
+                ? "from-blue-500 to-blue-600"
+                : vehicle.vehicle_type === "MOTORCYCLE"
+                  ? "from-orange-500 to-red-600"
+                  : "from-emerald-500 to-green-600";
+
+            const vehicleTypeLabel =
+              vehicleTypeOptions.find((o) => o.value === vehicle.vehicle_type)?.label;
+
+            return (
+              <div
+                key={vehicle.id}
+                className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
+              >
+                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-l ${vehicleTypeColor}`} />
+
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className={`rounded-xl bg-gradient-to-br ${vehicleTypeColor} p-2 text-white shadow-md`}>
+                      <Car size={18} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-text-secondary">{vehicleTypeLabel}</p>
+                      <p className="font-mono text-lg font-bold text-secondary-900" dir="ltr">
+                        {vehicle.plate_number}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      vehicle.is_active
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}
+                  >
+                    {vehicle.is_active ? "فعال" : "غیرفعال"}
+                  </span>
+                </div>
+
+                <div className="space-y-2 rounded-xl bg-background/50 p-3 mb-4">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-secondary">وضعیت</span>
+                    <span className="font-medium text-secondary-900">
+                      {subTypeOptions.find((o) => o.value === vehicle.sub_type)?.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-secondary">رنگ</span>
+                    <span className="font-medium text-secondary-900">
+                      {colorOptions.find((o) => o.value === vehicle.color)?.label}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openEditModal(vehicle)}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20"
+                  >
+                    <Edit size={14} /> ویرایش
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(vehicle)}
+                    disabled={deleteMutation.isPending}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                  >
+                    <Trash2 size={14} /> حذف
+                  </button>
+                </div>
               </div>
-              <div className="mt-4 space-y-1 text-sm text-text-secondary">
-                <p>نوع: {vehicleTypeOptions.find((o) => o.value === vehicle.vehicle_type)?.label}</p>
-                <p>وضعیت: {subTypeOptions.find((o) => o.value === vehicle.sub_type)?.label}</p>
-                <p>رنگ: {colorOptions.find((o) => o.value === vehicle.color)?.label}</p>
-              </div>
-              <div className="mt-4 flex gap-2 border-t border-border pt-4">
-                <Button
-                  variant="outline"
-                  className="flex-1 py-1.5 text-xs gap-1"
-                  onClick={() => openEditModal(vehicle)}
-                >
-                  <Edit size={14} /> ویرایش
-                </Button>
-                <Button
-                  variant="danger"
-                  className="flex-1 py-1.5 text-xs gap-1"
-                  onClick={() => setConfirmDelete(vehicle)}
-                  disabled={deleteMutation.isPending}
-                >
-                  <Trash2 size={14} /> حذف
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -313,7 +334,9 @@ function VehiclesPage() {
           />
 
           {serverError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-danger">{serverError}</div>
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-danger dark:bg-red-900/20 dark:text-red-400">
+              {serverError}
+            </div>
           )}
 
           <div className="mt-2 flex gap-3">
