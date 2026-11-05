@@ -1,6 +1,17 @@
+// src/features/manager/pages/ManagerRequestsPage.tsx
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, XCircle, Clock, ClipboardList } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  ClipboardList,
+  User,
+  Car,
+  MapPin,
+  Calendar,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { managerApi } from "../api";
 import type { ManagerParkingRequest } from "../../../types/manager";
@@ -8,9 +19,8 @@ import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
-import TableToolbar from "../../../components/ui/TableToolbar";
 import EmptyState from "../../../components/ui/EmptyState";
-import { TableSkeleton } from "../../../components/ui/Skeleton";
+import { Skeleton } from "../../../components/ui/Skeleton";
 
 const statusFilterOptions = [
   { value: "", label: "همه وضعیت‌ها" },
@@ -36,7 +46,7 @@ function ManagerRequestsPage() {
         : managerApi.getApprovedRequests,
   });
 
-  // فیلتر کردن
+  // فیلتر
   const filteredRequests = useMemo(() => {
     if (!requests) return [];
     return requests.filter((req) => {
@@ -65,7 +75,9 @@ function ManagerRequestsPage() {
     }) => managerApi.reviewRequest(id, { status, rejection_reason: reason }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["manager-requests"] });
-      toast.success(variables.status === "APPROVED" ? "درخواست تایید شد" : "درخواست رد شد");
+      toast.success(
+        variables.status === "APPROVED" ? "درخواست تایید شد" : "درخواست رد شد"
+      );
       setRejectingRequest(null);
       setRejectionReason("");
       setConfirmApprove(null);
@@ -76,7 +88,10 @@ function ManagerRequestsPage() {
   });
 
   const handleRejectSubmit = () => {
-    if (!rejectionReason.trim()) return;
+    if (!rejectionReason.trim()) {
+      toast.error("دلیل رد را وارد کنید");
+      return;
+    }
     reviewMutation.mutate({
       id: rejectingRequest!.id,
       status: "REJECTED",
@@ -86,23 +101,54 @@ function ManagerRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-secondary-900">مدیریت درخواست‌ها</h1>
+      {/* 👇 Hero Card */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-indigo-600 via-purple-700 to-primary-800 p-6 text-white shadow-xl sm:p-8">
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
-      {/* تب‌ها */}
-      <div className="flex border-b border-border">
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm ring-1 ring-white/20">
+              <ClipboardList size={28} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">مدیریت درخواست‌ها</h1>
+              <p className="mt-1 text-sm text-white/70">
+                بررسی و تایید درخواست‌های پارکینگ
+              </p>
+            </div>
+          </div>
+
+          <div className="hidden rounded-xl bg-white/10 px-4 py-2 backdrop-blur-sm ring-1 ring-white/20 sm:block">
+            <p className="text-xs text-white/70">کل درخواست‌ها</p>
+            <p className="text-xl font-bold">{requests?.length || 0}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 👇 Tabs */}
+      <div className="flex rounded-xl border border-border bg-surface p-1">
         <button
           onClick={() => {
             setActiveTab("needs_review");
             setSearchQuery("");
             setStatusFilter("");
           }}
-          className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
             activeTab === "needs_review"
-              ? "border-b-2 border-primary-600 text-primary-600"
+              ? "bg-primary-600 text-white shadow-sm"
               : "text-text-secondary hover:text-secondary-900"
           }`}
         >
-          <Clock size={16} /> نیازمند بررسی
+          <Clock size={16} />
+          نیازمند بررسی
         </button>
         <button
           onClick={() => {
@@ -110,34 +156,48 @@ function ManagerRequestsPage() {
             setSearchQuery("");
             setStatusFilter("");
           }}
-          className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
             activeTab === "approved"
-              ? "border-b-2 border-primary-600 text-primary-600"
+              ? "bg-emerald-600 text-white shadow-sm"
               : "text-text-secondary hover:text-secondary-900"
           }`}
         >
-          <CheckCircle size={16} /> تایید شده‌ها
+          <CheckCircle size={16} />
+          تایید شده‌ها
         </button>
       </div>
 
-      {/* نوار ابزار */}
-      <TableToolbar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="جستجو بر اساس شناسه، نام، پلاک یا جایگاه..."
-        filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
-        filterOptions={statusFilterOptions}
-        filterLabel="فیلتر وضعیت"
-        resultCount={filteredRequests.length}
-        totalCount={requests?.length}
-      />
+      {/* 👇 Search & Filter */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Input
+          placeholder="جستجو بر اساس شناسه، نام، پلاک یا جایگاه..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {activeTab === "needs_review" && (
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+          >
+            {statusFilterOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
-      {/* جدول */}
+      {/* 👇 Content */}
       {isLoading ? (
-        <TableSkeleton rows={6} cols={5} />
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-44 w-full rounded-2xl" />
+          ))}
+        </div>
       ) : filteredRequests.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface">
+        <div className="rounded-2xl border border-border bg-surface">
           <EmptyState
             icon={<ClipboardList size={48} />}
             title={
@@ -151,7 +211,7 @@ function ManagerRequestsPage() {
               searchQuery || statusFilter
                 ? "با فیلترهای فعلی هیچ نتیجه‌ای پیدا نشد."
                 : activeTab === "needs_review"
-                  ? "همه درخواست‌ها بررسی شده‌اند. کار خوبی کردی!"
+                  ? "همه درخواست‌ها بررسی شده‌اند. کار خوبی کردید!"
                   : "هنوز درخواستی تایید نشده است."
             }
             action={
@@ -170,65 +230,126 @@ function ManagerRequestsPage() {
           />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
-          <table className="w-full text-right text-sm">
-            <thead className="bg-background text-text-secondary">
-              <tr>
-                <th className="px-4 py-3 font-medium">شناسه</th>
-                <th className="px-4 py-3 font-medium">کاربر</th>
-                <th className="px-4 py-3 font-medium">خودرو / جایگاه</th>
-                <th className="px-4 py-3 font-medium">زمان</th>
-                {activeTab === "needs_review" && (
-                  <th className="px-4 py-3 font-medium">عملیات</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredRequests.map((req) => (
-                <tr key={req.id} className="hover:bg-background/50">
-                  <td className="px-4 py-3 font-mono">#{req.id}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-semibold">{req.user_detail?.full_name}</p>
-                    <p className="text-xs text-text-secondary" dir="ltr">
-                      {req.user_detail?.phone_number}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {filteredRequests.map((req) => {
+            const isPending = req.status === "PENDING";
+            const isNeedsReview = req.status === "NEEDS_REVIEW";
+            const isApproved = req.status === "APPROVED";
+
+            return (
+              <div
+                key={req.id}
+                className={`group relative overflow-hidden rounded-2xl border-2 bg-surface p-5 shadow-sm transition-all hover:shadow-lg ${
+                  isApproved
+                    ? "border-emerald-200 dark:border-emerald-800/50"
+                    : isNeedsReview
+                      ? "border-orange-200 dark:border-orange-800/50"
+                      : "border-border"
+                }`}
+              >
+                {/* نوار بالای کارت */}
+                <div
+                  className={`absolute inset-x-0 top-0 h-1 ${
+                    isApproved
+                      ? "bg-gradient-to-l from-emerald-500 to-green-600"
+                      : isNeedsReview
+                        ? "bg-gradient-to-l from-orange-500 to-amber-600"
+                        : "bg-gradient-to-l from-blue-500 to-indigo-600"
+                  }`}
+                />
+
+                {/* Header */}
+                <div className="mb-4 flex items-start justify-between">
+                  <div>
+                    <p className="text-xs text-text-secondary">درخواست</p>
+                    <p className="font-mono text-lg font-bold text-secondary-900">
+                      #{req.id}
                     </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-bold" dir="ltr">
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      isApproved
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : isNeedsReview
+                          ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                    }`}
+                  >
+                    {isApproved
+                      ? "تایید شده"
+                      : isNeedsReview
+                        ? "نیازمند بررسی"
+                        : "در انتظار"}
+                  </span>
+                </div>
+
+                {/* Info Grid */}
+                <div className="mb-4 space-y-2.5">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="rounded-lg bg-primary-100 p-1.5 dark:bg-primary-900/30">
+                      <User size={14} className="text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-secondary-900 truncate">
+                        {req.user_detail?.full_name}
+                      </p>
+                      <p className="text-xs text-text-secondary font-mono" dir="ltr">
+                        {req.user_detail?.phone_number}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="rounded-lg bg-blue-100 p-1.5 dark:bg-blue-900/30">
+                      <Car size={14} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <p className="font-mono font-bold text-secondary-900" dir="ltr">
                       {req.vehicle_detail?.plate_number || "---"}
                     </p>
-                    <p className="text-xs text-text-secondary">
-                      جایگاه: {req.parking_space_detail?.code || "---"}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="rounded-lg bg-emerald-100 p-1.5 dark:bg-emerald-900/30">
+                      <MapPin size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <p className="text-secondary-900">
+                      جایگاه: <span className="font-bold">{req.parking_space_detail?.code || "---"}</span>
                     </p>
-                  </td>
-                  <td className="px-4 py-3 text-xs" dir="ltr">
-                    <p>شروع: {new Date(req.start_time).toLocaleString("fa-IR")}</p>
-                    <p>پایان: {new Date(req.end_time).toLocaleString("fa-IR")}</p>
-                  </td>
-                  {activeTab === "needs_review" && (
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Button
-                          className="bg-green-600 hover:bg-green-700 py-1.5 px-3 text-xs gap-1"
-                          onClick={() => setConfirmApprove(req)}
-                          disabled={reviewMutation.isPending}
-                        >
-                          <CheckCircle size={14} /> تایید
-                        </Button>
-                        <Button
-                          variant="danger"
-                          className="py-1.5 px-3 text-xs gap-1"
-                          onClick={() => setRejectingRequest(req)}
-                        >
-                          <XCircle size={14} /> رد
-                        </Button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs text-text-secondary">
+                    <Calendar size={14} />
+                    <div dir="ltr">
+                      <p>{new Date(req.start_time).toLocaleString("fa-IR")}</p>
+                      <p>تا {new Date(req.end_time).toLocaleString("fa-IR")}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {activeTab === "needs_review" && (
+                  <div className="flex gap-2 border-t border-border pt-3">
+                    <Button
+                      className="flex-1 bg-gradient-to-l from-emerald-600 to-green-600 shadow-md shadow-emerald-500/20"
+                      onClick={() => setConfirmApprove(req)}
+                      disabled={reviewMutation.isPending}
+                    >
+                      <CheckCircle size={16} />
+                      تایید
+                    </Button>
+                    <Button
+                      variant="danger"
+                      className="flex-1"
+                      onClick={() => setRejectingRequest(req)}
+                    >
+                      <XCircle size={16} />
+                      رد
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -239,24 +360,34 @@ function ManagerRequestsPage() {
         title="رد درخواست پارکینگ"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-text-secondary">
-            لطفاً دلیل رد درخواست{" "}
-            <span className="font-bold">#{rejectingRequest?.id}</span> را وارد کنید (الزامی):
-          </p>
-          <Input
-            label="دلیل رد"
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="مثلا: جایگاه در این بازه رزرو شده است"
-          />
-          <div className="flex gap-3 mt-2">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300">
+            <p className="flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>
+                درخواست <span className="font-bold">#{rejectingRequest?.id}</span> رد خواهد شد. دلیل را وارد کنید.
+              </span>
+            </p>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-primary">
+              دلیل رد (الزامی)
+            </label>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="مثلا: جایگاه در این بازه رزرو شده است..."
+              rows={3}
+              className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+            />
+          </div>
+          <div className="flex gap-3">
             <Button
               variant="danger"
               className="flex-1"
               onClick={handleRejectSubmit}
               disabled={reviewMutation.isPending || !rejectionReason.trim()}
             >
-              ثبت و رد درخواست
+              {reviewMutation.isPending ? "در حال ثبت..." : "تایید و رد"}
             </Button>
             <Button
               type="button"
@@ -270,7 +401,7 @@ function ManagerRequestsPage() {
         </div>
       </Modal>
 
-      {/* دیالوگ تایید */}
+      {/* Confirm Approve */}
       <ConfirmDialog
         isOpen={!!confirmApprove}
         onClose={() => setConfirmApprove(null)}
@@ -280,7 +411,7 @@ function ManagerRequestsPage() {
           }
         }}
         title="تایید درخواست"
-        description={`آیا درخواست #${confirmApprove?.id} تایید شود؟`}
+        description={`آیا درخواست #${confirmApprove?.id} برای ${confirmApprove?.user_detail?.full_name} تایید شود؟`}
         confirmText="بله، تایید کن"
         variant="primary"
         isLoading={reviewMutation.isPending}
