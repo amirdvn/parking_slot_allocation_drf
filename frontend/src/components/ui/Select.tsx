@@ -1,6 +1,6 @@
 // src/components/ui/Select.tsx
 import type { SelectHTMLAttributes } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, AlertCircle } from "lucide-react";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -32,14 +32,15 @@ function Select({
         <select
           id={inputId}
           className={`
-            w-full cursor-pointer appearance-none rounded-xl border-0 bg-gray-100
+            w-full cursor-pointer appearance-none rounded-xl border border-gray-200 bg-white
             px-4 py-3 pl-10
-            text-[15px] text-gray-900 outline-none
+            text-[15px] text-gray-900 outline-none shadow-sm
             transition-all
-            focus:bg-white focus:ring-2 focus:ring-[#007aff]
-            dark:bg-[#1c1c1e] dark:text-white
-            dark:focus:bg-[#2c2c2e] dark:focus:ring-[#0a84ff]
-            ${error ? "ring-2 ring-[#ff3b30]" : ""}
+            focus:border-[#007aff] focus:ring-2 focus:ring-[#007aff]/20
+            disabled:cursor-not-allowed disabled:bg-gray-50
+            dark:border-[#38383a] dark:bg-[#1c1c1e] dark:text-white dark:shadow-none
+            dark:focus:border-[#0a84ff] dark:focus:ring-[#0a84ff]/20
+            ${error ? "border-[#ff3b30] focus:border-[#ff3b30] focus:ring-[#ff3b30]/20 dark:border-[#ff453a]" : ""}
             ${className}
           `}
           {...props}
@@ -55,6 +56,12 @@ function Select({
         <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
           <ChevronDown size={18} />
         </div>
+
+        {error && (
+          <div className="pointer-events-none absolute left-9 top-1/2 -translate-y-1/2 text-[#ff3b30] dark:text-[#ff453a]">
+            <AlertCircle size={16} />
+          </div>
+        )}
       </div>
 
       {error && <span className="text-xs text-[#ff3b30] dark:text-[#ff453a]">{error}</span>}

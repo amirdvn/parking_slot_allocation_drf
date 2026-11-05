@@ -45,17 +45,17 @@ function Input({
           id={inputId}
           type={actualType}
           className={`
-            w-full rounded-xl border-0 bg-gray-100 px-4 py-3
-            text-[15px] text-gray-900 outline-none
+            w-full rounded-xl border border-gray-200 bg-white px-4 py-3
+            text-[15px] text-gray-900 outline-none shadow-sm
             transition-all
             placeholder:text-gray-400
-            focus:bg-white focus:ring-2 focus:ring-[#007aff]
-            disabled:cursor-not-allowed disabled:opacity-50
-            dark:bg-[#1c1c1e] dark:text-white dark:placeholder:text-gray-500
-            dark:focus:bg-[#2c2c2e] dark:focus:ring-[#0a84ff]
+            focus:border-[#007aff] focus:ring-2 focus:ring-[#007aff]/20
+            disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500
+            dark:border-[#38383a] dark:bg-[#1c1c1e] dark:text-white dark:placeholder:text-gray-500
+            dark:focus:border-[#0a84ff] dark:focus:ring-[#0a84ff]/20 dark:shadow-none
             ${icon ? "pr-11" : ""}
             ${showPasswordToggle ? "pl-11" : ""}
-            ${error ? "ring-2 ring-[#ff3b30] dark:ring-[#ff453a]" : ""}
+            ${error ? "border-[#ff3b30] focus:border-[#ff3b30] focus:ring-[#ff3b30]/20 dark:border-[#ff453a]" : ""}
             ${className}
           `}
           {...props}
