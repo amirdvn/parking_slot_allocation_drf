@@ -1,7 +1,7 @@
 // src/components/shared/Header.tsx
 import { useState, useRef, useEffect } from "react";
 import {
-  Bell, Menu, Sun, Moon, User, Settings, LogOut, ChevronDown,
+  Bell, Menu, Sun, Moon, Settings, LogOut, ChevronDown,
   PanelRightClose, PanelRightOpen
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -139,19 +139,13 @@ function Header({ onMenuClick, title, isCollapsed, onCollapseToggle }: HeaderPro
               </div>
 
               <div className="p-1.5">
-                <button
-                  onClick={() => { setProfileOpen(false); navigate("/settings"); }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[14px] text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-[#2c2c2e]"
-                >
-                  <User size={16} />
-                  پروفایل من
-                </button>
+                {/* 👇 گزینه تنظیمات (که شامل ویرایش پروفایل هم هست) */}
                 <button
                   onClick={() => { setProfileOpen(false); navigate("/settings"); }}
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[14px] text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-[#2c2c2e]"
                 >
                   <Settings size={16} />
-                  تنظیمات
+                  تنظیمات حساب
                 </button>
 
                 <div className="my-1 h-px bg-border" />
