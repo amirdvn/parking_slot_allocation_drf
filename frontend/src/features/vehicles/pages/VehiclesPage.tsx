@@ -104,6 +104,7 @@ function VehiclesPage() {
 
   const openEdit = (v: Vehicle) => {
     setEditing(v);
+    // 👇 همه فیلدها پر میشن تا فرم کامل باشه
     reset({
       plate_number: v.plate_number,
       vehicle_type: v.vehicle_type,
@@ -185,11 +186,7 @@ function VehiclesPage() {
         </div>
       )}
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={editing ? "ویرایش" : "خودرو جدید"}
-      >
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={editing ? "ویرایش" : "خودرو جدید"}>
         <form
           onSubmit={handleSubmit((d) =>
             editing ? updateMutation.mutate(d) : createMutation.mutate(d)

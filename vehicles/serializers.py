@@ -14,9 +14,7 @@ class VehicleSerializer(serializers.ModelSerializer):
 
         if self.instance and self.instance.plate_number == value:
 
-            raise serializers.ValidationError(
-                'این همان پلاک فعلی خودروی شماست. اگر قصد تغییر آن را ندارید، این فیلد را نفرستید.'
-            )
+            return value
 
         queryset = Vehicle.objects.filter(plate_number=value)
 
