@@ -40,7 +40,6 @@ function parseCode(code: string) {
   return { zone, floor, id: rest.join("-") };
 }
 
-/** NORTH-BASEMENT_1-A1B2C → «بخش شمالی · منفی ۱ · A1B2C» */
 export function formatSpaceCode(code?: string | null): string {
   if (!code) return "—";
   const parsed = parseCode(code);
@@ -51,7 +50,6 @@ export function formatSpaceCode(code?: string | null): string {
     : `${zoneLabels[zone]} · ${floorLabels[floor]}`;
 }
 
-/** فقط ناحیه و طبقه: «بخش شمالی · همکف» */
 export function formatSpacePlace(code?: string | null): string {
   if (!code) return "—";
   const parsed = parseCode(code);
@@ -59,14 +57,12 @@ export function formatSpacePlace(code?: string | null): string {
   return `${zoneLabels[parsed.zone]} · ${floorLabels[parsed.floor]}`;
 }
 
-/** فقط شناسه کوتاه: «A1B2C» */
 export function formatSpaceId(code?: string | null): string {
   if (!code) return "—";
   const parsed = parseCode(code);
   return parsed?.id || code;
 }
 
-/** برچسب آماده برای <select> */
 export function spaceLabel(space: {
   code?: string | null;
   space_type?: string | null;
@@ -82,7 +78,6 @@ export function spaceLabel(space: {
 
 const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 
-/** حروف مجاز پلاک ایران */
 export const PERSIAN_PLATE_LETTERS = [
   "ب", "ج", "د", "س", "ص", "ط", "ق", "ل", "م", "ن", "و", "ه", "ی",
 ] as const;
@@ -96,20 +91,12 @@ export function toLatinDigits(str: string): string {
 }
 
 export interface PlateParts {
-  /** کد استان (۲ رقم، سمت راست پلاک) */
   province: string;
-  /** حرف (وسط) */
   letter: string;
-  /** سریال (۳ رقم وسط) */
   serial: string;
-  /** کد شهر (۲ رقم، سمت چپ پلاک) */
   city: string;
 }
 
-/**
- * پارس پلاک ۸ کاراکتری به فرمت ذخیره: «۱۲ب۳۴۵۶۷»
- * یعنی [استان][حرف][سریال][شهر]
- */
 export function parsePlate(plate?: string | null): PlateParts | null {
   if (!plate) return null;
   const latin = toLatinDigits(plate).replace(/[^0-9a-zA-Zآ-ی]/g, "");
@@ -126,16 +113,26 @@ export function parsePlate(plate?: string | null): PlateParts | null {
 }
 
 /**
- * نمایش چپ به راست: «۶۷ ب ۳۴۵ ۱۲»
- * ترتیب: شهر(۲) → حرف → سریال(۳) → استان(۲)
+ * فرمت‌بندی پلاک بر اساس نوع وسیله نقلیه
+ * ماشین: «۶۷ ب ۳۴۵ ۱۲» (۴ بخشی)
+ * موتور/دوچرخه: «۱۲۳ ۴۵۶۷۸» (۲ ردیفه)
  */
-export function formatPlate(plate?: string | null): string {
+export function formatPlate(plate?: string | null, vehicleType?: string | null): string {
   if (!plate) return "—";
+  const latin = toLatinDigits(plate).replace(/[^0-9a-zA-Zآ-ی]/g, "");
+
+  // اگر موتور/دوچرخه بود، یا اصلا حرف نداشت و ۸ رقم بود
+  if (vehicleType === "MOTORCYCLE" || vehicleType === "BICYCLE" || (!/[آ-یa-zA-Z]/.test(plate) && latin.length === 8)) {
+    if (latin.length === 8) {
+      return toPersianDigits(`${latin.slice(0, 3)} ${latin.slice(3, 8)}`);
+    }
+    return plate;
+  }
+
+  // فرمت ماشین
   const parts = parsePlate(plate);
   if (!parts) return plate;
-  return toPersianDigits(
-    `${parts.city} ${parts.letter} ${parts.serial} ${parts.province}`
-  );
+  return toPersianDigits(`${parts.city} ${parts.letter} ${parts.serial} ${parts.province}`);
 }
 
 export function isCompletePlate(plate?: string | null): boolean {

@@ -19,7 +19,7 @@ import { formatPlate } from "../../../lib/parking-format";
 const schema = z.object({
   plate_number: z.string().refine(
     (v) => v.replace(/[^0-9۰-۹آ-ی]/g, "").length === 8,
-    "پلاک باید به فرمت کامل وارد شود (۱۲ ب ۳۴۵ ۶۷)"
+    "پلاک باید به فرمت کامل وارد شود"
   ),
   vehicle_type: z.enum(["CAR", "MOTORCYCLE", "BICYCLE"]),
   sub_type: z.enum(["PASSENGER", "CARGO", "ELECTRIC", "DISABLED"]),
@@ -67,10 +67,13 @@ function VehiclesPage() {
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
+
+  const selectedVehicleType = watch("vehicle_type");
 
   const createMutation = useMutation({
     mutationFn: vehicleApi.createVehicle,
@@ -170,7 +173,7 @@ function VehiclesPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-mono text-[15px] font-bold text-gray-900 dark:text-white">
-                    {formatPlate(v.plate_number)}
+                    {formatPlate(v.plate_number, v.vehicle_type)}
                   </p>
                   <p className="mt-0.5 text-[12px] text-gray-500">
                     {typeOpts.find((o) => o.value === v.vehicle_type)?.label}
@@ -216,6 +219,13 @@ function VehiclesPage() {
           )}
           className="space-y-3"
         >
+          <Select
+            label="نوع وسیله نقلیه"
+            options={typeOpts}
+            error={errors.vehicle_type?.message}
+            {...register("vehicle_type")}
+          />
+
           <Controller
             name="plate_number"
             control={control}
@@ -225,16 +235,11 @@ function VehiclesPage() {
                 value={field.value}
                 onChange={field.onChange}
                 error={fieldState.error?.message}
+                vehicleType={selectedVehicleType}
               />
             )}
           />
 
-          <Select
-            label="نوع"
-            options={typeOpts}
-            error={errors.vehicle_type?.message}
-            {...register("vehicle_type")}
-          />
           <Select
             label="حالت"
             options={subOpts}
@@ -273,7 +278,7 @@ function VehiclesPage() {
         onClose={() => setConfirmDelete(null)}
         onConfirm={() => confirmDelete && deleteMutation.mutate(confirmDelete.id)}
         title="حذف خودرو"
-        description={`آیا خودرو با پلاک «${formatPlate(confirmDelete?.plate_number)}» حذف شود؟`}
+        description={`آیا خودرو با پلاک «${formatPlate(confirmDelete?.plate_number, confirmDelete?.vehicle_type)}» حذف شود؟`}
         confirmText="حذف"
         variant="danger"
         isLoading={deleteMutation.isPending}
