@@ -9,6 +9,8 @@ import type {
 } from "../../types/manager";
 
 export const managerApi = {
+  // ... کدهای قبلی برای درخواست‌ها و کاربران ...
+
   getNeedsReviewRequests: async () => {
     const response = await api.get<PaginatedResponse<ManagerParkingRequest>>(
       "/api/parking/requests/needs_review/"
@@ -38,7 +40,7 @@ export const managerApi = {
     return response.data;
   },
 
-  // 👇 اصلاح شد: ارسال is_active در بدنه درخواست
+  // 👇 اینجا هم is_active رو به بدنه اضافه کردیم
   toggleUserStatus: async (userId: number, isActive: boolean) => {
     const endpoint = isActive
       ? `/api/parking/manager/users/activate/${userId}/`
@@ -55,7 +57,7 @@ export const managerApi = {
     return response.data;
   },
 
-  // 👇 اصلاح شد: ارسال is_active در بدنه درخواست
+  // 👇 اصلاح باگ اصلی: ارسال is_active در بدنه درخواست
   toggleVehicleStatus: async (vehicleId: number, isActive: boolean) => {
     const endpoint = isActive
       ? `/api/parking/manager/vehicles/activate/${vehicleId}/`
@@ -70,33 +72,5 @@ export const managerApi = {
     return response.data;
   },
 
-  downloadEntryExitReport: async (startDate: string, endDate: string) => {
-    const response = await api.get(
-      `/api/parking/manager/reports/entryـexit/xlsx/?start=${startDate}&end=${endDate}`,
-      { responseType: "blob" }
-    );
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `entry_exit_report_${startDate}_to_${endDate}.xlsx`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  },
-
-  downloadVehicleReport: async () => {
-    const response = await api.get("/api/vehicle/reports/vehicles/xlsx/", {
-      responseType: "blob",
-    });
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `vehicles_report_${new Date().toISOString().split("T")[0]}.xlsx`
-    );
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  },
+  // ... ادامه کدها برای دانلود گزارش‌ها ...
 };

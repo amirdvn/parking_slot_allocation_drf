@@ -65,6 +65,10 @@ function ManagerVehiclesPage() {
       toast.success(v.isActive ? "فعال شد" : "غیرفعال شد");
       setConfirmToggle(null);
     },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.detail || "خطا در تغییر وضعیت");
+      setConfirmToggle(null);
+    },
   });
 
   return (
@@ -84,10 +88,7 @@ function ManagerVehiclesPage() {
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]"
-            />
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
           ))}
         </div>
       ) : !filtered.length ? (
@@ -100,10 +101,10 @@ function ManagerVehiclesPage() {
           </h3>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-surface shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
           <table className="w-full text-right text-[13px]">
-            <thead className="border-b border-gray-200 dark:border-[#38383a]">
-              <tr className="text-gray-500 dark:text-gray-400">
+            <thead className="border-b border-border bg-background text-text-secondary">
+              <tr>
                 <th className="px-4 py-3 text-right font-medium">مالک</th>
                 <th className="px-4 py-3 text-right font-medium">پلاک</th>
                 <th className="px-4 py-3 text-right font-medium">نوع</th>
@@ -111,14 +112,11 @@ function ManagerVehiclesPage() {
                 <th className="px-4 py-3 text-left font-medium">عملیات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-[#38383a]">
+            <tbody className="divide-y divide-border">
               {filtered.map((vehicle) => {
                 const owner = usersMap[vehicle.user];
                 return (
-                  <tr
-                    key={vehicle.id}
-                    className="hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50"
-                  >
+                  <tr key={vehicle.id} className="hover:bg-background/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-[12px] font-semibold text-white dark:bg-[#0a84ff]">
@@ -129,10 +127,7 @@ function ManagerVehiclesPage() {
                             {owner?.full_name || `کاربر #${vehicle.user}`}
                           </p>
                           {owner?.phone_number && (
-                            <p
-                              className="truncate text-[11px] text-gray-500"
-                              dir="ltr"
-                            >
+                            <p className="truncate text-[11px] text-gray-500" dir="ltr">
                               {owner.phone_number}
                             </p>
                           )}
@@ -140,10 +135,7 @@ function ManagerVehiclesPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className="font-mono font-medium text-gray-900 dark:text-white"
-                        dir="ltr"
-                      >
+                      <span className="font-mono font-medium text-gray-900 dark:text-white" dir="ltr">
                         {vehicle.plate_number}
                       </span>
                     </td>
