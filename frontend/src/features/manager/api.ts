@@ -40,12 +40,10 @@ export const managerApi = {
     return response.data;
   },
 
-  // 👇 اینجا هم is_active رو به بدنه اضافه کردیم
   toggleUserStatus: async (userId: number, isActive: boolean) => {
     const endpoint = isActive
       ? `/api/parking/manager/users/activate/${userId}/`
       : `/api/parking/manager/users/deactivate/${userId}/`;
-
     const response = await api.patch(endpoint, { is_active: isActive });
     return response.data;
   },
@@ -57,12 +55,10 @@ export const managerApi = {
     return response.data;
   },
 
-  // 👇 اصلاح باگ اصلی: ارسال is_active در بدنه درخواست
   toggleVehicleStatus: async (vehicleId: number, isActive: boolean) => {
     const endpoint = isActive
       ? `/api/parking/manager/vehicles/activate/${vehicleId}/`
       : `/api/parking/manager/vehicles/deactivate/${vehicleId}/`;
-
     const response = await api.patch(endpoint, { is_active: isActive });
     return response.data;
   },
@@ -72,5 +68,78 @@ export const managerApi = {
     return response.data;
   },
 
-  // ... ادامه کدها برای دانلود گزارش‌ها ...
+  // 👇 اصلاح‌شده: URL درست + مدیریت خطای blob
+  downloadEntryExitReport: async (startDate: string, endDate: string) => {
+    try {
+      const response = await api.get(
+        `/api/parking/manager/reports/entry-exit/xlsx/?start=${startDate}&end=${endDate}`,
+        { responseType: "blob" }
+      );
+
+      // بررسی اگه بک‌اند به جای فایل، ارور JSON برگردونده باشه
+      const contentType = response.headers["content-type"] || "";
+      if (contentType.includes("application/json")) {
+        const text = await response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.detail || "خطا در دریافت گزارش");
+      }
+
+      // ساخت لینک دانلود
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `entry_exit_report_${startDate}_to_${endDate}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      // 👇 اگه Axios خطا داد، پیام مناسب پرتاب کن
+      if (error.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const errorData = JSON.parse(text);
+          throw new Error(errorData.detail || "خطا در دریافت گزارش");
+        } catch {
+          throw new Error("خطا در دریافت گزارش");
+        }
+      }
+      throw error;
+    }
+  },
+
+  downloadVehicleReport: async () => {
+    try {
+      const response = await api.get("/api/vehicle/reports/vehicles/xlsx/", {
+        responseType: "blob",
+      });
+
+      const contentType = response.headers["content-type"] || "";
+      if (contentType.includes("application/json")) {
+        const text = await response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.detail || "خطا در دریافت گزارش");
+      }
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `vehicles_report_${new Date().toISOString().split("T")[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      if (error.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const errorData = JSON.parse(text);
+          throw new Error(errorData.detail || "خطا در دریافت گزارش");
+        } catch {
+          throw new Error("خطا در دریافت گزارش");
+        }
+      }
+      throw error;
+    }
+  },
 };

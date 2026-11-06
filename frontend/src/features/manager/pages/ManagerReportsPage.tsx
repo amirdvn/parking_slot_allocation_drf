@@ -32,29 +32,43 @@ function ManagerReportsPage() {
     queryFn: managerApi.getDashboard,
   });
 
+  // 👇 منطق اصلاح‌شده دانلود گزارش ورود و خروج
   const handleDownloadEntryExit = async () => {
     if (!startDate || !endDate) {
       toast.error("تاریخ شروع و پایان را وارد کنید");
       return;
     }
+    if (startDate === endDate) {
+      toast.error("تاریخ شروع و پایان نباید یکسان باشند");
+      return;
+    }
+    if (new Date(startDate) > new Date(endDate)) {
+      toast.error("تاریخ شروع باید قبل از تاریخ پایان باشد");
+      return;
+    }
+
     setIsDownloadingEntry(true);
     try {
       await managerApi.downloadEntryExitReport(startDate, endDate);
-      toast.success("گزارش دانلود شد");
-    } catch {
-      toast.error("خطا در دانلود گزارش");
+      toast.success("گزارش با موفقیت دانلود شد");
+    } catch (error: any) {
+      // 👇 نمایش پیام خطای دقیق از بک‌اند یا API
+      const errorMessage = error?.message || "خطا در دانلود گزارش";
+      toast.error(errorMessage);
     } finally {
       setIsDownloadingEntry(false);
     }
   };
 
+  // 👇 منطق اصلاح‌شده دانلود گزارش خودروها
   const handleDownloadVehicles = async () => {
     setIsDownloadingVehicle(true);
     try {
       await managerApi.downloadVehicleReport();
       toast.success("گزارش خودروها دانلود شد");
-    } catch {
-      toast.error("خطا در دانلود");
+    } catch (error: any) {
+      const errorMessage = error?.message || "خطا در دانلود گزارش خودروها";
+      toast.error(errorMessage);
     } finally {
       setIsDownloadingVehicle(false);
     }
