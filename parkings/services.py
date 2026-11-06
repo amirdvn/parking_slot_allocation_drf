@@ -132,7 +132,7 @@ class ParkingRequestService:
         with transaction.atomic():
             locked = (
                 ParkingRequest.objects
-                .select_related('parking_space')
+                .select_related('parking_space', 'vehicle')
                 .select_for_update(of=('self',))
                 .get(pk=parking_request.id)
             )
@@ -167,6 +167,39 @@ class ParkingRequestService:
                     link=f'/api/parking/requests/detail/{locked.id}/',
                 )
             transaction.on_commit(send_notification)
+
+            if locked.status == RequestStatus.APPROVED:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+
+
+                guard_ids = list(
+                    User.objects
+                    .filter(role=User.Role.GUARD, is_active=True)
+                    .values_list('id', flat=True)
+                )
+
+                if guard_ids:
+                    plate = locked.vehicle.plate_number if locked.vehicle else '---'
+                    space_code = locked.parking_space.code if locked.parking_space else '---'
+
+                    guard_title = 'درخواست جدید آماده ورود'
+                    guard_message = (
+                        f'درخواست #{locked.id} تایید شد. '
+                        f'پلاک: {plate} · جایگاه: {space_code}'
+                    )
+
+                    def send_guard_notifications():
+                        for guard_id in guard_ids:
+                            create_notification_task.delay(
+                                user_id=guard_id,
+                                notification_type=Notification.Type.REVIEW_NEEDED,
+                                title=guard_title,
+                                message=guard_message,
+                                link='/entry-exit',
+                            )
+
+                    transaction.on_commit(send_guard_notifications)
 
         return locked
 
