@@ -4,15 +4,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, ClipboardList } from "lucide-react";
+import { Plus, ClipboardList, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { parkingApi } from "../api";
 import { vehicleApi } from "../../vehicles/api";
-import type { RequestStatus } from "../../../types/parking";
+import type { ParkingRequest, RequestStatus } from "../../../types/parking";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
 
 const statusConfig: Record<RequestStatus, { label: string; className: string }> = {
@@ -42,6 +43,11 @@ function RequestsPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
+  // 👇 stateهای مربوط به لغو
+  const [cancelingRequest, setCancelingRequest] = useState<ParkingRequest | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
   const { data: requests, isLoading } = useQuery({
     queryKey: ["parking-requests"],
     queryFn: parkingApi.getMyRequests,
@@ -58,7 +64,6 @@ function RequestsPage() {
 
   const selectedVehicleId = watch("vehicle");
 
-  // 👇 ساده و امن
   const { data: spaces } = useQuery({
     queryKey: ["parking-spaces", selectedVehicleId],
     queryFn: () => parkingApi.getSpaces(selectedVehicleId ? Number(selectedVehicleId) : undefined),
@@ -88,7 +93,27 @@ function RequestsPage() {
       reset();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.parking_space?.[0] || error.response?.data?.detail || "خطا در ثبت");
+      toast.error(
+        error.response?.data?.parking_space?.[0] ||
+          error.response?.data?.detail ||
+          "خطا در ثبت"
+      );
+    },
+  });
+
+  // 👇 Mutation لغو
+  const cancelMutation = useMutation({
+    mutationFn: () => parkingApi.cancelRequest(cancelingRequest!.id, cancelReason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parking-requests"] });
+      toast.success("درخواست لغو شد");
+      setCancelingRequest(null);
+      setCancelReason("");
+      setConfirmCancel(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "خطا در لغو درخواست");
+      setConfirmCancel(false);
     },
   });
 
@@ -115,28 +140,72 @@ function RequestsPage() {
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-[#2c2c2e]">
             <ClipboardList size={28} />
           </div>
-          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">هنوز درخواستی ثبت نکرده‌اید</h3>
-          <Button onClick={() => setIsCreateOpen(true)} className="mt-4"><Plus size={16} /> ثبت درخواست</Button>
+          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+            هنوز درخواستی ثبت نکرده‌اید
+          </h3>
+          <p className="mt-1 text-[13px] text-gray-500">
+            اولین درخواست خود را ثبت کنید
+          </p>
+          <Button onClick={() => setIsCreateOpen(true)} className="mt-4">
+            <Plus size={16} /> ثبت درخواست
+          </Button>
         </div>
       ) : (
         <div className="space-y-2">
-          {requests.map((req) => (
-            <div key={req.id} className="rounded-2xl bg-surface p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">#{req.id}</p>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusConfig[req.status]?.className}`}>
-                  {statusConfig[req.status]?.label || req.status}
-                </span>
+          {requests.map((req) => {
+            // 👇 فقط درخواست‌های PENDING یا APPROVED قابل لغو هستن
+            const canCancel = req.status === "PENDING" || req.status === "APPROVED";
+
+            return (
+              <div key={req.id} className="rounded-2xl bg-surface p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
+                        #{req.id}
+                      </p>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusConfig[req.status]?.className}`}>
+                        {statusConfig[req.status]?.label || req.status}
+                      </span>
+                    </div>
+                    <div className="mt-2 space-y-1 text-[12px] text-gray-500 dark:text-gray-400">
+                      <p>
+                        خودرو:{" "}
+                        <span className="font-medium text-gray-900 dark:text-white" dir="ltr">
+                          {vehicles?.find((v) => v.id === req.vehicle)?.plate_number || "---"}
+                        </span>
+                      </p>
+                      <p dir="ltr">
+                        {new Date(req.start_time).toLocaleString("fa-IR")} →{" "}
+                        {new Date(req.end_time).toLocaleString("fa-IR")}
+                      </p>
+                      {req.description && (
+                        <p className="text-[11px]">توضیحات: {req.description}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 👇 دکمه لغو */}
+                  {canCancel && (
+                    <button
+                      onClick={() => {
+                        setCancelingRequest(req);
+                        setCancelReason("");
+                      }}
+                      className="flex shrink-0 items-center gap-1 rounded-lg bg-red-50 px-3 py-2 text-[12px] font-medium text-[#ff3b30] transition-colors hover:bg-red-100 dark:bg-[#ff453a]/10 dark:text-[#ff453a] dark:hover:bg-[#ff453a]/20"
+                    >
+                      <XCircle size={14} />
+                      لغو
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="mt-2 space-y-1 text-[12px] text-gray-500 dark:text-gray-400">
-                <p>خودرو: <span className="font-medium text-gray-900 dark:text-white" dir="ltr">{vehicles?.find((v) => v.id === req.vehicle)?.plate_number || "---"}</span></p>
-                <p dir="ltr">{new Date(req.start_time).toLocaleString("fa-IR")} → {new Date(req.end_time).toLocaleString("fa-IR")}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
+      {/* مودال ثبت درخواست */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="درخواست جدید">
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
           <Select
@@ -153,6 +222,9 @@ function RequestsPage() {
             disabled={!selectedVehicleId}
             {...register("parking_space")}
           />
+          {!selectedVehicleId && (
+            <p className="text-xs text-amber-500">ابتدا خودرو را انتخاب کنید.</p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Input type="datetime-local" label="شروع" error={errors.start_time?.message} {...register("start_time")} />
@@ -169,6 +241,66 @@ function RequestsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* 👇 مودال دلیل لغو */}
+      <Modal
+        isOpen={!!cancelingRequest}
+        onClose={() => setCancelingRequest(null)}
+        title="لغو درخواست"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-3 text-[13px] text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <p>
+              درخواست <span className="font-bold">#{cancelingRequest?.id}</span> لغو خواهد شد. لطفاً دلیل را وارد کنید.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
+              دلیل لغو (الزامی)
+            </label>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="مثلاً: تغییر برنامه، لغو سفر و..."
+              rows={3}
+              className="w-full rounded-xl border-0 bg-gray-100 px-4 py-3 text-[15px] text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#007aff] dark:bg-[#1c1c1e] dark:text-white dark:focus:bg-[#2c2c2e] dark:focus:ring-[#0a84ff]"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="danger"
+              className="flex-1"
+              onClick={() => setConfirmCancel(true)}
+              disabled={!cancelReason.trim()}
+            >
+              تایید و لغو
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setCancelingRequest(null)}
+            >
+              انصراف
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 👇 تایید نهایی لغو */}
+      <ConfirmDialog
+        isOpen={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        onConfirm={() => cancelMutation.mutate()}
+        title="لغو قطعی"
+        description={`آیا از لغو درخواست #${cancelingRequest?.id} مطمئن هستید؟ این عملیات قابل بازگشت نیست.`}
+        confirmText="بله، لغو کن"
+        variant="danger"
+        isLoading={cancelMutation.isPending}
+      />
     </div>
   );
 }
