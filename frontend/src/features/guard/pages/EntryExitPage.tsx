@@ -1,7 +1,7 @@
 // src/features/guard/pages/EntryExitPage.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, LogIn, LogOut, Car, Clock } from "lucide-react";
+import { Search, LogIn, LogOut, Car, Clock, CalendarClock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { guardApi } from "../api";
 import Button from "../../../components/ui/Button";
@@ -16,20 +16,31 @@ function EntryExitPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState<number | null>(null);
 
-  // دریافت لاگ‌های داخل پارکینگ
   const { data: logs, isLoading: isLoadingLogs } = useQuery({
     queryKey: ["entry-exit-logs"],
     queryFn: guardApi.getLogs,
   });
 
-  // 👇 دریافت درخواست‌های تایید شده
   const { data: approvedRequests, isLoading: isLoadingApproved } = useQuery({
     queryKey: ["guard-approved-requests"],
     queryFn: guardApi.getApprovedRequests,
-    refetchInterval: 30000, // هر ۳۰ ثانیه رفرش کن
+    refetchInterval: 30000,
   });
 
   const activeLogs = logs?.filter((l) => !l.exit_time) || [];
+
+  // 👇 دسته‌بندی درخواست‌ها بر اساس زمان
+  const now = new Date();
+  const readyNow = approvedRequests?.filter((req: any) => {
+    const start = new Date(req.start_time);
+    const end = new Date(req.end_time);
+    return now >= start && now <= end;
+  }) || [];
+
+  const upcoming = approvedRequests?.filter((req: any) => {
+    const start = new Date(req.start_time);
+    return now < start;
+  }) || [];
 
   const searchMutation = useMutation({
     mutationFn: guardApi.searchVehicle,
@@ -49,7 +60,9 @@ function EntryExitPage() {
       setPlate("");
       toast.success("ورود ثبت شد");
     },
-    onError: (e: any) => toast.error(e.response?.data?.detail || "خطا"),
+    onError: (e: any) => {
+      toast.error(e.response?.data?.detail || e.response?.data?.parking_space?.[0] || "خطا در ثبت ورود");
+    },
   });
 
   const exitMutation = useMutation({
@@ -69,7 +82,7 @@ function EntryExitPage() {
     <div>
       <PageHeader
         title="ثبت ورود و خروج"
-        subtitle={`${activeLogs.length} خودرو داخل پارکینگ · ${approvedRequests?.length || 0} در انتظار ورود`}
+        subtitle={`${activeLogs.length} داخل پارکینگ · ${readyNow.length} آماده ورود · ${upcoming.length} در آینده`}
         toolbar={
           <form
             onSubmit={(e) => {
@@ -102,54 +115,65 @@ function EntryExitPage() {
       {/* نتایج جستجو */}
       {result && result.length > 0 && (
         <div className="mb-4 space-y-2">
-          {result.map((req) => (
-            <div
-              key={req.id}
-              className="flex flex-col gap-3 rounded-2xl border border-[#007aff]/20 bg-[#007aff]/5 p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white" dir="ltr">
-                  {req.vehicle_detail?.plate_number}
-                </p>
-                <p className="mt-0.5 text-[11px] text-gray-500">
-                  جایگاه {req.parking_space_detail?.code}
-                </p>
-              </div>
-              <Button
-                onClick={() =>
-                  entryMutation.mutate({
-                    vehicle: req.vehicle_detail.id,
-                    parking_request: req.id,
-                  })
-                }
-                disabled={entryMutation.isPending}
+          {result.map((req) => {
+            const start = new Date(req.start_time);
+            const end = new Date(req.end_time);
+            const isReady = now >= start && now <= end;
+
+            return (
+              <div
+                key={req.id}
+                className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
+                  isReady
+                    ? "border-[#007aff]/20 bg-[#007aff]/5"
+                    : "border-amber-200 bg-amber-50 dark:border-amber-800/30 dark:bg-amber-900/10"
+                }`}
               >
-                <LogIn size={14} /> ثبت ورود
-              </Button>
-            </div>
-          ))}
+                <div>
+                  <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white" dir="ltr">
+                    {req.vehicle_detail?.plate_number}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    جایگاه {req.parking_space_detail?.code} · {new Date(req.start_time).toLocaleString("fa-IR")}
+                  </p>
+                </div>
+                <Button
+                  onClick={() =>
+                    entryMutation.mutate({
+                      vehicle: req.vehicle_detail.id,
+                      parking_request: req.id,
+                    })
+                  }
+                  disabled={entryMutation.isPending || !isReady}
+                  className="gap-1.5 whitespace-nowrap"
+                >
+                  <LogIn size={14} /> ثبت ورود
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* 👇 بخش جدید: درخواست‌های آماده ورود */}
+      {/* 👇 بخش آماده ورود (زمانش رسیده) */}
       <div className="mb-4 rounded-2xl bg-surface shadow-sm">
         <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-[#38383a]">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-[#007aff] dark:bg-[#0a84ff]/10 dark:text-[#0a84ff]">
-              <Clock size={18} />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
+              <CheckCircle2 size={18} />
             </div>
             <div>
               <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
-                در انتظار ورود
+                آماده ورود
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                درخواست‌های تایید شده آماده ثبت ورود
+                درخواست‌های تایید شده در بازه زمانی فعال
               </p>
             </div>
           </div>
-          {approvedRequests && approvedRequests.length > 0 && (
-            <span className="rounded-full bg-[#007aff]/10 px-2.5 py-1 text-[11px] font-bold text-[#007aff] dark:bg-[#0a84ff]/15 dark:text-[#0a84ff]">
-              {approvedRequests.length}
+          {readyNow.length > 0 && (
+            <span className="rounded-full bg-[#34c759]/10 px-2.5 py-1 text-[11px] font-bold text-[#34c759] dark:bg-[#30d158]/15 dark:text-[#30d158]">
+              {readyNow.length}
             </span>
           )}
         </div>
@@ -160,13 +184,13 @@ function EntryExitPage() {
               <div key={i} className="h-16 animate-pulse rounded-xl bg-gray-100 dark:bg-[#2c2c2e]" />
             ))}
           </div>
-        ) : !approvedRequests || approvedRequests.length === 0 ? (
+        ) : readyNow.length === 0 ? (
           <div className="p-8 text-center text-[13px] text-gray-500 dark:text-gray-400">
-            درخواست تایید شده‌ای در انتظار ورود نیست
+            درخواست آماده ورودی وجود ندارد
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-[#38383a]">
-            {approvedRequests.map((req: any) => (
+            {readyNow.map((req: any) => (
               <div
                 key={req.id}
                 className="flex flex-col gap-3 p-4 hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50 sm:flex-row sm:items-center sm:justify-between"
@@ -177,13 +201,11 @@ function EntryExitPage() {
                       {req.vehicle_detail?.plate_number}
                     </p>
                     <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
-                      تایید شده
+                      آماده ورود
                     </span>
                   </div>
                   <div className="mt-1.5 space-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-                    <p>
-                      کاربر: {req.user_detail?.full_name} · {req.user_detail?.phone_number}
-                    </p>
+                    <p>کاربر: {req.user_detail?.full_name} · {req.user_detail?.phone_number}</p>
                     <p>جایگاه: {req.parking_space_detail?.code}</p>
                     <p dir="ltr">
                       {new Date(req.start_time).toLocaleString("fa-IR")} → {new Date(req.end_time).toLocaleString("fa-IR")}
@@ -208,10 +230,67 @@ function EntryExitPage() {
         )}
       </div>
 
+      {/* 👇 بخش در آینده (زمانش نرسیده) */}
+      {upcoming.length > 0 && (
+        <div className="mb-4 rounded-2xl bg-surface shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-[#38383a]">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500">
+                <CalendarClock size={18} />
+              </div>
+              <div>
+                <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+                  در آینده
+                </h3>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  درخواست‌های تایید شده با زمان شروع در آینده
+                </p>
+              </div>
+            </div>
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-500">
+              {upcoming.length}
+            </span>
+          </div>
+          <div className="divide-y divide-gray-200 dark:divide-[#38383a]">
+            {upcoming.map((req: any) => (
+              <div
+                key={req.id}
+                className="flex flex-col gap-3 p-4 opacity-75 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white" dir="ltr">
+                      {req.vehicle_detail?.plate_number}
+                    </p>
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:bg-amber-900/20 dark:text-amber-500">
+                      در آینده
+                    </span>
+                  </div>
+                  <div className="mt-1.5 space-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                    <p>کاربر: {req.user_detail?.full_name}</p>
+                    <p>جایگاه: {req.parking_space_detail?.code}</p>
+                    <p dir="ltr">
+                      شروع: {new Date(req.start_time).toLocaleString("fa-IR")}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  disabled
+                  className="gap-1.5 whitespace-nowrap opacity-50"
+                  title="زمان شروع این درخواست هنوز نرسیده است"
+                >
+                  <LogIn size={14} /> ثبت ورود
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* جدول خودروهای داخل پارکینگ */}
       <div className="rounded-2xl bg-surface shadow-sm">
         <div className="flex items-center gap-2 border-b border-gray-200 p-5 dark:border-[#38383a]">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-[#007aff] dark:bg-[#0a84ff]/10 dark:text-[#0a84ff]">
             <Car size={18} />
           </div>
           <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
