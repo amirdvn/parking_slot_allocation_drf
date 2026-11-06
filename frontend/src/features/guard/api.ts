@@ -1,10 +1,10 @@
+// src/features/guard/api.ts
 import { api } from "../../lib/api";
 import type { PaginatedResponse } from "../../types/vehicle";
 import type { ParkingRequest } from "../../types/parking";
 import type { EntryExitLog, GuardDashboardData } from "../../types/guard";
 
 export const guardApi = {
-  // 👇 اصلاح شد: results رو برمی‌گردونه (نه آبجکت صفحه‌بندی)
   searchVehicle: async (plateNumber: string) => {
     const response = await api.get<PaginatedResponse<ParkingRequest>>(
       `/api/parking/guard/vehicle/search/?plate_number=${plateNumber}`
@@ -24,6 +24,12 @@ export const guardApi = {
 
   getLogs: async () => {
     const response = await api.get<PaginatedResponse<EntryExitLog>>("/api/parking/entry_exit/list/");
+    return response.data.results;
+  },
+
+  // 👇 جدید: دریافت درخواست‌های تایید شده که آماده ورود هستند
+  getApprovedRequests: async () => {
+    const response = await api.get<PaginatedResponse<any>>("/api/parking/requests/approved/guard/");
     return response.data.results;
   },
 
