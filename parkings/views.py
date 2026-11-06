@@ -28,9 +28,28 @@ User = get_user_model()
     post=extend_schema(operation_id="manager_parking_space_create")
 )
 class ParkingSpaceListCreateView(ListCreateAPIView):
-    queryset = ParkingSpace.objects.all()
     serializer_class = ParkingSpaceSerializer
     permission_classes = [IsManagerUserOrReadOnly]
+
+    def get_queryset(self):
+        vehicle_id = self.request.query_params.get('vehicle_id')
+
+        if not vehicle_id:
+            return ParkingSpace.objects.none()
+
+        vehicle = Vehicle.objects.filter(
+            id=vehicle_id,
+            user=self.request.user,
+            is_active=True
+        ).first()
+
+        if not vehicle:
+            return ParkingSpace.objects.none()
+
+        return ParkingSpace.objects.get_allowed_parking_spaces(
+            vehicle=vehicle,
+            user=self.request.user
+        )
 
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_space_detail"),
