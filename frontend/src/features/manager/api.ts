@@ -38,15 +38,16 @@ export const managerApi = {
     return response.data;
   },
 
+  // 👇 اصلاح شد: ارسال is_active در بدنه درخواست
   toggleUserStatus: async (userId: number, isActive: boolean) => {
     const endpoint = isActive
       ? `/api/parking/manager/users/activate/${userId}/`
       : `/api/parking/manager/users/deactivate/${userId}/`;
-    const response = await api.patch(endpoint);
+
+    const response = await api.patch(endpoint, { is_active: isActive });
     return response.data;
   },
 
-  // 👇 جدید: مدیریت خودروهای تمام کاربران
   getAllVehicles: async (page = 1) => {
     const response = await api.get<PaginatedResponse<ManagerVehicle>>(
       `/api/parking/manager/vehicles/list/?page=${page}`
@@ -54,11 +55,13 @@ export const managerApi = {
     return response.data;
   },
 
+  // 👇 اصلاح شد: ارسال is_active در بدنه درخواست
   toggleVehicleStatus: async (vehicleId: number, isActive: boolean) => {
     const endpoint = isActive
       ? `/api/parking/manager/vehicles/activate/${vehicleId}/`
       : `/api/parking/manager/vehicles/deactivate/${vehicleId}/`;
-    const response = await api.patch(endpoint);
+
+    const response = await api.patch(endpoint, { is_active: isActive });
     return response.data;
   },
 
