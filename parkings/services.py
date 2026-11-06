@@ -1,3 +1,4 @@
+# parkings/services.py
 from datetime import timedelta
 from django.utils import timezone
 from notifications.models import Notification
@@ -12,21 +13,70 @@ from django.db import transaction
 
 User = get_user_model()
 
+
 class ParkingRequestService:
+
+
+    @staticmethod
+    def _notify_managers(parking_request):
+        manager_ids = list(
+            User.objects
+            .filter(role=User.Role.MANAGER, is_active=True)
+            .values_list('id', flat=True)
+        )
+
+        if not manager_ids:
+            return
+
+        space_code = parking_request.parking_space.code if parking_request.parking_space else '---'
+
+        if parking_request.status == ParkingRequest.RequestStatus.NEEDS_REVIEW:
+            title = 'درخواست اضطراری نیازمند بررسی'
+            message = (
+                f'درخواست #{parking_request.id} (اضطراری) نیازمند بررسی دستی شماست. '
+                f'جایگاه: {space_code}'
+            )
+        elif parking_request.is_guest:
+            title = 'درخواست مهمان جدید'
+            message = (
+                f'درخواست مهمان #{parking_request.id} در انتظار تایید شماست. '
+                f'مهمان: {parking_request.guest_name or "---"} · '
+                f'پلاک: {parking_request.guest_plate_number or "---"}'
+            )
+        else:
+            plate = parking_request.vehicle.plate_number if parking_request.vehicle else '---'
+            title = 'درخواست جدید پارکینگ'
+            message = (
+                f'درخواست #{parking_request.id} در انتظار تایید شماست. '
+                f'پلاک: {plate} · جایگاه: {space_code}'
+            )
+
+        def send():
+            for manager_id in manager_ids:
+                create_notification_task.delay(
+                    user_id=manager_id,
+                    notification_type=Notification.Type.REVIEW_NEEDED,
+                    title=title,
+                    message=message,
+                    link='/manage-requests',
+                )
+        transaction.on_commit(send)
+
 
     @staticmethod
     def expire_pending_requests():
-        
-        RequestStatus = ParkingRequest.RequestStatus    
+
+        RequestStatus = ParkingRequest.RequestStatus
 
         time_expire = timezone.now() - timedelta(minutes=3)
 
         with transaction.atomic():
-            request_expired =(
+            request_expired = (
                 ParkingRequest.objects
                 .select_for_update(of=('self',))
                 .pending_or_review()
-                .created_before(time_expire))
+                .created_before(time_expire)
+            )
 
             expired_requests = list(request_expired.values_list('id', 'user_id'))
 
@@ -52,7 +102,7 @@ class ParkingRequestService:
                     link=f'/api/parking/requests/detail/{req_id}/',
                 )
             transaction.on_commit(send_notification)
-        
+
         return updated_count
 
 
@@ -82,6 +132,8 @@ class ParkingRequestService:
                 parking_request.status = ParkingRequest.RequestStatus.NEEDS_REVIEW
                 parking_request.save(update_fields=['status'])
 
+            ParkingRequestService._notify_managers(parking_request)
+
         return parking_request
 
 
@@ -99,7 +151,7 @@ class ParkingRequestService:
         with transaction.atomic():
             locked = (
                 ParkingRequest.objects
-                .select_related('parking_space')
+                .select_related('parking_space', 'vehicle')
                 .select_for_update(of=('self',))
                 .get(pk=parking_request.id)
             )
@@ -113,6 +165,26 @@ class ParkingRequestService:
             locked.status = RequestStatus.CANCELED
             locked.cancellation_reason = reason
             locked.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
+
+
+            def notify_managers_on_cancel():
+                manager_ids = list(
+                    User.objects
+                    .filter(role=User.Role.MANAGER, is_active=True)
+                    .values_list('id', flat=True)
+                )
+                for manager_id in manager_ids:
+                    create_notification_task.delay(
+                        user_id=manager_id,
+                        notification_type=Notification.Type.REQUEST_STATUS,
+                        title='درخواست لغو شد',
+                        message=(
+                            f'درخواست #{locked.id} توسط کاربر لغو شد. '
+                            f'دلیل: {reason}'
+                        ),
+                        link='/manage-requests',
+                    )
+            transaction.on_commit(notify_managers_on_cancel)
 
         return locked
 
@@ -158,7 +230,6 @@ class ParkingRequestService:
                 message = f'درخواست شما رد شد؛ دلیل: {locked.rejection_reason or "تعیین نشده"}'
 
             def send_notification():
-
                 create_notification_task.delay(
                     user_id=locked.user_id,
                     notification_type=Notification.Type.REQUEST_STATUS,
@@ -169,10 +240,6 @@ class ParkingRequestService:
             transaction.on_commit(send_notification)
 
             if locked.status == RequestStatus.APPROVED:
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
-
-
                 guard_ids = list(
                     User.objects
                     .filter(role=User.Role.GUARD, is_active=True)
@@ -214,7 +281,6 @@ class ParkingRequestService:
             target_space = validated_data.get('parking_space') or parking_request.parking_space
             if target_space is None:
                 raise ValueError('جایگاه نامعتبر است')
-
 
             space = ParkingSpace.objects.select_for_update().get(
                 pk=validated_data.get(
@@ -268,10 +334,14 @@ class ParkingRequestService:
             ).exists():
                 raise ValueError('این جایگاه در بازه زمانی انتخابی مسدود است')
 
-            parking_request = ParkingRequest.objects.create(user=user, vehicle=None, is_guest=True, **validated_data)
+            parking_request = ParkingRequest.objects.create(
+                user=user, vehicle=None, is_guest=True, **validated_data
+            )
+
+
+            ParkingRequestService._notify_managers(parking_request)
 
             return parking_request
-
 
 
 class EntryExitLogService:
@@ -301,7 +371,6 @@ class EntryExitLogService:
 
             if EntryExitLog.objects.for_request(parking_request).active().exclude(pk=log.id).exists():
                 raise ValueError('برای این درخواست قبلاً ورود ثبت شده است')
-
 
             parking_request.status = ParkingRequest.RequestStatus.IN_USE
             parking_request.save(update_fields=['status', 'updated_date'])
@@ -334,7 +403,6 @@ class EntryExitLogService:
     def record_exit(log):
 
         log = EntryExitLog.objects.select_for_update().get(pk=log.id)
-
 
         if log.exit_time:
             raise ValueError('خروج این خودرو قبلاً ثبت شده است')
@@ -370,9 +438,7 @@ class EntryExitLogService:
         return log
 
 
-
 class DashboardService:
-
 
     @staticmethod
     def _space_availability(now):
@@ -415,8 +481,6 @@ class DashboardService:
             needs_review=Count('id', filter=Q(status=RequestStatus.NEEDS_REVIEW)),
         )
 
-
-
         top_parking_spaces = (
             ParkingSpace.objects.annotate(
                 usage_count=Count(
@@ -444,10 +508,9 @@ class DashboardService:
         data = {
             'parking_spaces': DashboardService._space_availability(now),
 
-            'requests':
-                {
-                    'pending': request_stats['pending'],
-                    'needs_review': request_stats['needs_review'],
+            'requests': {
+                'pending': request_stats['pending'],
+                'needs_review': request_stats['needs_review'],
             },
 
             'top_parking_spaces': [
@@ -478,15 +541,15 @@ class DashboardService:
         RequestStatus = ParkingRequest.RequestStatus
 
         vehicle_stats = Vehicle.objects.filter(user=user).aggregate(
-            total = Count('id'),
-            active = Count('id', filter=Q(is_active=True)),
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True)),
         )
 
         request_stats = ParkingRequest.objects.filter(user=user).aggregate(
-            pending = Count('id', filter=Q(status=RequestStatus.PENDING)),
-            needs_review = Count('id', filter=Q(status=RequestStatus.NEEDS_REVIEW)),
-            approved = Count('id', filter=Q(status=RequestStatus.APPROVED)),
-            rejected = Count('id', filter=Q(status=RequestStatus.REJECTED)),
+            pending=Count('id', filter=Q(status=RequestStatus.PENDING)),
+            needs_review=Count('id', filter=Q(status=RequestStatus.NEEDS_REVIEW)),
+            approved=Count('id', filter=Q(status=RequestStatus.APPROVED)),
+            rejected=Count('id', filter=Q(status=RequestStatus.REJECTED)),
         )
 
         return {
@@ -501,7 +564,6 @@ class DashboardService:
                 'rejected': request_stats['rejected'],
             },
         }
-
 
     @staticmethod
     def get_guard_dashboard():
@@ -519,17 +581,12 @@ class DashboardService:
 
         data = {
             'parking_spaces': DashboardService._space_availability(now),
-
-            'vehicles':
-                {
-                    'in_use': request_stats['in_use']
-                },
-
-            'requests':
-                {
-                    'approved': request_stats['approved']
-                },
-
+            'vehicles': {
+                'in_use': request_stats['in_use']
+            },
+            'requests': {
+                'approved': request_stats['approved']
+            },
         }
 
         DashboardCache.set(DashboardCache.GUARD_KEY, data)
@@ -553,6 +610,7 @@ class ParkingSpaceBlockService:
 
             return ParkingSpaceBlock.objects.create(created_by=created_by, **validated_data)
 
+
 class EntryExitReportService:
     COLUMNS = [
         ('user_id', 'شناسه کاربر'),
@@ -574,7 +632,6 @@ class EntryExitReportService:
         hours, rem = divmod(total, 3600)
         minutes, seconds = divmod(rem, 60)
         return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
-
 
     @staticmethod
     def iter_rows(start, end):
