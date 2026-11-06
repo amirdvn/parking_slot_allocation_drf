@@ -1,6 +1,4 @@
-
 // src/features/parking/api.ts
-
 import { api } from "../../lib/api";
 import type { PaginatedResponse } from "../../types/vehicle";
 import type {
@@ -11,78 +9,40 @@ import type {
 } from "../../types/parking";
 
 export const parkingApi = {
-  // دریافت تمام جایگاه‌ها
-  // برای مدیریت و نمایش درخواست‌های قبلی
-  getSpaces: async () => {
-    const response = await api.get<PaginatedResponse<ParkingSpace>>(
-      "/api/parking/list/"
-    );
-
-    return response.data.results;
-  },
-
-  // دریافت جایگاه‌های متناسب با خودروی انتخاب‌شده
-  getAvailableSpaces: async (vehicleId: string) => {
-    const response = await api.get<PaginatedResponse<ParkingSpace>>(
-      "/api/parking/list/",
-      {
-        params: {
-          vehicle_id: vehicleId,
-        },
-      }
-    );
-
+  // 👇 این بخش حتماً باید پارامتر vehicleId رو قبول کنه
+  getSpaces: async (vehicleId?: number) => {
+    let url = "/api/parking/list/";
+    if (vehicleId) {
+      url += `?vehicle=${vehicleId}`;
+    }
+    const response = await api.get<PaginatedResponse<ParkingSpace>>(url);
     return response.data.results;
   },
 
   getMyRequests: async () => {
-    const response = await api.get<PaginatedResponse<ParkingRequest>>(
-      "/api/parking/requests/list/"
-    );
-
+    const response = await api.get<PaginatedResponse<ParkingRequest>>("/api/parking/requests/list/");
     return response.data.results;
   },
 
   createRequest: async (data: CreateRequestPayload) => {
-    const response = await api.post<ParkingRequest>(
-      "/api/parking/requests/create/",
-      data
-    );
-
+    const response = await api.post<ParkingRequest>("/api/parking/requests/create/", data);
     return response.data;
   },
 
   cancelRequest: async (id: number, reason: string) => {
-    const response = await api.patch(
-      `/api/parking/requests/cancel/${id}/`,
-      {
-        cancellation_reason: reason,
-      }
-    );
-
+    const response = await api.patch(`/api/parking/requests/cancel/${id}/`, {
+      cancellation_reason: reason,
+    });
     return response.data;
   },
-
-  // بخش مدیریت
 
   createSpace: async (data: ParkingSpacePayload) => {
-    const response = await api.post<ParkingSpace>(
-      "/api/parking/create/",
-      data
-    );
-
+    const response = await api.post<ParkingSpace>("/api/parking/create/", data);
     return response.data;
   },
 
-  updateSpace: async (
-    id: string,
-    data: Partial<ParkingSpacePayload>
-  ) => {
-    const response = await api.patch<ParkingSpace>(
-      `/api/parking/update/${id}/`,
-      data
-    );
-
+  updateSpace: async (id: string, data: Partial<ParkingSpacePayload>) => {
+    const response = await api.patch<ParkingSpace>(`/api/parking/update/${id}/`, data);
     return response.data;
   },
 
@@ -90,32 +50,27 @@ export const parkingApi = {
     await api.delete(`/api/parking/delete/${id}/`);
   },
 
-  // انسداد جایگاه
-
   getBlocks: async () => {
-    const response = await api.get<PaginatedResponse<any>>(
-      "/api/parking/blocks/list/"
-    );
-
+    const response = await api.get<PaginatedResponse<any>>("/api/parking/blocks/list/");
     return response.data.results;
   },
 
-  createBlock: async (data: {
-    parking_space: string;
-    start_time: string;
-    end_time: string;
-    reason: string;
-    description?: string;
-  }) => {
-    const response = await api.post(
-      "/api/parking/blocks/create/",
-      data
-    );
-
+  createBlock: async (data: any) => {
+    const response = await api.post("/api/parking/blocks/create/", data);
     return response.data;
   },
 
   deleteBlock: async (id: number) => {
     await api.delete(`/api/parking/blocks/delete/${id}/`);
+  },
+
+  createGuestRequest: async (data: any) => {
+    const response = await api.post("/api/parking/requests/guest/create/", data);
+    return response.data;
+  },
+
+  getUserDashboard: async () => {
+    const response = await api.get("/api/parking/user/dashboard/");
+    return response.data;
   },
 };

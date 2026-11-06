@@ -1,137 +1,76 @@
-
 // src/features/parking/pages/RequestsPage.tsx
-
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Plus, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
-
 import { parkingApi } from "../api";
 import { vehicleApi } from "../../vehicles/api";
-
 import type { RequestStatus } from "../../../types/parking";
-
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import PageHeader from "../../../components/shared/PageHeader";
 
-const statusConfig: Record<
-  RequestStatus,
-  { label: string; className: string }
-> = {
-  PENDING: {
-    label: "در انتظار",
-    className: "bg-gray-100 text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300",
-  },
-  APPROVED: {
-    label: "تایید شده",
-    className: "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]",
-  },
-  REJECTED: {
-    label: "رد شده",
-    className: "bg-red-50 text-[#ff3b30] dark:bg-[#ff453a]/10 dark:text-[#ff453a]",
-  },
-  CANCELED: {
-    label: "لغو شده",
-    className: "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500",
-  },
-  EXPIRED: {
-    label: "منقضی",
-    className: "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500",
-  },
-  IN_USE: {
-    label: "در حال استفاده",
-    className: "bg-blue-50 text-[#007aff] dark:bg-[#0a84ff]/10 dark:text-[#0a84ff]",
-  },
-  COMPLETED: {
-    label: "تکمیل شده",
-    className: "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]",
-  },
-  NEEDS_REVIEW: {
-    label: "نیازمند بررسی",
-    className: "bg-gray-100 text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300",
-  },
+const statusConfig: Record<RequestStatus, { label: string; className: string }> = {
+  PENDING: { label: "در انتظار", className: "bg-gray-100 text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300" },
+  APPROVED: { label: "تایید شده", className: "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]" },
+  REJECTED: { label: "رد شده", className: "bg-red-50 text-[#ff3b30] dark:bg-[#ff453a]/10 dark:text-[#ff453a]" },
+  CANCELED: { label: "لغو شده", className: "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500" },
+  EXPIRED: { label: "منقضی", className: "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500" },
+  IN_USE: { label: "در حال استفاده", className: "bg-blue-50 text-[#007aff] dark:bg-[#0a84ff]/10 dark:text-[#0a84ff]" },
+  COMPLETED: { label: "تکمیل شده", className: "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]" },
+  NEEDS_REVIEW: { label: "نیازمند بررسی", className: "bg-gray-100 text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300" },
 };
 
-const requestSchema = z
-  .object({
-    vehicle: z.string().min(1, "خودرو الزامی است"),
-    parking_space: z.string().min(1, "جایگاه الزامی است"),
-    start_time: z.string().min(1, "زمان شروع الزامی است"),
-    end_time: z.string().min(1, "زمان پایان الزامی است"),
-    description: z.string().optional(),
-  })
-  .refine(
-    (d) => new Date(d.end_time) > new Date(d.start_time),
-    {
-      message: "زمان پایان باید بعد از شروع باشد",
-      path: ["end_time"],
-    }
-  );
-
+const requestSchema = z.object({
+  vehicle: z.string().min(1, "خودرو الزامی است"),
+  parking_space: z.string().min(1, "جایگاه الزامی است"),
+  start_time: z.string().min(1, "زمان شروع الزامی است"),
+  end_time: z.string().min(1, "زمان پایان الزامی است"),
+  description: z.string().optional(),
+}).refine((d) => new Date(d.end_time) > new Date(d.start_time), {
+  message: "زمان پایان باید بعد از شروع باشد",
+  path: ["end_time"],
+});
 type RequestFormValues = z.infer<typeof requestSchema>;
 
 function RequestsPage() {
   const queryClient = useQueryClient();
-
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // دریافت درخواست‌های کاربر
   const { data: requests, isLoading } = useQuery({
     queryKey: ["parking-requests"],
     queryFn: parkingApi.getMyRequests,
   });
 
-  // دریافت خودروهای کاربر
   const { data: vehicles } = useQuery({
     queryKey: ["vehicles"],
     queryFn: vehicleApi.getVehicles,
   });
 
-  // دریافت تمام جایگاه‌ها برای نمایش اطلاعات درخواست‌های قبلی
-  const { data: spaces } = useQuery({
-    queryKey: ["parking-spaces"],
-    queryFn: parkingApi.getSpaces,
-  });
-
-  // فرم ثبت درخواست
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    resetField,
-    formState: { errors },
-  } = useForm<RequestFormValues>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<RequestFormValues>({
     resolver: zodResolver(requestSchema),
   });
 
-  // خودروی انتخاب‌شده توسط کاربر
-  const selectedVehicle = watch("vehicle");
+  const selectedVehicleId = watch("vehicle");
 
-  // دریافت جایگاه‌های متناسب با خودروی انتخاب‌شده
-  const {
-    data: availableSpaces,
-    isLoading: isSpacesLoading,
-    isFetching: isSpacesFetching,
-  } = useQuery({
-    queryKey: ["parking-spaces", "available", selectedVehicle],
-    queryFn: () =>
-      parkingApi.getAvailableSpaces(selectedVehicle),
-    enabled: Boolean(selectedVehicle) && isCreateOpen,
+  // 👇 ساده و امن
+  const { data: spaces } = useQuery({
+    queryKey: ["parking-spaces", selectedVehicleId],
+    queryFn: () => parkingApi.getSpaces(selectedVehicleId ? Number(selectedVehicleId) : undefined),
+    enabled: !!selectedVehicleId,
   });
 
-  // با تغییر خودرو، جایگاه قبلی پاک می‌شود
   useEffect(() => {
-    resetField("parking_space");
-  }, [selectedVehicle, resetField]);
+    if (selectedVehicleId) {
+      setValue("parking_space", "");
+    }
+  }, [selectedVehicleId, setValue]);
 
-  // ثبت درخواست
   const createMutation = useMutation({
     mutationFn: (data: RequestFormValues) => {
       return parkingApi.createRequest({
@@ -142,24 +81,14 @@ function RequestsPage() {
         description: data.description,
       });
     },
-
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["parking-requests"],
-      });
-
+      queryClient.invalidateQueries({ queryKey: ["parking-requests"] });
       toast.success("درخواست ثبت شد");
-
       setIsCreateOpen(false);
       reset();
     },
-
     onError: (error: any) => {
-      toast.error(
-        error.response?.data?.parking_space?.[0] ||
-          error.response?.data?.detail ||
-          "خطا در ثبت"
-      );
+      toast.error(error.response?.data?.parking_space?.[0] || error.response?.data?.detail || "خطا در ثبت");
     },
   });
 
@@ -169,14 +98,8 @@ function RequestsPage() {
         title="درخواست‌های من"
         subtitle={`${requests?.length || 0} درخواست`}
         action={
-          <Button
-            onClick={() => {
-              reset();
-              setIsCreateOpen(true);
-            }}
-          >
-            <Plus size={16} />
-            درخواست جدید
+          <Button onClick={() => { setIsCreateOpen(true); reset(); }}>
+            <Plus size={16} /> درخواست جدید
           </Button>
         }
       />
@@ -184,10 +107,7 @@ function RequestsPage() {
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-24 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]"
-            />
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
           ))}
         </div>
       ) : !requests?.length ? (
@@ -195,188 +115,55 @@ function RequestsPage() {
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-[#2c2c2e]">
             <ClipboardList size={28} />
           </div>
-
-          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
-            هنوز درخواستی ثبت نکرده‌اید
-          </h3>
-
-          <p className="mt-1 text-[13px] text-gray-500">
-            اولین درخواست خود را ثبت کنید
-          </p>
-
-          <Button
-            onClick={() => {
-              reset();
-              setIsCreateOpen(true);
-            }}
-            className="mt-4"
-          >
-            <Plus size={16} />
-            ثبت درخواست
-          </Button>
+          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">هنوز درخواستی ثبت نکرده‌اید</h3>
+          <Button onClick={() => setIsCreateOpen(true)} className="mt-4"><Plus size={16} /> ثبت درخواست</Button>
         </div>
       ) : (
         <div className="space-y-2">
           {requests.map((req) => (
-            <div
-              key={req.id}
-              className="rounded-2xl bg-surface p-4 shadow-sm transition-shadow hover:shadow-md"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
-                      #{req.id}
-                    </p>
-
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        statusConfig[req.status]?.className
-                      }`}
-                    >
-                      {statusConfig[req.status]?.label || req.status}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 space-y-1 text-[12px] text-gray-500 dark:text-gray-400">
-                    <p>
-                      خودرو:{" "}
-                      <span
-                        className="font-medium text-gray-900 dark:text-white"
-                        dir="ltr"
-                      >
-                        {vehicles?.find(
-                          (v) => v.id === req.vehicle
-                        )?.plate_number || "---"}
-                      </span>
-                    </p>
-
-                    <p>
-                      جایگاه:{" "}
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {spaces?.find(
-                          (s) => s.id === req.parking_space
-                        )?.code || "---"}
-                      </span>
-                    </p>
-
-                    <p dir="ltr">
-                      {new Date(req.start_time).toLocaleString("fa-IR")}{" "}
-                      →
-                      {" "}
-                      {new Date(req.end_time).toLocaleString("fa-IR")}
-                    </p>
-                  </div>
-                </div>
+            <div key={req.id} className="rounded-2xl bg-surface p-4 shadow-sm">
+              <div className="flex items-center gap-2">
+                <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">#{req.id}</p>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusConfig[req.status]?.className}`}>
+                  {statusConfig[req.status]?.label || req.status}
+                </span>
+              </div>
+              <div className="mt-2 space-y-1 text-[12px] text-gray-500 dark:text-gray-400">
+                <p>خودرو: <span className="font-medium text-gray-900 dark:text-white" dir="ltr">{vehicles?.find((v) => v.id === req.vehicle)?.plate_number || "---"}</span></p>
+                <p dir="ltr">{new Date(req.start_time).toLocaleString("fa-IR")} → {new Date(req.end_time).toLocaleString("fa-IR")}</p>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <Modal
-        isOpen={isCreateOpen}
-        onClose={() => {
-          setIsCreateOpen(false);
-          reset();
-        }}
-        title="درخواست جدید"
-      >
-        <form
-          onSubmit={handleSubmit((d) =>
-            createMutation.mutate(d)
-          )}
-          className="space-y-4"
-        >
-          {/* انتخاب خودرو */}
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="درخواست جدید">
+        <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
           <Select
             label="خودرو"
-            options={
-              vehicles?.map((v) => ({
-                value: String(v.id),
-                label: v.plate_number,
-              })) || []
-            }
+            options={vehicles?.map((v) => ({ value: String(v.id), label: v.plate_number })) || []}
             error={errors.vehicle?.message}
             {...register("vehicle")}
           />
 
-          {/* انتخاب جایگاه متناسب با خودرو */}
           <Select
             label="جایگاه"
-            placeholder={
-              !selectedVehicle
-                ? "ابتدا خودرو را انتخاب کنید"
-                : isSpacesLoading || isSpacesFetching
-                  ? "در حال دریافت جایگاه‌ها..."
-                  : "انتخاب جایگاه"
-            }
-            options={
-              availableSpaces?.map((s) => ({
-                value: String(s.id),
-                label: `${s.code} (${s.floor})`,
-              })) || []
-            }
-            disabled={
-              !selectedVehicle ||
-              isSpacesLoading ||
-              isSpacesFetching
-            }
+            options={spaces?.map((s) => ({ value: s.id, label: `${s.code} (${s.floor})` })) || []}
             error={errors.parking_space?.message}
+            disabled={!selectedVehicleId}
             {...register("parking_space")}
           />
 
-          {selectedVehicle &&
-            !isSpacesLoading &&
-            !isSpacesFetching &&
-            availableSpaces?.length === 0 && (
-              <p className="text-xs text-red-500">
-                جایگاه مناسبی برای خودروی انتخاب‌شده وجود ندارد.
-              </p>
-            )}
-
-          {/* زمان شروع و پایان */}
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              type="datetime-local"
-              label="شروع"
-              error={errors.start_time?.message}
-              {...register("start_time")}
-            />
-
-            <Input
-              type="datetime-local"
-              label="پایان"
-              error={errors.end_time?.message}
-              {...register("end_time")}
-            />
+            <Input type="datetime-local" label="شروع" error={errors.start_time?.message} {...register("start_time")} />
+            <Input type="datetime-local" label="پایان" error={errors.end_time?.message} {...register("end_time")} />
           </div>
-
-          {/* توضیحات */}
-          <Input
-            label="توضیحات"
-            {...register("description")}
-          />
-
-          {/* دکمه‌ها */}
+          <Input label="توضیحات" {...register("description")} />
           <div className="flex gap-2 pt-2">
-            <Button
-              type="submit"
-              className="flex-1"
-              disabled={createMutation.isPending}
-            >
+            <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
               {createMutation.isPending ? "..." : "ثبت"}
             </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsCreateOpen(false);
-                reset();
-              }}
-              className="flex-1"
-            >
+            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="flex-1">
               انصراف
             </Button>
           </div>

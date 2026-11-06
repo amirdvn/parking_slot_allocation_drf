@@ -66,6 +66,7 @@ function VehiclesPage() {
     mutationFn: vehicleApi.createVehicle,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["parking-spaces"] }); // 👈 پاک کردن کش جایگاه‌ها
       toast.success("ثبت شد");
       closeModal();
     },
@@ -76,6 +77,7 @@ function VehiclesPage() {
     mutationFn: (d: FormValues) => vehicleApi.updateVehicle(editing!.id, d),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["parking-spaces"] }); // 👈 پاک کردن کش جایگاه‌ها
       toast.success("ذخیره شد");
       closeModal();
     },
@@ -86,6 +88,7 @@ function VehiclesPage() {
     mutationFn: vehicleApi.deleteVehicle,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["parking-spaces"] }); // 👈 پاک کردن کش جایگاه‌ها
       toast.success("حذف شد");
       setConfirmDelete(null);
     },
@@ -104,7 +107,6 @@ function VehiclesPage() {
 
   const openEdit = (v: Vehicle) => {
     setEditing(v);
-    // 👇 همه فیلدها پر میشن تا فرم کامل باشه
     reset({
       plate_number: v.plate_number,
       vehicle_type: v.vehicle_type,
@@ -222,4 +224,5 @@ function VehiclesPage() {
   );
 }
 
+// 👇 این خط باعث خطا شده بود
 export default VehiclesPage;

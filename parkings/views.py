@@ -32,24 +32,25 @@ class ParkingSpaceListCreateView(ListCreateAPIView):
     permission_classes = [IsManagerUserOrReadOnly]
 
     def get_queryset(self):
-        vehicle_id = self.request.query_params.get('vehicle_id')
+        vehicle_id = self.request.query_params.get('vehicle')
 
-        if not vehicle_id:
+        if vehicle_id:
+            from vehicles.models import Vehicle
+
+            if self.request.user.is_authenticated and self.request.user.role != 'MANAGER':
+                vehicle = Vehicle.objects.filter(id=vehicle_id, user=self.request.user).first()
+            else:
+                vehicle = Vehicle.objects.filter(id=vehicle_id).first()
+
+            if vehicle:
+
+                return ParkingSpace.objects.get_allowed_parking_spaces(
+                    vehicle=vehicle,
+                    user=None
+                )
             return ParkingSpace.objects.none()
 
-        vehicle = Vehicle.objects.filter(
-            id=vehicle_id,
-            user=self.request.user,
-            is_active=True
-        ).first()
-
-        if not vehicle:
-            return ParkingSpace.objects.none()
-
-        return ParkingSpace.objects.get_allowed_parking_spaces(
-            vehicle=vehicle,
-            user=self.request.user
-        )
+        return ParkingSpace.objects.all()
 
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_space_detail"),
