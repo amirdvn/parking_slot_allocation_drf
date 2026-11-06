@@ -9,6 +9,7 @@ import { managerApi } from "../api";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import PageHeader from "../../../components/shared/PageHeader";
+import { formatSpaceCode } from "../../../lib/parking-format";
 
 const getDefaultDates = () => {
   const today = new Date();
@@ -32,7 +33,6 @@ function ManagerReportsPage() {
     queryFn: managerApi.getDashboard,
   });
 
-  // 👇 منطق اصلاح‌شده دانلود گزارش ورود و خروج
   const handleDownloadEntryExit = async () => {
     if (!startDate || !endDate) {
       toast.error("تاریخ شروع و پایان را وارد کنید");
@@ -52,7 +52,6 @@ function ManagerReportsPage() {
       await managerApi.downloadEntryExitReport(startDate, endDate);
       toast.success("گزارش با موفقیت دانلود شد");
     } catch (error: any) {
-      // 👇 نمایش پیام خطای دقیق از بک‌اند یا API
       const errorMessage = error?.message || "خطا در دانلود گزارش";
       toast.error(errorMessage);
     } finally {
@@ -60,7 +59,6 @@ function ManagerReportsPage() {
     }
   };
 
-  // 👇 منطق اصلاح‌شده دانلود گزارش خودروها
   const handleDownloadVehicles = async () => {
     setIsDownloadingVehicle(true);
     try {
@@ -90,7 +88,6 @@ function ManagerReportsPage() {
         subtitle="آمار و تحلیل سیستم پارکینگ"
       />
 
-      {/* Stat Cards */}
       {isLoading ? (
         <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
@@ -125,7 +122,6 @@ function ManagerReportsPage() {
         </div>
       ) : null}
 
-      {/* Occupancy Overview - Minimal Progress Bars */}
       <div className="mb-6 rounded-2xl bg-surface p-6 shadow-sm">
         <h2 className="mb-1 text-[15px] font-semibold text-gray-900 dark:text-white">
           وضعیت جایگاه‌ها
@@ -170,9 +166,7 @@ function ManagerReportsPage() {
         )}
       </div>
 
-      {/* Two columns: Top parking + Top users */}
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Top parking */}
         <div className="rounded-2xl bg-surface p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Crown size={16} className="text-gray-700 dark:text-gray-300" />
@@ -208,11 +202,8 @@ function ManagerReportsPage() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="mb-1 flex items-center justify-between gap-2">
-                        <span
-                          className="truncate font-mono text-[12px] font-medium text-gray-900 dark:text-white"
-                          dir="ltr"
-                        >
-                          {space.code}
+                        <span className="truncate text-[12px] font-medium text-gray-900 dark:text-white">
+                          {formatSpaceCode(space.code)}
                         </span>
                         <span className="shrink-0 text-[11px] text-gray-500">
                           {space.usage_count} بار
@@ -232,7 +223,6 @@ function ManagerReportsPage() {
           )}
         </div>
 
-        {/* Top users */}
         <div className="rounded-2xl bg-surface p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Users size={16} className="text-gray-700 dark:text-gray-300" />
@@ -290,7 +280,6 @@ function ManagerReportsPage() {
         </div>
       </div>
 
-      {/* Downloads */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-2xl bg-surface p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
@@ -353,7 +342,6 @@ function ManagerReportsPage() {
   );
 }
 
-// Stat Card
 function StatCard({
   title,
   value,
@@ -378,7 +366,6 @@ function StatCard({
   );
 }
 
-// Status Row - Progress Bar
 function StatusRow({
   label,
   value,

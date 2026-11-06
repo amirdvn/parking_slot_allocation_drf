@@ -15,6 +15,7 @@ import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
+import { spaceLabel, formatPlate } from "../../../lib/parking-format";
 
 const statusConfig: Record<RequestStatus, { label: string; className: string }> = {
   PENDING: { label: "در انتظار", className: "bg-gray-100 text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300" },
@@ -43,7 +44,6 @@ function RequestsPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // 👇 stateهای مربوط به لغو
   const [cancelingRequest, setCancelingRequest] = useState<ParkingRequest | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -101,7 +101,6 @@ function RequestsPage() {
     },
   });
 
-  // 👇 Mutation لغو
   const cancelMutation = useMutation({
     mutationFn: () => parkingApi.cancelRequest(cancelingRequest!.id, cancelReason),
     onSuccess: () => {
@@ -153,7 +152,6 @@ function RequestsPage() {
       ) : (
         <div className="space-y-2">
           {requests.map((req) => {
-            // 👇 فقط درخواست‌های PENDING یا APPROVED قابل لغو هستن
             const canCancel = req.status === "PENDING" || req.status === "APPROVED";
 
             return (
@@ -171,8 +169,8 @@ function RequestsPage() {
                     <div className="mt-2 space-y-1 text-[12px] text-gray-500 dark:text-gray-400">
                       <p>
                         خودرو:{" "}
-                        <span className="font-medium text-gray-900 dark:text-white" dir="ltr">
-                          {vehicles?.find((v) => v.id === req.vehicle)?.plate_number || "---"}
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {formatPlate(vehicles?.find((v) => v.id === req.vehicle)?.plate_number)}
                         </span>
                       </p>
                       <p dir="ltr">
@@ -185,7 +183,6 @@ function RequestsPage() {
                     </div>
                   </div>
 
-                  {/* 👇 دکمه لغو */}
                   {canCancel && (
                     <button
                       onClick={() => {
@@ -205,19 +202,18 @@ function RequestsPage() {
         </div>
       )}
 
-      {/* مودال ثبت درخواست */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="درخواست جدید">
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
           <Select
             label="خودرو"
-            options={vehicles?.map((v) => ({ value: String(v.id), label: v.plate_number })) || []}
+            options={vehicles?.map((v) => ({ value: String(v.id), label: formatPlate(v.plate_number) })) || []}
             error={errors.vehicle?.message}
             {...register("vehicle")}
           />
 
           <Select
             label="جایگاه"
-            options={spaces?.map((s) => ({ value: s.id, label: `${s.code} (${s.floor})` })) || []}
+            options={spaces?.map((s) => ({ value: s.id, label: spaceLabel(s) })) || []}
             error={errors.parking_space?.message}
             disabled={!selectedVehicleId}
             {...register("parking_space")}
@@ -242,7 +238,6 @@ function RequestsPage() {
         </form>
       </Modal>
 
-      {/* 👇 مودال دلیل لغو */}
       <Modal
         isOpen={!!cancelingRequest}
         onClose={() => setCancelingRequest(null)}
@@ -290,7 +285,6 @@ function RequestsPage() {
         </div>
       </Modal>
 
-      {/* 👇 تایید نهایی لغو */}
       <ConfirmDialog
         isOpen={confirmCancel}
         onClose={() => setConfirmCancel(false)}

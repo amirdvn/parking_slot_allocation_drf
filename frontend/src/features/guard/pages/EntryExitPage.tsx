@@ -1,13 +1,14 @@
 // src/features/guard/pages/EntryExitPage.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, LogIn, LogOut, Car, Clock, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Search, LogIn, LogOut, Car, CalendarClock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { guardApi } from "../api";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
+import { formatSpaceCode, formatPlate } from "../../../lib/parking-format";
 
 function EntryExitPage() {
   const queryClient = useQueryClient();
@@ -29,7 +30,6 @@ function EntryExitPage() {
 
   const activeLogs = logs?.filter((l) => !l.exit_time) || [];
 
-  // 👇 دسته‌بندی درخواست‌ها بر اساس زمان
   const now = new Date();
   const readyNow = approvedRequests?.filter((req: any) => {
     const start = new Date(req.start_time);
@@ -112,7 +112,6 @@ function EntryExitPage() {
         </div>
       )}
 
-      {/* نتایج جستجو */}
       {result && result.length > 0 && (
         <div className="mb-4 space-y-2">
           {result.map((req) => {
@@ -130,11 +129,11 @@ function EntryExitPage() {
                 }`}
               >
                 <div>
-                  <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white" dir="ltr">
-                    {req.vehicle_detail?.plate_number}
+                  <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
+                    {formatPlate(req.vehicle_detail?.plate_number)}
                   </p>
                   <p className="mt-0.5 text-[11px] text-gray-500">
-                    جایگاه {req.parking_space_detail?.code} · {new Date(req.start_time).toLocaleString("fa-IR")}
+                    جایگاه {formatSpaceCode(req.parking_space_detail?.code)} · {new Date(req.start_time).toLocaleString("fa-IR")}
                   </p>
                 </div>
                 <Button
@@ -155,7 +154,6 @@ function EntryExitPage() {
         </div>
       )}
 
-      {/* 👇 بخش آماده ورود (زمانش رسیده) */}
       <div className="mb-4 rounded-2xl bg-surface shadow-sm">
         <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-[#38383a]">
           <div className="flex items-center gap-2">
@@ -197,8 +195,8 @@ function EntryExitPage() {
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white" dir="ltr">
-                      {req.vehicle_detail?.plate_number}
+                    <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
+                      {formatPlate(req.vehicle_detail?.plate_number)}
                     </p>
                     <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
                       آماده ورود
@@ -206,7 +204,7 @@ function EntryExitPage() {
                   </div>
                   <div className="mt-1.5 space-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
                     <p>کاربر: {req.user_detail?.full_name} · {req.user_detail?.phone_number}</p>
-                    <p>جایگاه: {req.parking_space_detail?.code}</p>
+                    <p>جایگاه: {formatSpaceCode(req.parking_space_detail?.code)}</p>
                     <p dir="ltr">
                       {new Date(req.start_time).toLocaleString("fa-IR")} → {new Date(req.end_time).toLocaleString("fa-IR")}
                     </p>
@@ -230,7 +228,6 @@ function EntryExitPage() {
         )}
       </div>
 
-      {/* 👇 بخش در آینده (زمانش نرسیده) */}
       {upcoming.length > 0 && (
         <div className="mb-4 rounded-2xl bg-surface shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-[#38383a]">
@@ -259,8 +256,8 @@ function EntryExitPage() {
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white" dir="ltr">
-                      {req.vehicle_detail?.plate_number}
+                    <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
+                      {formatPlate(req.vehicle_detail?.plate_number)}
                     </p>
                     <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:bg-amber-900/20 dark:text-amber-500">
                       در آینده
@@ -268,7 +265,7 @@ function EntryExitPage() {
                   </div>
                   <div className="mt-1.5 space-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
                     <p>کاربر: {req.user_detail?.full_name}</p>
-                    <p>جایگاه: {req.parking_space_detail?.code}</p>
+                    <p>جایگاه: {formatSpaceCode(req.parking_space_detail?.code)}</p>
                     <p dir="ltr">
                       شروع: {new Date(req.start_time).toLocaleString("fa-IR")}
                     </p>
@@ -287,7 +284,6 @@ function EntryExitPage() {
         </div>
       )}
 
-      {/* جدول خودروهای داخل پارکینگ */}
       <div className="rounded-2xl bg-surface shadow-sm">
         <div className="flex items-center gap-2 border-b border-gray-200 p-5 dark:border-[#38383a]">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-[#007aff] dark:bg-[#0a84ff]/10 dark:text-[#0a84ff]">
@@ -316,8 +312,8 @@ function EntryExitPage() {
                 className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50"
               >
                 <div>
-                  <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white" dir="ltr">
-                    {log.vehicle_detail?.plate_number}
+                  <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
+                    {formatPlate(log.vehicle_detail?.plate_number)}
                   </p>
                   <p className="mt-0.5 text-[11px] text-gray-500" dir="ltr">
                     ورود: {new Date(log.entry_time).toLocaleString("fa-IR")}

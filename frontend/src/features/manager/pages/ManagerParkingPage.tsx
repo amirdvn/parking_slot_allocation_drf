@@ -16,6 +16,13 @@ import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
+import {
+  formatSpaceId,
+  spaceLabel,
+  zoneLabels,
+  floorLabels,
+  formatSpaceCode
+} from "../../../lib/parking-format";
 
 const spaceSchema = z.object({
   zone: z.enum(["NORTH", "SOUTH", "WEST", "EAST"]),
@@ -82,7 +89,6 @@ function ManagerParkingPage() {
   const [confirmDeleteBlock, setConfirmDeleteBlock] = useState<ParkingBlock | null>(null);
   const [confirmToggle, setConfirmToggle] = useState<ParkingSpace | null>(null);
 
-  // 👇 فیکس شد: use arrow function
   const { data: spaces, isLoading } = useQuery({
     queryKey: ["parking-spaces"],
     queryFn: () => parkingApi.getSpaces(),
@@ -275,8 +281,9 @@ function ManagerParkingPage() {
               return (
                 <div key={space.id} className="rounded-2xl bg-surface p-4 shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between">
-                    <p className="font-mono text-[14px] font-semibold text-gray-900 dark:text-white" dir="ltr">
-                      {space.code}
+                    <p className="text-[13px] font-bold text-gray-900 dark:text-white">
+                      {/* 👇 نمایش از فیلدهای مستقیم دیتابیس، نه از کد */}
+                      {zoneLabels[space.zone] || space.zone} · {floorLabels[space.floor] || space.floor}
                     </p>
                     {space.is_active ? (
                       <Unlock size={12} className="text-[#34c759] dark:text-[#30d158]" />
@@ -284,8 +291,8 @@ function ManagerParkingPage() {
                       <Lock size={12} className="text-gray-400" />
                     )}
                   </div>
-                  <p className="mt-1 text-[11px] text-gray-500">
-                    {zoneOptions.find((z) => z.value === space.zone)?.label} · {floorOptions.find((f) => f.value === space.floor)?.label}
+                  <p className="mt-0.5 font-mono text-[11px] text-gray-500" dir="ltr">
+                    #{formatSpaceId(space.code)}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-[#2c2c2e] dark:text-gray-300">
@@ -355,8 +362,9 @@ function ManagerParkingPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white" dir="ltr">
-                        {space?.code || "---"}
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white">
+                        {/* 👇 نمایش از فیلدهای دیتابیس */}
+                        {space ? `${zoneLabels[space.zone] || space.zone} · ${floorLabels[space.floor] || space.floor} · ${formatSpaceId(space.code)}` : "—"}
                       </p>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
@@ -427,7 +435,7 @@ function ManagerParkingPage() {
         >
           <Select
             label="جایگاه"
-            options={spaces?.map((s) => ({ value: s.id, label: `${s.code} (${s.floor})` })) || []}
+            options={spaces?.map((s) => ({ value: s.id, label: spaceLabel(s) })) || []}
             error={blockForm.formState.errors.parking_space?.message}
             {...blockForm.register("parking_space")}
           />
@@ -458,7 +466,7 @@ function ManagerParkingPage() {
         onClose={() => setConfirmDelete(null)}
         onConfirm={() => confirmDelete && deleteMutation.mutate(confirmDelete.id)}
         title="حذف جایگاه"
-        description={`آیا جایگاه ${confirmDelete?.code} حذف شود؟`}
+        description={`آیا جایگاه «${confirmDelete ? `${zoneLabels[confirmDelete.zone]} · ${floorLabels[confirmDelete.floor]}` : ""}» حذف شود؟`}
         confirmText="حذف"
         variant="danger"
         isLoading={deleteMutation.isPending}
@@ -469,7 +477,7 @@ function ManagerParkingPage() {
         onClose={() => setConfirmToggle(null)}
         onConfirm={() => confirmToggle && toggleStatusMutation.mutate(confirmToggle)}
         title="تغییر وضعیت"
-        description={`آیا ${confirmToggle?.is_active ? "غیرفعال" : "فعال"} کردن جایگاه ${confirmToggle?.code} مطمئنید؟`}
+        description={`آیا ${confirmToggle?.is_active ? "غیرفعال" : "فعال"} کردن جایگاه «${confirmToggle ? `${zoneLabels[confirmToggle.zone]} · ${floorLabels[confirmToggle.floor]}` : ""}» مطمئنید؟`}
         confirmText="تایید"
         isLoading={toggleStatusMutation.isPending}
       />

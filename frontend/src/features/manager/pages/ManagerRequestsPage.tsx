@@ -9,6 +9,7 @@ import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
+import { formatSpaceCode, formatPlate } from "../../../lib/parking-format";
 
 const statusLabels: Record<string, string> = {
   PENDING: "در انتظار",
@@ -155,17 +156,14 @@ function ManagerRequestsPage() {
                     </p>
                     <p>
                       خودرو:{" "}
-                      <span
-                        className="font-mono font-medium text-gray-900 dark:text-white"
-                        dir="ltr"
-                      >
-                        {req.vehicle_detail?.plate_number || "---"}
+                      <span className="font-mono font-medium text-gray-900 dark:text-white">
+                        {formatPlate(req.vehicle_detail?.plate_number)}
                       </span>
                     </p>
                     <p>
                       جایگاه:{" "}
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {req.parking_space_detail?.code || "---"}
+                        {formatSpaceCode(req.parking_space_detail?.code)}
                       </span>
                     </p>
                     <p dir="ltr" className="text-[11px]">

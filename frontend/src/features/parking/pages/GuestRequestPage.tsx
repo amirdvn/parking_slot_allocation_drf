@@ -1,7 +1,7 @@
 // src/features/parking/pages/GuestRequestPage.tsx
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { UserPlus, CheckCircle2, Info } from "lucide-react";
@@ -11,12 +11,17 @@ import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import PageHeader from "../../../components/shared/PageHeader";
+import LicensePlateInput from "../../../components/ui/LicensePlateInput";
+import { spaceLabel } from "../../../lib/parking-format";
 
 const guestSchema = z.object({
   guest_name: z.string().min(1, "نام مهمان الزامی است"),
   guest_phone: z.string().length(11, "شماره تماس باید ۱۱ رقم باشد"),
   guest_email: z.string().email("ایمیل نامعتبر است"),
-  guest_plate_number: z.string().min(1, "پلاک الزامی است"),
+  guest_plate_number: z.string().refine(
+    (v) => v.replace(/[^0-9۰-۹آ-ی]/g, "").length === 8,
+    "پلاک باید به فرمت کامل وارد شود (۱۲ ب ۳۴۵ ۶۷)"
+  ),
   parking_space: z.string().min(1, "انتخاب جایگاه الزامی است"),
   start_time: z.string().min(1, "زمان شروع الزامی است"),
   end_time: z.string().min(1, "زمان پایان الزامی است"),
@@ -32,7 +37,6 @@ function GuestRequestPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // 👇 فیکس شد: use arrow function
   const { data: spaces } = useQuery({
     queryKey: ["parking-spaces"],
     queryFn: () => parkingApi.getSpaces(),
@@ -40,7 +44,13 @@ function GuestRequestPage() {
 
   const guestSpaces = spaces?.filter((s) => s.space_type === "GUEST") || [];
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<GuestFormValues>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors },
+  } = useForm<GuestFormValues>({
     resolver: zodResolver(guestSchema),
   });
 
@@ -111,10 +121,37 @@ function GuestRequestPage() {
               اطلاعات مهمان
             </h3>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <Input label="نام" error={errors.guest_name?.message} {...register("guest_name")} />
-              <Input label="شماره تماس" dir="ltr" error={errors.guest_phone?.message} {...register("guest_phone")} />
-              <Input label="ایمیل" dir="ltr" type="email" error={errors.guest_email?.message} {...register("guest_email")} />
-              <Input label="پلاک" dir="ltr" error={errors.guest_plate_number?.message} {...register("guest_plate_number")} />
+              <Input
+                label="نام"
+                error={errors.guest_name?.message}
+                {...register("guest_name")}
+              />
+              <Input
+                label="شماره تماس"
+                dir="ltr"
+                error={errors.guest_phone?.message}
+                {...register("guest_phone")}
+              />
+              <Input
+                label="ایمیل"
+                dir="ltr"
+                type="email"
+                error={errors.guest_email?.message}
+                {...register("guest_email")}
+              />
+
+              <Controller
+                name="guest_plate_number"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <LicensePlateInput
+                    label="پلاک مهمان"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
             </div>
           </div>
 
@@ -134,13 +171,23 @@ function GuestRequestPage() {
             <div className="space-y-3">
               <Select
                 label="جایگاه"
-                options={guestSpaces.map((s) => ({ value: s.id, label: `${s.code} (${s.floor})` }))}
+                options={guestSpaces.map((s) => ({ value: s.id, label: spaceLabel(s) }))}
                 error={errors.parking_space?.message}
                 {...register("parking_space")}
               />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <Input type="datetime-local" label="شروع" error={errors.start_time?.message} {...register("start_time")} />
-                <Input type="datetime-local" label="پایان" error={errors.end_time?.message} {...register("end_time")} />
+                <Input
+                  type="datetime-local"
+                  label="شروع"
+                  error={errors.start_time?.message}
+                  {...register("start_time")}
+                />
+                <Input
+                  type="datetime-local"
+                  label="پایان"
+                  error={errors.end_time?.message}
+                  {...register("end_time")}
+                />
               </div>
             </div>
           </div>
@@ -152,7 +199,12 @@ function GuestRequestPage() {
               دلیل
             </h3>
             <div className="space-y-3">
-              <Input label="دلیل" placeholder="جلسه کاری..." error={errors.reason?.message} {...register("reason")} />
+              <Input
+                label="دلیل"
+                placeholder="جلسه کاری..."
+                error={errors.reason?.message}
+                {...register("reason")}
+              />
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
                   توضیحات (اختیاری)

@@ -9,6 +9,7 @@ import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import Pagination from "../../../components/ui/Pagination";
 import PageHeader from "../../../components/shared/PageHeader";
+import { formatPlate } from "../../../lib/parking-format";
 
 const typeLabels: Record<string, string> = {
   CAR: "ماشین",
@@ -88,7 +89,10 @@ function ManagerVehiclesPage() {
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
+            <div
+              key={i}
+              className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]"
+            />
           ))}
         </div>
       ) : !filtered.length ? (
@@ -135,8 +139,8 @@ function ManagerVehiclesPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-mono font-medium text-gray-900 dark:text-white" dir="ltr">
-                        {vehicle.plate_number}
+                      <span className="font-mono font-medium text-gray-900 dark:text-white">
+                        {formatPlate(vehicle.plate_number)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
@@ -190,7 +194,7 @@ function ManagerVehiclesPage() {
           })
         }
         title="تغییر وضعیت"
-        description={`آیا ${confirmToggle?.is_active ? "غیرفعال" : "فعال"} کردن خودرو ${confirmToggle?.plate_number} مطمئنید؟`}
+        description={`آیا ${confirmToggle?.is_active ? "غیرفعال" : "فعال"} کردن خودرو «${formatPlate(confirmToggle?.plate_number)}» مطمئنید؟`}
         confirmText="تایید"
         isLoading={toggleMutation.isPending}
       />

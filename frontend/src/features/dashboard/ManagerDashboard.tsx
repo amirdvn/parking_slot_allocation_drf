@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   ParkingSquare, Users, Clock, CheckCircle, ClipboardList, ArrowLeft,
-  Zap, FileBarChart, TrendingUp, Car, AlertCircle,
+  FileBarChart, TrendingUp, AlertCircle,
 } from "lucide-react";
 import { managerApi } from "../manager/api";
 import { useAuth } from "../auth/AuthContext";
+import { formatSpaceCode, formatPlate } from "../../lib/parking-format";
 
 const statusLabels: Record<string, string> = {
   PENDING: "در انتظار",
@@ -43,11 +44,11 @@ function ManagerDashboard() {
   const latestPending = pendingRequests?.slice(0, 3) || [];
   const latestApproved = approvedRequests?.slice(0, 3) || [];
 
-  const totalPending = (dashboard?.requests.pending || 0) + (dashboard?.requests.needs_review || 0);
+  const totalPending =
+    (dashboard?.requests.pending || 0) + (dashboard?.requests.needs_review || 0);
 
   return (
     <div className="space-y-6">
-      {/* Greeting */}
       <div>
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
           سلام، {user?.full_name?.split(" ")[0] || "مدیر"} 👋
@@ -59,7 +60,6 @@ function ManagerDashboard() {
         </p>
       </div>
 
-      {/* Stat Cards */}
       {isLoadingDash ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -95,7 +95,6 @@ function ManagerDashboard() {
         </div>
       ) : null}
 
-      {/* Quick Actions */}
       <div className="rounded-2xl bg-surface p-5 shadow-sm">
         <h2 className="mb-4 text-[15px] font-semibold text-gray-900 dark:text-white">
           دسترسی سریع
@@ -124,7 +123,6 @@ function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Pending + Recent */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-2xl bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -170,8 +168,8 @@ function ManagerDashboard() {
                     <p className="truncate text-[13px] font-medium text-gray-900 dark:text-white">
                       {req.user_detail?.full_name}
                     </p>
-                    <p className="mt-0.5 truncate text-[11px] text-gray-500" dir="ltr">
-                      {req.vehicle_detail?.plate_number} · {req.parking_space_detail?.code}
+                    <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                      {formatPlate(req.vehicle_detail?.plate_number)} · {formatSpaceCode(req.parking_space_detail?.code)}
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-[#3a3a3c] dark:text-gray-300">
@@ -223,8 +221,8 @@ function ManagerDashboard() {
                     <p className="truncate text-[13px] font-medium text-gray-900 dark:text-white">
                       {req.user_detail?.full_name}
                     </p>
-                    <p className="mt-0.5 truncate text-[11px] text-gray-500" dir="ltr">
-                      {req.vehicle_detail?.plate_number} · {req.parking_space_detail?.code}
+                    <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                      {formatPlate(req.vehicle_detail?.plate_number)} · {formatSpaceCode(req.parking_space_detail?.code)}
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
@@ -237,16 +235,30 @@ function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Occupancy */}
       {dashboard && (
         <div className="rounded-2xl bg-surface p-5 shadow-sm">
           <h2 className="mb-4 text-[15px] font-semibold text-gray-900 dark:text-white">
             وضعیت اشغال
           </h2>
           <div className="space-y-3">
-            <OccupancyBar label="آزاد" value={dashboard.parking_spaces.available} total={dashboard.parking_spaces.total} color="bg-[#34c759] dark:bg-[#30d158]" />
-            <OccupancyBar label="اشغال" value={dashboard.parking_spaces.occupied} total={dashboard.parking_spaces.total} color="bg-[#007aff] dark:bg-[#0a84ff]" />
-            <OccupancyBar label="مسدود" value={dashboard.parking_spaces.blocked} total={dashboard.parking_spaces.total} color="bg-[#ff3b30] dark:bg-[#ff453a]" />
+            <OccupancyBar
+              label="آزاد"
+              value={dashboard.parking_spaces.available}
+              total={dashboard.parking_spaces.total}
+              color="bg-[#34c759] dark:bg-[#30d158]"
+            />
+            <OccupancyBar
+              label="اشغال"
+              value={dashboard.parking_spaces.occupied}
+              total={dashboard.parking_spaces.total}
+              color="bg-[#007aff] dark:bg-[#0a84ff]"
+            />
+            <OccupancyBar
+              label="مسدود"
+              value={dashboard.parking_spaces.blocked}
+              total={dashboard.parking_spaces.total}
+              color="bg-[#ff3b30] dark:bg-[#ff453a]"
+            />
           </div>
         </div>
       )}
@@ -254,7 +266,17 @@ function ManagerDashboard() {
   );
 }
 
-function StatCard({ title, value, icon, onClick }: { title: string; value: number; icon: React.ReactNode; onClick?: () => void }) {
+function StatCard({
+  title,
+  value,
+  icon,
+  onClick,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  onClick?: () => void;
+}) {
   return (
     <button
       onClick={onClick}
@@ -271,7 +293,15 @@ function StatCard({ title, value, icon, onClick }: { title: string; value: numbe
   );
 }
 
-function QuickAction({ icon, title, onClick }: { icon: React.ReactNode; title: string; onClick: () => void }) {
+function QuickAction({
+  icon,
+  title,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
@@ -283,7 +313,17 @@ function QuickAction({ icon, title, onClick }: { icon: React.ReactNode; title: s
   );
 }
 
-function OccupancyBar({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+function OccupancyBar({
+  label,
+  value,
+  total,
+  color,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  color: string;
+}) {
   const percentage = total > 0 ? (value / total) * 100 : 0;
   return (
     <div>
@@ -295,7 +335,10 @@ function OccupancyBar({ label, value, total, color }: { label: string; value: nu
         </span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-[#2c2c2e]">
-        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${percentage}%` }} />
+        <div
+          className={`h-full rounded-full transition-all ${color}`}
+          style={{ width: `${percentage}%` }}
+        />
       </div>
     </div>
   );
