@@ -32,9 +32,10 @@ function GuestRequestPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
 
+  // 👇 فیکس شد: use arrow function
   const { data: spaces } = useQuery({
     queryKey: ["parking-spaces"],
-    queryFn: parkingApi.getSpaces,
+    queryFn: () => parkingApi.getSpaces(),
   });
 
   const guestSpaces = spaces?.filter((s) => s.space_type === "GUEST") || [];

@@ -82,14 +82,15 @@ function ManagerParkingPage() {
   const [confirmDeleteBlock, setConfirmDeleteBlock] = useState<ParkingBlock | null>(null);
   const [confirmToggle, setConfirmToggle] = useState<ParkingSpace | null>(null);
 
+  // 👇 فیکس شد: use arrow function
   const { data: spaces, isLoading } = useQuery({
     queryKey: ["parking-spaces"],
-    queryFn: parkingApi.getSpaces,
+    queryFn: () => parkingApi.getSpaces(),
   });
 
   const { data: blocks, isLoading: isLoadingBlocks } = useQuery({
     queryKey: ["parking-blocks"],
-    queryFn: parkingApi.getBlocks,
+    queryFn: () => parkingApi.getBlocks(),
   });
 
   const spaceForm = useForm<SpaceFormValues>({
