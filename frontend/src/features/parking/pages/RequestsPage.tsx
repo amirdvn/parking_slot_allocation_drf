@@ -34,10 +34,20 @@ const requestSchema = z.object({
   start_time: z.string().min(1, "زمان شروع الزامی است"),
   end_time: z.string().min(1, "زمان پایان الزامی است"),
   description: z.string().optional(),
-}).refine((d) => new Date(d.end_time) > new Date(d.start_time), {
+})
+.refine((d) => new Date(d.start_time) >= new Date(), {
+  message: "زمان شروع نمی‌تواند در گذشته باشد",
+  path: ["start_time"],
+})
+.refine((d) => new Date(d.end_time) >= new Date(), {
+  message: "زمان پایان نمی‌تواند در گذشته باشد",
+  path: ["end_time"],
+})
+.refine((d) => new Date(d.end_time) > new Date(d.start_time), {
   message: "زمان پایان باید بعد از شروع باشد",
   path: ["end_time"],
 });
+
 type RequestFormValues = z.infer<typeof requestSchema>;
 
 function RequestsPage() {
@@ -93,11 +103,16 @@ function RequestsPage() {
       reset();
     },
     onError: (error: any) => {
-      toast.error(
-        error.response?.data?.parking_space?.[0] ||
-          error.response?.data?.detail ||
-          "خطا در ثبت"
-      );
+      const data = error.response?.data;
+      let msg = "خطا در ثبت";
+      if (data) {
+        if (data.start_time) msg = data.start_time[0];
+        else if (data.end_time) msg = data.end_time[0];
+        else if (data.parking_space) msg = data.parking_space[0];
+        else if (data.vehicle) msg = data.vehicle[0];
+        else if (data.detail) msg = data.detail;
+      }
+      toast.error(msg);
     },
   });
 
@@ -170,7 +185,10 @@ function RequestsPage() {
                       <p>
                         خودرو:{" "}
                         <span className="font-medium text-gray-900 dark:text-white">
-                          {formatPlate(vehicles?.find((v) => v.id === req.vehicle)?.plate_number)}
+                          {formatPlate(
+                            vehicles?.find((v) => v.id === req.vehicle)?.plate_number,
+                            vehicles?.find((v) => v.id === req.vehicle)?.vehicle_type
+                          )}
                         </span>
                       </p>
                       <p dir="ltr">
@@ -206,7 +224,7 @@ function RequestsPage() {
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
           <Select
             label="خودرو"
-            options={vehicles?.map((v) => ({ value: String(v.id), label: formatPlate(v.plate_number) })) || []}
+            options={vehicles?.map((v) => ({ value: String(v.id), label: formatPlate(v.plate_number, v.vehicle_type) })) || []}
             error={errors.vehicle?.message}
             {...register("vehicle")}
           />

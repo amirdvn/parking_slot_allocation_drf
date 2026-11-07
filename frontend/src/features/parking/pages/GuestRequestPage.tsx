@@ -20,17 +20,27 @@ const guestSchema = z.object({
   guest_email: z.string().email("ایمیل نامعتبر است"),
   guest_plate_number: z.string().refine(
     (v) => v.replace(/[^0-9۰-۹آ-ی]/g, "").length === 8,
-    "پلاک باید به فرمت کامل وارد شود (۱۲ ب ۳۴۵ ۶۷)"
+    "پلاک باید به فرمت کامل وارد شود"
   ),
   parking_space: z.string().min(1, "انتخاب جایگاه الزامی است"),
   start_time: z.string().min(1, "زمان شروع الزامی است"),
   end_time: z.string().min(1, "زمان پایان الزامی است"),
   reason: z.string().min(1, "دلیل مراجعه الزامی است"),
   description: z.string().optional(),
-}).refine((d) => new Date(d.end_time) > new Date(d.start_time), {
+})
+.refine((d) => new Date(d.start_time) >= new Date(), {
+  message: "زمان شروع نمی‌تواند در گذشته باشد",
+  path: ["start_time"],
+})
+.refine((d) => new Date(d.end_time) >= new Date(), {
+  message: "زمان پایان نمی‌تواند در گذشته باشد",
+  path: ["end_time"],
+})
+.refine((d) => new Date(d.end_time) > new Date(d.start_time), {
   message: "زمان پایان باید بعد از شروع باشد",
   path: ["end_time"],
 });
+
 type GuestFormValues = z.infer<typeof guestSchema>;
 
 function GuestRequestPage() {
@@ -69,8 +79,15 @@ function GuestRequestPage() {
       reset();
     },
     onError: (error: any) => {
-      const err = error.response?.data;
-      const msg = err?.parking_space?.[0] || err?.detail || "خطا در ثبت";
+      const data = error.response?.data;
+      let msg = "خطا در ثبت";
+      if (data) {
+        if (data.start_time) msg = data.start_time[0];
+        else if (data.end_time) msg = data.end_time[0];
+        else if (data.guest_plate_number) msg = data.guest_plate_number[0];
+        else if (data.parking_space) msg = data.parking_space[0];
+        else if (data.detail) msg = data.detail;
+      }
       setServerError(msg);
       toast.error(msg);
       setSuccessMsg(null);
