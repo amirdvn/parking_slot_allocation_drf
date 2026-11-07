@@ -12,6 +12,7 @@ import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import PageHeader from "../../../components/shared/PageHeader";
 import LicensePlateInput from "../../../components/ui/LicensePlateInput";
+import PersianDatePicker from "../../../components/ui/PersianDatePicker";
 import { spaceLabel } from "../../../lib/parking-format";
 
 const guestSchema = z.object({
@@ -40,7 +41,6 @@ const guestSchema = z.object({
   message: "زمان پایان باید بعد از شروع باشد",
   path: ["end_time"],
 });
-
 type GuestFormValues = z.infer<typeof guestSchema>;
 
 function GuestRequestPage() {
@@ -68,8 +68,8 @@ function GuestRequestPage() {
     mutationFn: (data: GuestFormValues) => {
       return parkingApi.createGuestRequest({
         ...data,
-        start_time: new Date(data.start_time).toISOString(),
-        end_time: new Date(data.end_time).toISOString(),
+        start_time: data.start_time,
+        end_time: data.end_time,
       });
     },
     onSuccess: () => {
@@ -185,25 +185,39 @@ function GuestRequestPage() {
               </div>
             )}
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Select
                 label="جایگاه"
                 options={guestSpaces.map((s) => ({ value: s.id, label: spaceLabel(s) }))}
                 error={errors.parking_space?.message}
                 {...register("parking_space")}
               />
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <Input
-                  type="datetime-local"
-                  label="شروع"
-                  error={errors.start_time?.message}
-                  {...register("start_time")}
+
+              {/* 👇 تغییر به space-y-4 برای جلوگیری از به‌هم‌ریختگی */}
+              <div className="space-y-4">
+                <Controller
+                  name="start_time"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <PersianDatePicker
+                      label="زمان شروع"
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                    />
+                  )}
                 />
-                <Input
-                  type="datetime-local"
-                  label="پایان"
-                  error={errors.end_time?.message}
-                  {...register("end_time")}
+                <Controller
+                  name="end_time"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <PersianDatePicker
+                      label="زمان پایان"
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                    />
+                  )}
                 />
               </div>
             </div>

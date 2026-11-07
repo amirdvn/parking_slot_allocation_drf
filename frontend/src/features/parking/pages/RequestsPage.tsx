@@ -1,7 +1,7 @@
 // src/features/parking/pages/RequestsPage.tsx
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Plus, ClipboardList, XCircle, AlertCircle } from "lucide-react";
@@ -15,6 +15,7 @@ import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
+import PersianDatePicker from "../../../components/ui/PersianDatePicker";
 import { spaceLabel, formatPlate } from "../../../lib/parking-format";
 
 const statusConfig: Record<RequestStatus, { label: string; className: string }> = {
@@ -62,14 +63,13 @@ function RequestsPage() {
     queryFn: parkingApi.getMyRequests,
   });
 
-  // 👇 فیلتر کردن خودروهای غیرفعال در همین مرحله
   const { data: vehicles } = useQuery({
     queryKey: ["vehicles"],
     queryFn: vehicleApi.getVehicles,
     select: (data) => data?.filter((v) => v.is_active),
   });
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<RequestFormValues>({
+  const { register, handleSubmit, reset, watch, setValue, control, formState: { errors } } = useForm<RequestFormValues>({
     resolver: zodResolver(requestSchema),
   });
 
@@ -92,8 +92,8 @@ function RequestsPage() {
       return parkingApi.createRequest({
         vehicle: Number(data.vehicle),
         parking_space: data.parking_space,
-        start_time: new Date(data.start_time).toISOString(),
-        end_time: new Date(data.end_time).toISOString(),
+        start_time: data.start_time,
+        end_time: data.end_time,
         description: data.description,
       });
     },
@@ -186,11 +186,9 @@ function RequestsPage() {
                       <p>
                         خودرو:{" "}
                         <span className="font-medium text-gray-900 dark:text-white">
-                          {/* نکته: برای جلوگیری از undefined در اینجا از تمام ماشین‌ها استفاده می‌کنیم */}
                           {formatPlate(
-                            requests?.find((r) => r.vehicle === req.vehicle)?.vehicle?.plate_number ||
-                            `خودرو ${req.vehicle}`,
-                            "CAR"
+                            vehicles?.find((v) => v.id === req.vehicle)?.plate_number,
+                            vehicles?.find((v) => v.id === req.vehicle)?.vehicle_type
                           )}
                         </span>
                       </p>
@@ -243,10 +241,34 @@ function RequestsPage() {
             <p className="text-xs text-amber-500">ابتدا خودرو را انتخاب کنید.</p>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input type="datetime-local" label="شروع" error={errors.start_time?.message} {...register("start_time")} />
-            <Input type="datetime-local" label="پایان" error={errors.end_time?.message} {...register("end_time")} />
+          {/* 👇 تغییر به space-y-4 برای جلوگیری از به‌هم‌ریختگی */}
+          <div className="space-y-4">
+            <Controller
+              name="start_time"
+              control={control}
+              render={({ field, fieldState }) => (
+                <PersianDatePicker
+                  label="زمان شروع"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
+            <Controller
+              name="end_time"
+              control={control}
+              render={({ field, fieldState }) => (
+                <PersianDatePicker
+                  label="زمان پایان"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
           </div>
+
           <Input label="توضیحات" {...register("description")} />
           <div className="flex gap-2 pt-2">
             <Button type="submit" className="flex-1" disabled={createMutation.isPending}>

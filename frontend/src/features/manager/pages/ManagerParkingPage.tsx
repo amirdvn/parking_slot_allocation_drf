@@ -1,7 +1,7 @@
 // src/features/manager/pages/ManagerParkingPage.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form"; // 👈 Controller اضافه شد
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -16,13 +16,8 @@ import Select from "../../../components/ui/Select";
 import Modal from "../../../components/ui/Modal";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
-import {
-  formatSpaceId,
-  spaceLabel,
-  zoneLabels,
-  floorLabels,
-  formatSpaceCode
-} from "../../../lib/parking-format";
+import PersianDatePicker from "../../../components/ui/PersianDatePicker"; // 👈 اضافه شد
+import { formatSpaceId, spaceLabel, zoneLabels, floorLabels } from "../../../lib/parking-format";
 
 const spaceSchema = z.object({
   zone: z.enum(["NORTH", "SOUTH", "WEST", "EAST"]),
@@ -41,7 +36,16 @@ const blockSchema = z.object({
   end_time: z.string().min(1, "زمان پایان الزامی است"),
   reason: z.enum(["REPAIR", "EVENT", "CLEANING", "VIP_RESERVE", "EQUIPMENT_FAILURE", "OTHER"]),
   description: z.string().optional(),
-}).refine((d) => new Date(d.end_time) > new Date(d.start_time), {
+})
+.refine((d) => new Date(d.start_time) >= new Date(), {
+  message: "زمان شروع نمی‌تواند در گذشته باشد",
+  path: ["start_time"],
+})
+.refine((d) => new Date(d.end_time) >= new Date(), {
+  message: "زمان پایان نمی‌تواند در گذشته باشد",
+  path: ["end_time"],
+})
+.refine((d) => new Date(d.end_time) > new Date(d.start_time), {
   message: "زمان پایان باید بعد از شروع باشد",
   path: ["end_time"],
 });
@@ -107,6 +111,9 @@ function ManagerParkingPage() {
     resolver: zodResolver(blockSchema),
   });
 
+  // 👈 استخراج کنترل برای فرم انسداد
+  const { control: blockControl } = blockForm;
+
   const createMutation = useMutation({
     mutationFn: parkingApi.createSpace,
     onSuccess: () => {
@@ -149,8 +156,8 @@ function ManagerParkingPage() {
     mutationFn: (d: BlockFormValues) =>
       parkingApi.createBlock({
         parking_space: d.parking_space,
-        start_time: new Date(d.start_time).toISOString(),
-        end_time: new Date(d.end_time).toISOString(),
+        start_time: d.start_time,
+        end_time: d.end_time,
         reason: d.reason,
         description: d.description,
       }),
@@ -160,7 +167,17 @@ function ManagerParkingPage() {
       setIsBlockModalOpen(false);
       blockForm.reset();
     },
-    onError: (e: any) => toast.error(e.response?.data?.detail || "خطا"),
+    onError: (e: any) => {
+      const data = e.response?.data;
+      let msg = "خطا در ثبت انسداد";
+      if (data) {
+        if (data.start_time) msg = data.start_time[0];
+        else if (data.end_time) msg = data.end_time[0];
+        else if (data.parking_space) msg = data.parking_space[0];
+        else if (data.detail) msg = data.detail;
+      }
+      toast.error(msg);
+    },
   });
 
   const deleteBlockMutation = useMutation({
@@ -282,7 +299,6 @@ function ManagerParkingPage() {
                 <div key={space.id} className="rounded-2xl bg-surface p-4 shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between">
                     <p className="text-[13px] font-bold text-gray-900 dark:text-white">
-                      {/* 👇 نمایش از فیلدهای مستقیم دیتابیس، نه از کد */}
                       {zoneLabels[space.zone] || space.zone} · {floorLabels[space.floor] || space.floor}
                     </p>
                     {space.is_active ? (
@@ -363,7 +379,6 @@ function ManagerParkingPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="text-[13px] font-bold text-gray-900 dark:text-white">
-                        {/* 👇 نمایش از فیلدهای دیتابیس */}
                         {space ? `${zoneLabels[space.zone] || space.zone} · ${floorLabels[space.floor] || space.floor} · ${formatSpaceId(space.code)}` : "—"}
                       </p>
                       <span
@@ -445,10 +460,35 @@ function ManagerParkingPage() {
             error={blockForm.formState.errors.reason?.message}
             {...blockForm.register("reason")}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <Input type="datetime-local" label="از" error={blockForm.formState.errors.start_time?.message} {...blockForm.register("start_time")} />
-            <Input type="datetime-local" label="تا" error={blockForm.formState.errors.end_time?.message} {...blockForm.register("end_time")} />
+
+          {/* 👇 استفاده از PersianDatePicker */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Controller
+              name="start_time"
+              control={blockControl}
+              render={({ field, fieldState }) => (
+                <PersianDatePicker
+                  label="از"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
+            <Controller
+              name="end_time"
+              control={blockControl}
+              render={({ field, fieldState }) => (
+                <PersianDatePicker
+                  label="تا"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                />
+              )}
+            />
           </div>
+
           <Input label="توضیحات (اختیاری)" {...blockForm.register("description")} />
           <div className="flex gap-2 pt-2">
             <Button type="submit" className="flex-1" disabled={createBlockMutation.isPending}>
