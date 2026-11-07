@@ -1,5 +1,5 @@
 // src/features/vehicles/pages/VehiclesPage.tsx
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +24,18 @@ const schema = z.object({
   vehicle_type: z.enum(["CAR", "MOTORCYCLE", "BICYCLE"]),
   sub_type: z.enum(["PASSENGER", "CARGO", "ELECTRIC", "DISABLED"]),
   color: z.enum(["RED", "BLUE", "GREEN", "BLACK", "WHITE", "YELLOW", "ORANGE", "PURPLE", "BROWN", "GRAY"]),
+}).superRefine((data, ctx) => {
+  // 👇 قانون جدید: موتور و دوچرخه نمی‌توانند باری یا معلولین باشند
+  if (
+    (data.vehicle_type === "MOTORCYCLE" || data.vehicle_type === "BICYCLE") &&
+    (data.sub_type === "CARGO" || data.sub_type === "DISABLED")
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "موتور و دوچرخه نمی‌توانند حالت باری یا معلولین داشته باشند",
+      path: ["sub_type"],
+    });
+  }
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -32,7 +44,7 @@ const typeOpts = [
   { value: "MOTORCYCLE", label: "موتور" },
   { value: "BICYCLE", label: "دوچرخه" },
 ];
-const subOpts = [
+const allSubOpts = [
   { value: "PASSENGER", label: "سواری" },
   { value: "CARGO", label: "باری" },
   { value: "ELECTRIC", label: "برقی" },
@@ -68,12 +80,44 @@ function VehiclesPage() {
     reset,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
 
   const selectedVehicleType = watch("vehicle_type");
+
+  // 👇 گزینه‌های حالت را بر اساس نوع وسیله نقلیه فیلتر می‌کنیم
+  const availableSubTypes = useMemo(() => {
+    if (selectedVehicleType === "MOTORCYCLE" || selectedVehicleType === "BICYCLE") {
+      return allSubOpts.filter((o) => o.value !== "CARGO" && o.value !== "DISABLED");
+    }
+    return allSubOpts;
+  }, [selectedVehicleType]);
+
+  // 👇 اگر کاربر نوع را عوض کرد و حالت قبلی دیگر مجاز نبود، حالت را به سواری تغییر می‌دهیم
+  useEffect(() => {
+    if (
+      (selectedVehicleType === "MOTORCYCLE" || selectedVehicleType === "BICYCLE") &&
+      (watch("sub_type") === "CARGO" || watch("sub_type") === "DISABLED")
+    ) {
+      setValue("sub_type", "PASSENGER");
+    }
+  }, [selectedVehicleType, setValue, watch]);
+
+  const handleApiError = (e: any) => {
+    const data = e.response?.data;
+    let msg = "خطا";
+    if (data) {
+      if (data.plate_number) msg = data.plate_number[0];
+      else if (data.sub_type) msg = data.sub_type[0];
+      else if (data.vehicle_type) msg = data.vehicle_type[0];
+      else if (data.color) msg = data.color[0];
+      else if (data.detail) msg = data.detail;
+    }
+    toast.error(msg);
+  };
 
   const createMutation = useMutation({
     mutationFn: vehicleApi.createVehicle,
@@ -83,8 +127,7 @@ function VehiclesPage() {
       toast.success("ثبت شد");
       closeModal();
     },
-    onError: (e: any) =>
-      toast.error(e.response?.data?.plate_number?.[0] || "خطا"),
+    onError: handleApiError,
   });
 
   const updateMutation = useMutation({
@@ -95,8 +138,7 @@ function VehiclesPage() {
       toast.success("ذخیره شد");
       closeModal();
     },
-    onError: (e: any) =>
-      toast.error(e.response?.data?.plate_number?.[0] || "خطا"),
+    onError: handleApiError,
   });
 
   const deleteMutation = useMutation({
@@ -240,12 +282,14 @@ function VehiclesPage() {
             )}
           />
 
+          {/* 👇 استفاده از گزینه‌های فیلتر شده */}
           <Select
             label="حالت"
-            options={subOpts}
+            options={availableSubTypes}
             error={errors.sub_type?.message}
             {...register("sub_type")}
           />
+
           <Select
             label="رنگ"
             options={colorOpts}
