@@ -1,7 +1,7 @@
 // src/features/guard/pages/EntryExitPage.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, LogIn, LogOut, Car, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Search, LogIn, LogOut, Car, CalendarClock, CheckCircle2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { guardApi } from "../api";
 import Button from "../../../components/ui/Button";
@@ -130,7 +130,8 @@ function EntryExitPage() {
               >
                 <div>
                   <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
-                    {formatPlate(req.vehicle_detail?.plate_number)}
+                    {req.is_guest ? req.guest_plate_number : formatPlate(req.vehicle_detail?.plate_number, req.vehicle_detail?.vehicle_type)}
+                    {req.is_guest && <span className="mr-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-500">مهمان</span>}
                   </p>
                   <p className="mt-0.5 text-[11px] text-gray-500">
                     جایگاه {formatSpaceCode(req.parking_space_detail?.code)} · {new Date(req.start_time).toLocaleString("fa-IR")}
@@ -139,7 +140,7 @@ function EntryExitPage() {
                 <Button
                   onClick={() =>
                     entryMutation.mutate({
-                      vehicle: req.vehicle_detail.id,
+                      vehicle: req.is_guest ? undefined : req.vehicle_detail?.id,
                       parking_request: req.id,
                     })
                   }
@@ -196,14 +197,21 @@ function EntryExitPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
-                      {formatPlate(req.vehicle_detail?.plate_number)}
+                      {req.is_guest ? req.guest_plate_number : formatPlate(req.vehicle_detail?.plate_number, req.vehicle_detail?.vehicle_type)}
                     </p>
                     <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]">
                       آماده ورود
                     </span>
+                    {req.is_guest && (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:bg-amber-900/20 dark:text-amber-500">
+                        <UserPlus size={10} className="inline mr-1"/>مهمان
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1.5 space-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-                    <p>کاربر: {req.user_detail?.full_name} · {req.user_detail?.phone_number}</p>
+                    <p>
+                      {req.is_guest ? `نام مهمان: ${req.guest_name} · ${req.guest_phone}` : `کاربر: ${req.user_detail?.full_name} · ${req.user_detail?.phone_number}`}
+                    </p>
                     <p>جایگاه: {formatSpaceCode(req.parking_space_detail?.code)}</p>
                     <p dir="ltr">
                       {new Date(req.start_time).toLocaleString("fa-IR")} → {new Date(req.end_time).toLocaleString("fa-IR")}
@@ -213,7 +221,7 @@ function EntryExitPage() {
                 <Button
                   onClick={() =>
                     entryMutation.mutate({
-                      vehicle: req.vehicle_detail.id,
+                      vehicle: req.is_guest ? undefined : req.vehicle_detail?.id,
                       parking_request: req.id,
                     })
                   }
@@ -257,14 +265,21 @@ function EntryExitPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
-                      {formatPlate(req.vehicle_detail?.plate_number)}
+                      {req.is_guest ? req.guest_plate_number : formatPlate(req.vehicle_detail?.plate_number, req.vehicle_detail?.vehicle_type)}
                     </p>
                     <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:bg-amber-900/20 dark:text-amber-500">
                       در آینده
                     </span>
+                    {req.is_guest && (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-[#3a3a3c] dark:text-gray-400">
+                        مهمان
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1.5 space-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-                    <p>کاربر: {req.user_detail?.full_name}</p>
+                    <p>
+                      {req.is_guest ? `نام مهمان: ${req.guest_name}` : `کاربر: ${req.user_detail?.full_name}`}
+                    </p>
                     <p>جایگاه: {formatSpaceCode(req.parking_space_detail?.code)}</p>
                     <p dir="ltr">
                       شروع: {new Date(req.start_time).toLocaleString("fa-IR")}
@@ -313,7 +328,7 @@ function EntryExitPage() {
               >
                 <div>
                   <p className="font-mono text-[13px] font-semibold text-gray-900 dark:text-white">
-                    {formatPlate(log.vehicle_detail?.plate_number)}
+                    {log.parking_request_detail && !log.vehicle_detail ? "مهمان" : formatPlate(log.vehicle_detail?.plate_number, log.vehicle_detail?.vehicle_type)}
                   </p>
                   <p className="mt-0.5 text-[11px] text-gray-500" dir="ltr">
                     ورود: {new Date(log.entry_time).toLocaleString("fa-IR")}

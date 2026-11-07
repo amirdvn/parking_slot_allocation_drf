@@ -366,7 +366,7 @@ class EntryExitLogService:
             if now > parking_request.end_time:
                 raise ValueError('زمان این درخواست به پایان رسیده است')
 
-            if log.vehicle_id and parking_request.vehicle_id != log.vehicle_id:
+            if not parking_request.is_guest and log.vehicle_id and parking_request.vehicle_id != log.vehicle_id:
                 raise ValueError('این خودرو با خودروی درخواست پارک یکسان نیست')
 
             if EntryExitLog.objects.for_request(parking_request).active().exclude(pk=log.id).exists():

@@ -305,7 +305,7 @@ class EntryExitLogSerializer(serializers.ModelSerializer):
 
         read_only_fields = ['id', 'entry_time', 'exit_time', 'guard', 'vehicle_detail', 'parking_request_detail', 'guard_detail']
 
-        extra_kwargs = {'vehicle': {'required': True}}
+        extra_kwargs = {'vehicle': {'required': False}}
 
     def validate(self, attrs):
 
