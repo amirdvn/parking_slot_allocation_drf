@@ -47,7 +47,6 @@ const requestSchema = z.object({
   message: "زمان پایان باید بعد از شروع باشد",
   path: ["end_time"],
 });
-
 type RequestFormValues = z.infer<typeof requestSchema>;
 
 function RequestsPage() {
@@ -63,9 +62,11 @@ function RequestsPage() {
     queryFn: parkingApi.getMyRequests,
   });
 
+  // 👇 فیلتر کردن خودروهای غیرفعال در همین مرحله
   const { data: vehicles } = useQuery({
     queryKey: ["vehicles"],
     queryFn: vehicleApi.getVehicles,
+    select: (data) => data?.filter((v) => v.is_active),
   });
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<RequestFormValues>({
@@ -185,9 +186,11 @@ function RequestsPage() {
                       <p>
                         خودرو:{" "}
                         <span className="font-medium text-gray-900 dark:text-white">
+                          {/* نکته: برای جلوگیری از undefined در اینجا از تمام ماشین‌ها استفاده می‌کنیم */}
                           {formatPlate(
-                            vehicles?.find((v) => v.id === req.vehicle)?.plate_number,
-                            vehicles?.find((v) => v.id === req.vehicle)?.vehicle_type
+                            requests?.find((r) => r.vehicle === req.vehicle)?.vehicle?.plate_number ||
+                            `خودرو ${req.vehicle}`,
+                            "CAR"
                           )}
                         </span>
                       </p>
