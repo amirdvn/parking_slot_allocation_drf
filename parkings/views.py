@@ -6,13 +6,14 @@ from .serializers import (
     ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer,
     EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer,
     ParkingRequestManagerSerializer, GuestParkingRequestSerializer,
-    GuestParkingRequestListSerializer, ParkingManagerVehicleSerializer,
+    GuestParkingRequestListSerializer,
 )
 from accounts.serializers import (
     ParkingManagerUserSerializer,
     ParkingManagerUserToggleSerializer,
     ParkingManagerUserRoleUpdateSerializer,
 )
+from vehicles.serializers import ParkingManagerVehicleSerializer
 from .permissions import IsManagerUserOrReadOnly, IsManagerOrGuard, IsManagerForGetOrAuthenticatedForPost, IsManagerUser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status

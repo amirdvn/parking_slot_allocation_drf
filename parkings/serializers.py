@@ -135,17 +135,6 @@ class ParkingManagerUserSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class ParkingManagerVehicleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Vehicle
-
-        fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'is_active', 'created_at',
-                  'updated_at']
-
-        read_only_fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'created_at',
-                            'updated_at']
-
-
 # User
 class ParkingRequestSerializer(serializers.ModelSerializer):
     class Meta:

@@ -37,3 +37,9 @@ class VehicleSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'sub_type': 'دوچرخه/موتورسیکلت نمی‌تواند دارای حالت غیرمجاز باشد'})
         return attrs
+
+class ParkingManagerVehicleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vehicle
+        fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'plate_number', 'vehicle_type', 'sub_type', 'color', 'created_at', 'updated_at']
