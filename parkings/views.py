@@ -6,8 +6,12 @@ from .serializers import (
     ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer,
     EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer,
     ParkingRequestManagerSerializer, GuestParkingRequestSerializer,
-    GuestParkingRequestListSerializer, ParkingManagerUserSerializer,
-    ParkingManagerUserToggleSerializer, ParkingManagerVehicleSerializer,
+    GuestParkingRequestListSerializer, ParkingManagerVehicleSerializer,
+)
+from accounts.serializers import (
+    ParkingManagerUserSerializer,
+    ParkingManagerUserToggleSerializer,
+    ParkingManagerUserRoleUpdateSerializer,
 )
 from .permissions import IsManagerUserOrReadOnly, IsManagerOrGuard, IsManagerForGetOrAuthenticatedForPost, IsManagerUser
 from rest_framework.permissions import IsAuthenticated
@@ -192,6 +196,8 @@ class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
 
     def get_serializer_class(self):
         if self.request.method in ('PATCH', 'PUT'):
+            if self.request.user.is_superuser:
+                return ParkingManagerUserRoleUpdateSerializer
             return ParkingManagerUserToggleSerializer
         return ParkingManagerUserSerializer
 
