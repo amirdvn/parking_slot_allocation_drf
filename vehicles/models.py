@@ -7,6 +7,10 @@ class Vehicle(models.Model):
         verbose_name = 'وسیله نقلیه'
         verbose_name_plural = 'وسایل نقلیه'
         ordering = ['-id']
+        indexes = [
+            models.Index(fields=['vehicle_type', 'is_active']),
+            models.Index(fields=['user', 'is_active']),
+        ]
     class VehicleType(models.TextChoices):
         CAR = 'CAR', 'ماشین'
         MOTORCYCLE = 'MOTORCYCLE', 'موتورسیکلت'

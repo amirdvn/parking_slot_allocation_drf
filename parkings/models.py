@@ -76,6 +76,7 @@ class ParkingRequest(models.Model):
         models.Index(fields=['created_date']),
         models.Index(fields=['user', 'status']),
         models.Index(fields=['parking_space', 'status']),
+        models.Index(fields=['parking_space', 'status', 'start_time', 'end_time']),
     ]  
 
     class RequestStatus(models.TextChoices):
