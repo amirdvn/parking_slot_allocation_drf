@@ -2,8 +2,13 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 from rest_framework.views import APIView
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 from rest_framework.exceptions import ValidationError
-from .serializers import ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer, EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer, ParkingRequestManagerSerializer, GuestParkingRequestSerializer, GuestParkingRequestListSerializer, ParkingManagerUserSerializer, ParkingManagerVehicleSerializer
-
+from .serializers import (
+    ParkingSpaceSerializer, ParkingRequestSerializer, ParkingSpaceBlockSerializer,
+    EntryExitLogSerializer, ParkingRequestCancelSerializer, ParkingRequestReviewSerializer,
+    ParkingRequestManagerSerializer, GuestParkingRequestSerializer,
+    GuestParkingRequestListSerializer, ParkingManagerUserSerializer,
+    ParkingManagerUserToggleSerializer, ParkingManagerVehicleSerializer,
+)
 from .permissions import IsManagerUserOrReadOnly, IsManagerOrGuard, IsManagerForGetOrAuthenticatedForPost, IsManagerUser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
@@ -182,10 +187,13 @@ class ParkingManagerUserListView(ListAPIView):
     patch=extend_schema(operation_id="manager_parking_user_activate_or_deactivate")
 )
 class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
-     serializer_class = ParkingManagerUserSerializer
-     permission_classes = [IsManagerUser]
-     def get_queryset(self):
-         return User.objects.all()
+    permission_classes = [IsManagerUser]
+    queryset = User.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.method in ('PATCH', 'PUT'):
+            return ParkingManagerUserToggleSerializer
+        return ParkingManagerUserSerializer
 
 
 
