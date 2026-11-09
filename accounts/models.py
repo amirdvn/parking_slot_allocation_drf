@@ -43,5 +43,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+    @property
+    def is_manager(self):
+        return self.is_superuser or self.role == self.Role.MANAGER
+
+    @property
+    def is_guard(self):
+        return self.is_superuser or self.role == self.Role.GUARD
+
 
     
