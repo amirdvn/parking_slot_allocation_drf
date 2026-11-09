@@ -1,11 +1,13 @@
+import threading
 from datetime import timedelta
 
-from django.test import TestCase
+from django.db import connection
+from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
 from accounts.models import User
 from parkings.models import ParkingRequest, ParkingSpace, ParkingSpaceBlock
-from parkings.services import ParkingRequestService
+from parkings.services import ParkingRequestService, ParkingSpaceBlockService
 from vehicles.models import Vehicle
 
 
@@ -142,3 +144,94 @@ class EmergencySpaceTest(TestCase):
             },
         )
         self.assertEqual(req.status, ParkingRequest.RequestStatus.NEEDS_REVIEW)
+
+
+class ParkingConcurrencyTest(TransactionTestCase):
+
+    def setUp(self):
+        self.user1 = _make_user('09121111111')
+        self.user2 = _make_user('09122222222')
+
+        self.vehicle1 = Vehicle.objects.create(
+            user=self.user1, plate_number='11111111', vehicle_type='CAR', sub_type='PASSENGER', color='BLACK'
+        )
+        self.vehicle2 = Vehicle.objects.create(
+            user=self.user2, plate_number='22222222', vehicle_type='CAR', sub_type='PASSENGER', color='WHITE'
+        )
+        self.space = ParkingSpace.objects.create(zone='NORTH', floor='GROUND', space_type='NORMAL')
+        self.start_time = timezone.now() + timedelta(hours=1)
+        self.end_time = timezone.now() + timedelta(hours=2)
+
+    def test_concurrent_request_creation_only_one_succeeds(self):
+
+        results = []
+
+        def create_request(user, vehicle):
+            try:
+                ParkingRequestService.create(
+                    user=user,
+                    validated_data={
+                        'vehicle': vehicle,
+                        'parking_space': self.space,
+                        'start_time': self.start_time,
+                        'end_time': self.end_time,
+                        'description': ''
+                    }
+                )
+                results.append('success')
+            except ValueError as e:
+                results.append(f'error: {e}')
+            finally:
+                connection.close()
+
+        t1 = threading.Thread(target=create_request, args=(self.user1, self.vehicle1))
+        t2 = threading.Thread(target=create_request, args=(self.user2, self.vehicle2))
+
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        successes = results.count('success')
+        errors = [r for r in results if r.startswith('error')]
+
+        self.assertEqual(successes, 1, f"باید فقط ۱ درخواست موفق ثبت شود. نتایج: {results}")
+        self.assertEqual(len(errors), 1, "باید یکی از درخواست‌ها با خطا مواجه شود.")
+        self.assertIn('قبلاً رزرو شده', errors[0])
+
+    def test_concurrent_block_creation_only_one_succeeds(self):
+
+        results = []
+
+        def create_block():
+            try:
+                ParkingSpaceBlockService.create(
+                    validated_data={
+                        'parking_space': self.space,
+                        'start_time': self.start_time,
+                        'end_time': self.end_time,
+                        'reason': 'REPAIR',
+                        'description': ''
+                    },
+                    created_by=self.user1
+                )
+                results.append('success')
+            except ValueError as e:
+                results.append(f'error: {e}')
+            finally:
+                connection.close()
+
+        t1 = threading.Thread(target=create_block)
+        t2 = threading.Thread(target=create_block)
+
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        successes = results.count('success')
+        errors = [r for r in results if r.startswith('error')]
+
+        self.assertEqual(successes, 1, f"باید فقط ۱ انسداد موفق ثبت شود. نتایج: {results}")
+        self.assertEqual(len(errors), 1, "باید یکی از انسدادها با خطا مواجه شود.")
+        self.assertIn('قبلاً مسدود شده', errors[0])
