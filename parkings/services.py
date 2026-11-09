@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from vehicles.models import Vehicle
 from .cache import DashboardCache
 from django.db import transaction
+from django.conf import settings
 
 
 User = get_user_model()
@@ -68,7 +69,7 @@ class ParkingRequestService:
 
         RequestStatus = ParkingRequest.RequestStatus
 
-        time_expire = timezone.now() - timedelta(minutes=3)
+        time_expire = timezone.now() - timedelta(minutes=settings.PARKING_REQUEST_EXPIRY_MINUTES)
 
         with transaction.atomic():
             request_expired = (

@@ -209,3 +209,5 @@ CELERY_TIMEZONE = 'Asia/Tehran'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+PARKING_REQUEST_EXPIRY_MINUTES = config('PARKING_REQUEST_EXPIRY_MINUTES', default=3, cast=int)
