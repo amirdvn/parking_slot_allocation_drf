@@ -8,6 +8,7 @@ from vehicles.models import Vehicle
 @receiver([post_save, post_delete], sender=ParkingSpace)
 def invalidate_allowed_spaces_cache(sender, instance, **kwargs):
     AllowedParkingSpacesCache.invalidate_all()
+    DashboardCache.invalidate()
 
 @receiver([post_save, post_delete], sender=ParkingRequest)
 @receiver([post_save, post_delete], sender=ParkingSpaceBlock)

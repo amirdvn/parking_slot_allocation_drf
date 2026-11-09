@@ -13,9 +13,11 @@ class OtpService:
 
     @staticmethod
     def _create_and_send(phone_number: str) -> None:
-        code = secrets.randbelow(9000) + 1000
-        OtpCache.set(phone_number, code)
-        send_otp_code_task.delay(phone_number=phone_number, code=code)
+        lock_key = f'otp_lock:{phone_number}'
+        with cache.lock(lock_key, timeout=5):
+            code = secrets.randbelow(9000) + 1000
+            OtpCache.set(phone_number, code)
+            send_otp_code_task.delay(phone_number=phone_number, code=code)
 
     
     @staticmethod
