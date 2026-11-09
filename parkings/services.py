@@ -392,6 +392,8 @@ class EntryExitLogService:
             if not log.vehicle_id:
                 raise ValueError('وسیله نقلیه الزامی است')
 
+            Vehicle.objects.select_for_update(of=('self',)).get(pk=log.vehicle_id)
+
             if EntryExitLog.objects.for_vehicle(log.vehicle_id).active().exclude(pk=log.pk).exists():
                 raise ValueError('این خودرو قبلاً وارد شده و هنوز خارج نشده است')
 
