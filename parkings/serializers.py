@@ -71,6 +71,7 @@ class ParkingRequestReviewSerializer(serializers.ModelSerializer):
         return attrs
 
 
+
 class ParkingRequestManagerSerializer(serializers.ModelSerializer):
 
     user_detail = serializers.SerializerMethodField()
@@ -117,6 +118,13 @@ class ParkingRequestManagerSerializer(serializers.ModelSerializer):
             'floor': obj.parking_space.floor,
         }
 
+class ParkingManagerUserToggleSerializer(serializers.ModelSerializer)
+
+    class Meta:
+        model = User
+        fields = ['id', 'is_active']
+        read_only_fields = ['id']
+
 
 class ParkingManagerUserSerializer(serializers.ModelSerializer):
 
@@ -125,7 +133,7 @@ class ParkingManagerUserSerializer(serializers.ModelSerializer):
 
         fields = ['id', 'phone_number', 'email', 'full_name', 'department', 'role', 'is_active', 'is_staff', 'description', 'created_date', 'updated_date']
 
-        read_only_fields = ['id', 'phone_number', 'email', 'full_name', 'department', 'role', 'is_staff', 'created_date', 'updated_date']
+        read_only_fields = fields
 
 
 
