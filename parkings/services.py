@@ -613,6 +613,32 @@ class ParkingSpaceBlockService:
 
             return ParkingSpaceBlock.objects.create(created_by=created_by, **validated_data)
 
+    @staticmethod
+    def update(instance, validated_data):
+        with transaction.atomic():
+            parking_space = validated_data.get('parking_space', instance.parking_space)
+            parking_space = ParkingSpace.objects.select_for_update().get(pk=parking_space.pk)
+
+            start_time = validated_data.get('start_time', instance.start_time)
+            end_time = validated_data.get('end_time', instance.end_time)
+
+            if ParkingSpaceBlock.objects.overlapping(parking_space, start_time, end_time).exclude(pk=instance.pk).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است')
+
+            if ParkingRequest.objects.overlapping(parking_space, start_time, end_time).exists():
+                raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است')
+
+            instance.parking_space = parking_space
+            instance.start_time = start_time
+            instance.end_time = end_time
+            if 'reason' in validated_data:
+                instance.reason = validated_data['reason']
+            if 'description' in validated_data:
+                instance.description = validated_data['description']
+
+            instance.save()
+            return instance
+
 
 class EntryExitReportService:
     COLUMNS = [
