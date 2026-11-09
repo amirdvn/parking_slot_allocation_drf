@@ -38,6 +38,10 @@ class AllowedParkingSpacesCache:
 
         cache.delete_many(keys)
 
+    @classmethod
+    def invalidate_for_vehicle(cls, vehicle_type, sub_type):
+        cache.delete(cls.make_key(vehicle_type=vehicle_type, sub_type=sub_type))
+
 
 
 class DashboardCache:

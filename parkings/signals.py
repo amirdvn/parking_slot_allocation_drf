@@ -16,6 +16,6 @@ def invalidate_dashboard_cache(sender, instance, **kwargs):
 
 @receiver([post_save, post_delete], sender=Vehicle)
 def invalidate_cache_on_vehicle_change(sender, instance, **kwargs):
-    AllowedParkingSpacesCache.invalidate_all()
-
-
+    AllowedParkingSpacesCache.invalidate_for_vehicle(
+        instance.vehicle_type, instance.sub_type,
+    )
