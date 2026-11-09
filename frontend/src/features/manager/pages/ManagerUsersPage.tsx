@@ -8,6 +8,7 @@ import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
 import type { ManagerUser } from "../../../types/manager";
+import { useAuth } from "../../auth/AuthContext";
 
 const roleLabels: Record<string, string> = {
   USER: "کاربر",
@@ -17,6 +18,7 @@ const roleLabels: Record<string, string> = {
 
 function ManagerUsersPage() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth(); // 👈 تشخیص کاربر لاگین‌کرده
   const [confirmToggle, setConfirmToggle] = useState<ManagerUser | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -47,7 +49,26 @@ function ManagerUsersPage() {
       toast.success(v.isActive ? "فعال شد" : "غیرفعال شد");
       setConfirmToggle(null);
     },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.detail || "خطا");
+      setConfirmToggle(null);
+    }
   });
+
+  // 👇 ماجول تغییر نقش توسط مدیر ارشد
+  const changeRoleMutation = useMutation({
+    mutationFn: ({ id, role, isActive }: { id: number; role: string; isActive: boolean }) =>
+      managerApi.toggleUserStatus(id, isActive, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manager-users"] });
+      toast.success("نقش کاربر با موفقیت تغییر کرد");
+    },
+    onError: (e: any) => toast.error(e.response?.data?.detail || "خطا در تغییر نقش"),
+  });
+
+  const handleRoleChange = (user: ManagerUser, newRole: string) => {
+    changeRoleMutation.mutate({ id: user.id, role: newRole, isActive: user.is_active });
+  };
 
   return (
     <div>
@@ -66,10 +87,7 @@ function ManagerUsersPage() {
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]"
-            />
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-gray-100 dark:bg-[#1c1c1e]" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -94,10 +112,7 @@ function ManagerUsersPage() {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-[#38383a]">
               {filtered.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50"
-                >
+                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-[12px] font-semibold text-white dark:bg-[#0a84ff]">
@@ -107,17 +122,27 @@ function ManagerUsersPage() {
                         <p className="font-medium text-gray-900 dark:text-white">
                           {user.full_name}
                         </p>
-                        <p
-                          className="text-[11px] text-gray-500"
-                          dir="ltr"
-                        >
+                        <p className="text-[11px] text-gray-500" dir="ltr">
                           {user.phone_number}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                    {roleLabels[user.role] || user.role}
+                    {/* 👇 شرط مدیر ارشد برای تغییر نقش */}
+                    {currentUser?.is_superuser ? (
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleRoleChange(user, e.target.value)}
+                        className="cursor-pointer rounded-lg border-0 bg-gray-100 px-2 py-1 text-[12px] outline-none transition-all focus:ring-2 focus:ring-[#007aff] dark:bg-[#2c2c2e] dark:text-white dark:focus:ring-[#0a84ff]"
+                      >
+                        <option value="USER">کاربر</option>
+                        <option value="GUARD">نگهبان</option>
+                        <option value="MANAGER">مدیر</option>
+                      </select>
+                    ) : (
+                      roleLabels[user.role] || user.role
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span

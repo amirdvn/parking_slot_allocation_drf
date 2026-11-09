@@ -9,8 +9,6 @@ import type {
 } from "../../types/manager";
 
 export const managerApi = {
-  // ... کدهای قبلی برای درخواست‌ها و کاربران ...
-
   getNeedsReviewRequests: async () => {
     const response = await api.get<PaginatedResponse<ManagerParkingRequest>>(
       "/api/parking/requests/needs_review/"
@@ -40,11 +38,15 @@ export const managerApi = {
     return response.data;
   },
 
-  toggleUserStatus: async (userId: number, isActive: boolean) => {
+  toggleUserStatus: async (userId: number, isActive: boolean, role?: string) => {
+    const payload: any = { is_active: isActive };
+    if (role) payload.role = role;
+
     const endpoint = isActive
       ? `/api/parking/manager/users/activate/${userId}/`
       : `/api/parking/manager/users/deactivate/${userId}/`;
-    const response = await api.patch(endpoint, { is_active: isActive });
+
+    const response = await api.patch(endpoint, payload);
     return response.data;
   },
 
@@ -68,7 +70,6 @@ export const managerApi = {
     return response.data;
   },
 
-  // 👇 اصلاح‌شده: URL درست + مدیریت خطای blob
   downloadEntryExitReport: async (startDate: string, endDate: string) => {
     try {
       const response = await api.get(
@@ -76,7 +77,6 @@ export const managerApi = {
         { responseType: "blob" }
       );
 
-      // بررسی اگه بک‌اند به جای فایل، ارور JSON برگردونده باشه
       const contentType = response.headers["content-type"] || "";
       if (contentType.includes("application/json")) {
         const text = await response.data.text();
@@ -84,7 +84,6 @@ export const managerApi = {
         throw new Error(errorData.detail || "خطا در دریافت گزارش");
       }
 
-      // ساخت لینک دانلود
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -94,7 +93,6 @@ export const managerApi = {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
-      // 👇 اگه Axios خطا داد، پیام مناسب پرتاب کن
       if (error.response?.data instanceof Blob) {
         const text = await error.response.data.text();
         try {
