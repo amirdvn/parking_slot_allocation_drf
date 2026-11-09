@@ -103,6 +103,19 @@ class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return ParkingSpaceBlock.objects.all()
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            block = ParkingSpaceBlockService.update(instance, serializer.validated_data)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(self.get_serializer(block).data)
+
 @extend_schema_view(
     put=extend_schema(operation_id="manager_parking_request_review_put"),
     patch=extend_schema(operation_id="manager_parking_request_review_patch")
@@ -352,7 +365,7 @@ class VehicleExitView(UpdateAPIView):
         log = self.get_object()
 
         try:
-            EntryExitLogService.record_exit(log)
+            updated_log = EntryExitLogService.record_exit(log)
         
         except ValueError as e:
             
@@ -364,7 +377,7 @@ class VehicleExitView(UpdateAPIView):
             )
         
         return Response(
-            EntryExitLogSerializer(log).data,
+            EntryExitLogSerializer(updated_log).data,
             status=status.HTTP_200_OK
         )
 
