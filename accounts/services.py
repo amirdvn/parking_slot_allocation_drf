@@ -1,9 +1,10 @@
-import random
+import secrets
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from .cache import OtpCache
 from .tasks import send_otp_code_task
 from rest_framework_simplejwt.exceptions import TokenError
+from django.core.cache import cache
 
 User = get_user_model()
 
@@ -12,7 +13,7 @@ class OtpService:
 
     @staticmethod
     def _create_and_send(phone_number: str) -> None:
-        code = random.randint(1000, 9999)
+        code = secrets.randbelow(9000) + 1000
         OtpCache.set(phone_number, code)
         send_otp_code_task.delay(phone_number=phone_number, code=code)
 
@@ -24,11 +25,14 @@ class OtpService:
 
     @staticmethod
     def verify(phone_number: str, code: int) -> None:
-        otp = OtpCache.get(phone_number)
-        if otp is None or otp != code:
-            raise ValueError('کد تایید اشتباه یا منقضی شده است')
+        lock_key = f'otp_lock:{phone_number}'
 
-        OtpCache.delete(phone_number)
+        with cache.lock(lock_key, timeout=5):
+            otp = OtpCache.get(phone_number)
+            if otp is None or otp != code:
+                raise ValueError('کد تایید اشتباه یا منقضی شده است')
+
+            OtpCache.delete(phone_number)
 
 
     @staticmethod
