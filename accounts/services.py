@@ -63,8 +63,8 @@ class UserService:
             email=email,
             phone_number=phone_number,
             full_name=validated_data['full_name'],
-            role=validated_data['role'],
-            department=validated_data['department'],
+            role=User.Role.USER,
+            department=User.Department.WORKERS,
         )
         
         OtpCache.delete_registration_verified(phone_number)
