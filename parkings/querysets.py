@@ -115,7 +115,7 @@ class ParkingSpaceBlockQuerySet(models.QuerySet):
 class EntryExitLogQuerySet(models.QuerySet):
 
     def with_relations(self):
-        return self.select_related('vehicle', 'parking_request', 'parking_request__parking_space', 'guard')
+        return self.select_related('vehicle', 'vehicle__user', 'parking_request', 'parking_request__parking_space', 'guard')
 
     def active(self):
         return self.filter(exit_time__isnull=True)

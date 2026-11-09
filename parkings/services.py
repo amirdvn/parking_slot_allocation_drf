@@ -449,15 +449,15 @@ class DashboardService:
 
         occupied_ids = set(
             ParkingRequest.objects
-            .filter(status=ParkingRequest.RequestStatus.IN_USE)
-            .exclude(parking_space__isnull=True)
+            .filter(status=ParkingRequest.RequestStatus.IN_USE,
+                parking_space__is_active=True)
             .values_list('parking_space_id', flat=True)
         )
 
         blocked_ids = set(
             ParkingSpaceBlock.objects
-            .filter(start_time__lte=now, end_time__gt=now)
-            .exclude(parking_space__isnull=True)
+            .filter(start_time__lte=now, end_time__gt=now,
+                    parking_space__is_active=True)
             .values_list('parking_space_id', flat=True)
         )
 
