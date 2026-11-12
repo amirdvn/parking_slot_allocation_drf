@@ -38,9 +38,16 @@ export const managerApi = {
     return response.data;
   },
 
-  toggleUserStatus: async (userId: number, isActive: boolean, role?: string) => {
+  // 👇 حالا هم role و هم department رو قبول می‌کنه
+  toggleUserStatus: async (
+    userId: number,
+    isActive: boolean,
+    role?: string,
+    department?: string,
+  ) => {
     const payload: any = { is_active: isActive };
     if (role) payload.role = role;
+    if (department) payload.department = department;
 
     const endpoint = isActive
       ? `/api/parking/manager/users/activate/${userId}/`
@@ -76,14 +83,12 @@ export const managerApi = {
         `/api/parking/manager/reports/entry-exit/xlsx/?start=${startDate}&end=${endDate}`,
         { responseType: "blob" }
       );
-
       const contentType = response.headers["content-type"] || "";
       if (contentType.includes("application/json")) {
         const text = await response.data.text();
         const errorData = JSON.parse(text);
         throw new Error(errorData.detail || "خطا در دریافت گزارش");
       }
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -111,14 +116,12 @@ export const managerApi = {
       const response = await api.get("/api/vehicle/reports/vehicles/xlsx/", {
         responseType: "blob",
       });
-
       const contentType = response.headers["content-type"] || "";
       if (contentType.includes("application/json")) {
         const text = await response.data.text();
         const errorData = JSON.parse(text);
         throw new Error(errorData.detail || "خطا در دریافت گزارش");
       }
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;

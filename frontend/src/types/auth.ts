@@ -1,3 +1,5 @@
+// src/types/auth.ts
+
 export type UserRole = 'USER' | 'GUARD' | 'MANAGER';
 export type UserDepartment = 'MANAGEMENT' | 'ADMINISTRATIVE' | 'WORKERS';
 
@@ -27,8 +29,11 @@ export interface LoginCredentials {
   code: string;
 }
 
+export type Department = "MANAGEMENT" | "ADMINISTRATIVE" | "WORKERS";
+
 export interface RegisterPayload {
   email: string;
   phone_number: string;
   full_name: string;
+  // department و role حذف شدند
 }
