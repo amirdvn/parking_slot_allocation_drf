@@ -1,5 +1,3 @@
-// src/types/auth.ts
-
 export type UserRole = 'USER' | 'GUARD' | 'MANAGER';
 export type UserDepartment = 'MANAGEMENT' | 'ADMINISTRATIVE' | 'WORKERS';
 
@@ -10,7 +8,8 @@ export interface UserProfile {
   department: UserDepartment;
   role: UserRole;
   description?: string;
-  is_superuser: boolean; // 👈 برای تشخیص مدیر ارشد در فرانت‌اند
+  is_superuser: boolean;
+  can_manage_users: boolean;
 }
 
 export interface AuthTokens {
@@ -28,11 +27,8 @@ export interface LoginCredentials {
   code: string;
 }
 
-export type Department = "MANAGEMENT" | "ADMINISTRATIVE" | "WORKERS";
-
 export interface RegisterPayload {
   email: string;
   phone_number: string;
   full_name: string;
-  // department و role حذف شدند
 }

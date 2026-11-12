@@ -29,6 +29,7 @@ export interface ManagerParkingRequest {
   cancellation_reason?: string;
   created_date: string;
 }
+
 export interface ManagerUser {
   id: number;
   phone_number: string;
@@ -38,10 +39,13 @@ export interface ManagerUser {
   role: string;
   is_active: boolean;
   is_staff: boolean;
+  is_superuser: boolean;
+  can_manage_users: boolean;
   description?: string;
   created_date: string;
   updated_date: string;
 }
+
 export interface ManagerDashboardData {
   parking_spaces: {
     total: number;
@@ -65,6 +69,7 @@ export interface ManagerDashboardData {
     request_count: number;
   }[];
 }
+
 export interface UserDashboardData {
   vehicles: {
     total: number;

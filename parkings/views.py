@@ -210,7 +210,7 @@ class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
 
     def get_serializer_class(self):
         if self.request.method in ('PATCH', 'PUT'):
-            if self.request.user.is_superuser:
+            if self.request.user.can_manage_users:
                 return ParkingManagerUserRoleUpdateSerializer
             return ParkingManagerUserToggleSerializer
         return ParkingManagerUserSerializer

@@ -18,7 +18,7 @@ const roleLabels: Record<string, string> = {
 
 function ManagerUsersPage() {
   const queryClient = useQueryClient();
-  const { user: currentUser } = useAuth(); // 👈 تشخیص کاربر لاگین‌کرده
+  const { user: currentUser } = useAuth();
   const [confirmToggle, setConfirmToggle] = useState<ManagerUser | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -55,7 +55,6 @@ function ManagerUsersPage() {
     }
   });
 
-  // 👇 ماجول تغییر نقش توسط مدیر ارشد
   const changeRoleMutation = useMutation({
     mutationFn: ({ id, role, isActive }: { id: number; role: string; isActive: boolean }) =>
       managerApi.toggleUserStatus(id, isActive, role),
@@ -129,8 +128,7 @@ function ManagerUsersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                    {/* 👇 شرط مدیر ارشد برای تغییر نقش */}
-                    {currentUser?.is_superuser ? (
+                    {currentUser?.can_manage_users ? (
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleChange(user, e.target.value)}

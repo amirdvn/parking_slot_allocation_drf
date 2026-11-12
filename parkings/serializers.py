@@ -118,23 +118,6 @@ class ParkingRequestManagerSerializer(serializers.ModelSerializer):
         }
 
 
-class ParkingManagerUserToggleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'is_active']
-        read_only_fields = ['id']
-
-
-class ParkingManagerUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-
-        fields = ['id', 'phone_number', 'email', 'full_name', 'department', 'role', 'is_active', 'is_staff',
-                  'description', 'created_date', 'updated_date']
-
-        read_only_fields = fields
-
-
 # User
 class ParkingRequestSerializer(serializers.ModelSerializer):
     class Meta:

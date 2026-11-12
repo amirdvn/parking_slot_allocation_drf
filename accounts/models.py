@@ -27,6 +27,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     is_active = models.BooleanField(default=False, verbose_name='فعال')
     is_staff = models.BooleanField(default=False, verbose_name='دسترسی ادمین')
+    can_manage_users = models.BooleanField(default=False, verbose_name='اجازه مدیریت کاربران')
     created_date = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت‌نام')
     updated_date = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
     description = models.TextField(blank=True, null=True, verbose_name='توضیحات')
