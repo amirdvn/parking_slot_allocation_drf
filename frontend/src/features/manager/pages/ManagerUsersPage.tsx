@@ -1,5 +1,5 @@
 // src/features/manager/pages/ManagerUsersPage.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users } from "lucide-react";
 import { toast } from "sonner";
@@ -7,14 +7,9 @@ import { managerApi } from "../api";
 import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageHeader from "../../../components/shared/PageHeader";
+import { UserRow } from "../components/UserRow";
 import type { ManagerUser } from "../../../types/manager";
 import { useAuth } from "../../auth/AuthContext";
-
-const roleLabels: Record<string, string> = {
-  USER: "کاربر",
-  GUARD: "نگهبان",
-  MANAGER: "مدیر",
-};
 
 function ManagerUsersPage() {
   const queryClient = useQueryClient();
@@ -31,6 +26,7 @@ function ManagerUsersPage() {
   const users = data?.results || [];
   const total = data?.count || 0;
 
+  // ✅ لیست فیلترشده memoize شده
   const filtered = useMemo(() => {
     if (!search) return users;
     return users.filter(
@@ -52,22 +48,58 @@ function ManagerUsersPage() {
     onError: (e: any) => {
       toast.error(e.response?.data?.detail || "خطا");
       setConfirmToggle(null);
-    }
+    },
   });
 
-  const changeRoleMutation = useMutation({
-    mutationFn: ({ id, role, isActive }: { id: number; role: string; isActive: boolean }) =>
-      managerApi.toggleUserStatus(id, isActive, role),
+  const changeDetailsMutation = useMutation({
+    mutationFn: ({
+      id,
+      role,
+      department,
+      isActive,
+    }: {
+      id: number;
+      role?: string;
+      department?: string;
+      isActive: boolean;
+    }) => managerApi.toggleUserStatus(id, isActive, role, department),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manager-users"] });
-      toast.success("نقش کاربر با موفقیت تغییر کرد");
+      toast.success("اطلاعات کاربر با موفقیت به‌روز شد");
     },
-    onError: (e: any) => toast.error(e.response?.data?.detail || "خطا در تغییر نقش"),
+    onError: (e: any) =>
+      toast.error(e.response?.data?.detail || "خطا در تغییر اطلاعات"),
   });
 
-  const handleRoleChange = (user: ManagerUser, newRole: string) => {
-    changeRoleMutation.mutate({ id: user.id, role: newRole, isActive: user.is_active });
-  };
+  // ✅ mutate در RQ v5 پایدار (stable) است، پس callbackها هم پایدار می‌مونن
+  const { mutate: changeDetailsMutate } = changeDetailsMutation;
+
+  // ✅ با useCallback، توابع بین رندرها یکسان می‌مونن و React.memo بیهوده رندر نمی‌ده
+  const handleRoleChange = useCallback(
+    (user: ManagerUser, newRole: string) => {
+      changeDetailsMutate({
+        id: user.id,
+        role: newRole,
+        isActive: user.is_active,
+      });
+    },
+    [changeDetailsMutate]
+  );
+
+  const handleDepartmentChange = useCallback(
+    (user: ManagerUser, newDepartment: string) => {
+      changeDetailsMutate({
+        id: user.id,
+        department: newDepartment,
+        isActive: user.is_active,
+      });
+    },
+    [changeDetailsMutate]
+  );
+
+  const handleToggleClick = useCallback((user: ManagerUser) => {
+    setConfirmToggle(user);
+  }, []);
 
   return (
     <div>
@@ -105,63 +137,21 @@ function ManagerUsersPage() {
               <tr className="text-gray-500 dark:text-gray-400">
                 <th className="px-4 py-3 text-right font-medium">کاربر</th>
                 <th className="px-4 py-3 text-right font-medium">نقش</th>
+                <th className="px-4 py-3 text-right font-medium">دپارتمان</th>
                 <th className="px-4 py-3 text-right font-medium">وضعیت</th>
                 <th className="px-4 py-3 text-left font-medium">عملیات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-[#38383a]">
               {filtered.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-[#2c2c2e]/50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-[12px] font-semibold text-white dark:bg-[#0a84ff]">
-                        {user.full_name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {user.full_name}
-                        </p>
-                        <p className="text-[11px] text-gray-500" dir="ltr">
-                          {user.phone_number}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                    {currentUser?.can_manage_users ? (
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleRoleChange(user, e.target.value)}
-                        className="cursor-pointer rounded-lg border-0 bg-gray-100 px-2 py-1 text-[12px] outline-none transition-all focus:ring-2 focus:ring-[#007aff] dark:bg-[#2c2c2e] dark:text-white dark:focus:ring-[#0a84ff]"
-                      >
-                        <option value="USER">کاربر</option>
-                        <option value="GUARD">نگهبان</option>
-                        <option value="MANAGER">مدیر</option>
-                      </select>
-                    ) : (
-                      roleLabels[user.role] || user.role
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        user.is_active
-                          ? "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]"
-                          : "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500"
-                      }`}
-                    >
-                      {user.is_active ? "فعال" : "غیرفعال"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-left">
-                    <button
-                      onClick={() => setConfirmToggle(user)}
-                      className="text-[12px] font-medium text-[#007aff] hover:underline dark:text-[#0a84ff]"
-                    >
-                      {user.is_active ? "غیرفعال" : "فعال"}
-                    </button>
-                  </td>
-                </tr>
+                <UserRow
+                  key={user.id}
+                  user={user}
+                  canManage={!!currentUser?.can_manage_users}
+                  onRoleChange={handleRoleChange}
+                  onDepartmentChange={handleDepartmentChange}
+                  onToggleClick={handleToggleClick}
+                />
               ))}
             </tbody>
           </table>

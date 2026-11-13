@@ -1,5 +1,5 @@
 // src/features/manager/pages/ManagerVehiclesPage.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Car } from "lucide-react";
 import { toast } from "sonner";
@@ -9,13 +9,8 @@ import Input from "../../../components/ui/Input";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import Pagination from "../../../components/ui/Pagination";
 import PageHeader from "../../../components/shared/PageHeader";
+import { VehicleRow } from "../components/VehicleRow";
 import { formatPlate } from "../../../lib/parking-format";
-
-const typeLabels: Record<string, string> = {
-  CAR: "ماشین",
-  MOTORCYCLE: "موتور",
-  BICYCLE: "دوچرخه",
-};
 
 function ManagerVehiclesPage() {
   const queryClient = useQueryClient();
@@ -38,10 +33,11 @@ function ManagerVehiclesPage() {
   const pageSize = 10;
   const totalPages = Math.ceil(total / pageSize);
 
+  // ✅ نگاشت کاربران به id برای جستجوی سریع
   const usersMap = useMemo(() => {
-    const map: Record<number, any> = {};
+    const map: Record<number, { full_name: string; phone_number: string }> = {};
     usersData?.results?.forEach((u) => {
-      map[u.id] = u;
+      map[u.id] = { full_name: u.full_name, phone_number: u.phone_number };
     });
     return map;
   }, [usersData]);
@@ -71,6 +67,11 @@ function ManagerVehiclesPage() {
       setConfirmToggle(null);
     },
   });
+
+  // ✅ callback پایدار برای ردیف‌ها
+  const handleToggleClick = useCallback((vehicle: ManagerVehicle) => {
+    setConfirmToggle(vehicle);
+  }, []);
 
   return (
     <div>
@@ -117,57 +118,14 @@ function ManagerVehiclesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((vehicle) => {
-                const owner = usersMap[vehicle.user];
-                return (
-                  <tr key={vehicle.id} className="hover:bg-background/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-[12px] font-semibold text-white dark:bg-[#0a84ff]">
-                          {owner?.full_name?.charAt(0) || "?"}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-gray-900 dark:text-white">
-                            {owner?.full_name || `کاربر #${vehicle.user}`}
-                          </p>
-                          {owner?.phone_number && (
-                            <p className="truncate text-[11px] text-gray-500" dir="ltr">
-                              {owner.phone_number}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-mono font-medium text-gray-900 dark:text-white">
-                        {formatPlate(vehicle.plate_number)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      {typeLabels[vehicle.vehicle_type]}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          vehicle.is_active
-                            ? "bg-green-50 text-[#34c759] dark:bg-[#30d158]/10 dark:text-[#30d158]"
-                            : "bg-gray-100 text-gray-500 dark:bg-[#2c2c2e] dark:text-gray-500"
-                        }`}
-                      >
-                        {vehicle.is_active ? "فعال" : "غیرفعال"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      <button
-                        onClick={() => setConfirmToggle(vehicle)}
-                        className="text-[12px] font-medium text-[#007aff] hover:underline dark:text-[#0a84ff]"
-                      >
-                        {vehicle.is_active ? "غیرفعال" : "فعال"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filtered.map((vehicle) => (
+                <VehicleRow
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  owner={usersMap[vehicle.user]}
+                  onToggleClick={handleToggleClick}
+                />
+              ))}
             </tbody>
           </table>
 
