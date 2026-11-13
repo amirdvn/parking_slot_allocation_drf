@@ -110,7 +110,7 @@ function NavFrame() {
   return (
     <svg
       key={pathname}
-      className="pointer-events-none fixed inset-0 z-40 h-full w-full"
+      className="pointer-events-none fixed inset-0 z-20 h-full w-full"
     >
       {/* 👇 نخ اتصال */}
       <line

@@ -14,7 +14,6 @@ import ManagerRequestsPage from "../features/manager/pages/ManagerRequestsPage";
 import ManagerParkingPage from "../features/manager/pages/ManagerParkingPage";
 import ManagerUsersPage from "../features/manager/pages/ManagerUsersPage";
 import ManagerReportsPage from "../features/manager/pages/ManagerReportsPage";
-import NotificationsPage from "../features/notifications/pages/NotificationsPage";
 import SettingsPage from "../features/profile/pages/SettingsPage";
 import ManagerVehiclesPage from "../features/manager/pages/ManagerVehiclesPage";
 
@@ -54,7 +53,7 @@ export const router = createBrowserRouter([
   { path: "/verify-otp", element: <VerifyOtp /> },
   { path: "/register", element: <Register /> },
 
-  // مسیرهای محافظت شده (فقط یک لایه DashboardLayout)
+  // مسیرهای محافظت شده
   {
     element: <ProtectedRoute />,
     children: [
@@ -73,8 +72,8 @@ export const router = createBrowserRouter([
           { path: "parking", element: <ManagerParkingPage /> },
           { path: "users", element: <ManagerUsersPage /> },
           { path: "reports", element: <ManagerReportsPage /> },
-          { path: "notifications", element: <NotificationsPage /> },
           { path: "settings", element: <SettingsPage /> },
+          // 👇 مسیر notifications حذف شد
         ],
       },
     ],

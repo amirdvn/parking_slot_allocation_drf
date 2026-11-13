@@ -1,7 +1,7 @@
 // src/components/shared/Sidebar.tsx
 import {
   LayoutDashboard, ParkingSquare, Car, ClipboardList, Users, FileBarChart,
-  Bell, Settings, LogOut, X, LogIn,
+  Settings, LogOut, X, LogIn,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
@@ -13,9 +13,9 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+// 👇 نوتیفیکیشن‌ها حذف شد
 const commonItems = [
   { title: "داشبورد", path: "/", icon: LayoutDashboard },
-  { title: "اعلان‌ها", path: "/notifications", icon: Bell },
 ];
 
 const roleBasedItems = {

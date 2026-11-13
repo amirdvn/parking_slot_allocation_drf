@@ -17,8 +17,8 @@ const pageTitles: Record<string, string> = {
   "/parking": "مدیریت پارکینگ",
   "/users": "مدیریت کاربران",
   "/reports": "گزارش‌ها",
-  "/notifications": "اعلان‌ها",
   "/settings": "تنظیمات حساب",
+  // 👇 notifications حذف شد
 };
 
 function DashboardLayout() {
@@ -30,17 +30,14 @@ function DashboardLayout() {
 
   return (
     <div dir="rtl" className="flex h-screen overflow-hidden bg-background">
-      {/* 👇 NavFrame بدون هیچ شرطی برای کل سایت فعال شد */}
       <NavFrame />
 
-      {/* سایدبار */}
       <Sidebar
         isOpen={isSidebarOpen}
         isCollapsed={isCollapsed}
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      {/* بخش اصلی */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header
           title={currentTitle}

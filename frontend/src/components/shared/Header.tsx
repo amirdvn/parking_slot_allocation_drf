@@ -1,15 +1,14 @@
 // src/components/shared/Header.tsx
 import { useState, useRef, useEffect } from "react";
 import {
-  Bell, Menu, Sun, Moon, Settings, LogOut, ChevronDown,
+  Menu, Sun, Moon, Settings, LogOut, ChevronDown,
   PanelRightClose, PanelRightOpen
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useTheme } from "../../features/theme/ThemeContext";
-import { notificationsApi } from "../../features/notifications/api";
+import NotificationsDropdown from "./NotificationsDropdown";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -31,13 +30,6 @@ function Header({ onMenuClick, title, isCollapsed, onCollapseToggle }: HeaderPro
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data: unreadData } = useQuery({
-    queryKey: ["unread-count"],
-    queryFn: notificationsApi.getUnreadCount,
-    refetchInterval: 60000,
-  });
-
-  const unreadCount = unreadData?.unread_count || 0;
   const avatarLetter = user?.full_name?.charAt(0) || "?";
 
   useEffect(() => {
@@ -95,18 +87,8 @@ function Header({ onMenuClick, title, isCollapsed, onCollapseToggle }: HeaderPro
           {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
         </button>
 
-        <button
-          onClick={() => navigate("/notifications")}
-          className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-[#2c2c2e]"
-          aria-label="اعلان‌ها"
-        >
-          <Bell size={19} />
-          {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ff3b30] px-1 text-[9px] font-bold text-white dark:bg-[#ff453a]">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
+        {/* 👇 اینجا باید NotificationsDropdown باشه، نه دکمه navigate */}
+        <NotificationsDropdown />
 
         <div className="relative" ref={dropdownRef}>
           <button
@@ -139,7 +121,6 @@ function Header({ onMenuClick, title, isCollapsed, onCollapseToggle }: HeaderPro
               </div>
 
               <div className="p-1.5">
-                {/* 👇 گزینه تنظیمات (که شامل ویرایش پروفایل هم هست) */}
                 <button
                   onClick={() => { setProfileOpen(false); navigate("/settings"); }}
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[14px] text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-[#2c2c2e]"
