@@ -1,4 +1,3 @@
-
 services:
   db:
     image: postgres:17-alpine
@@ -81,6 +80,20 @@ services:
       redis:
         condition: service_healthy
 
+  # 👇 سرویس فرانت‌اند دقیقا اینجا و با همین فاصله‌گذاری (۲ اسپیس) قرار می‌گیرد
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    depends_on:
+      - web
+
+# 👇 بخش volumes در روت (بدون فاصله) قرار می‌گیرد
 volumes:
   postgres_data:
   redis_data:
