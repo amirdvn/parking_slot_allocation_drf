@@ -1,0 +1,48 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.pycharm/
+
+# Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Generated files
+staticfiles/
+media/
+celerybeat-schedule*
+celerybeat.pid
+*.log
+
+# macOS
+.DS_Store
+.DS_Store?
+.AppleDouble
+
+# Editor temporary files
+*.swp
+*.swo
