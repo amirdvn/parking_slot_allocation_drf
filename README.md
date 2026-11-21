@@ -1,159 +1,142 @@
 # 🅿️ Parking Slot Allocation System
 
-A full-stack parking management system designed to simplify parking reservations, manage vehicle access, and optimize parking space allocation.
+A full-stack parking management application for handling parking-space allocation, reservations, vehicle access, and operational reporting.
 
-Built with **Django REST Framework** and **React + TypeScript**, with a focus on clean architecture, data integrity, performance optimization, and user experience.
+The project consists of a **Django REST Framework backend** and a **React + TypeScript frontend**. It is designed around role-based workflows, reservation conflict prevention, database integrity, and background task processing.
 
----
+## ✨ Features
 
-## ✨ Project Features
+### Parking and reservations
+- Allocate parking spaces according to vehicle type and subtype.
+- Create and manage parking requests with start and end times.
+- Detect reservation time conflicts.
+- Support guest parking requests.
+- Let managers temporarily block parking spaces for maintenance or other reasons.
+- Track request states, including pending, approved, rejected, canceled, expired, in-use, completed, and needs-review.
 
-- Smart parking space allocation based on vehicle type and subtype.
-- Online parking reservations with time-conflict detection.
-- Phone-based authentication using OTP.
-- Role-Based Access Control (User, Guard, Manager).
-- Vehicle entry and exit tracking.
-- Parking space management and temporary blocking.
-- Guest parking requests.
-- Role-specific dashboards.
-- Excel report generation.
-- In-app notifications.
-- Automated expiration of pending parking requests.
+### Accounts and access
+- Phone-number-based OTP login and registration verification.
+- JWT access and refresh tokens.
+- Refresh-token blacklisting on logout.
+- Role-based access for **User**, **Guard**, and **Manager**.
+- User activation and management workflows.
 
----
+### Vehicle operations
+- Register and manage user vehicles.
+- Search vehicles for gate operations.
+- Record vehicle entry and exit.
+- View parking activity and dashboards.
 
-## ⚙️ Backend
+### Notifications and reports
+- In-app notifications and read/unread management.
+- Excel reports for entry/exit records and vehicles.
+- Scheduled expiration of pending parking requests.
 
-The backend is developed using Django and Django REST Framework, providing RESTful APIs for authentication, parking management, vehicle operations, and reporting.
+## 🧰 Technology Stack
 
-### Key Features
+### Backend
 
-- **Authentication:** Phone-based OTP verification, JWT authentication, token refresh, and refresh-token blacklisting.
-- **Parking Management:** Smart parking allocation, reservation lifecycle management, and time-overlap detection.
-- **Concurrency Control:** Atomic transactions and row-level locking using `select_for_update()`.
-- **Query Optimization:** `select_related()`, `prefetch_related()`, database aggregations, and custom QuerySets.
-- **Caching:** Redis caching with TTL-based expiration and cache invalidation.
-- **Background Processing:** Celery tasks for asynchronous operations and scheduled request expiration.
-- **Reporting:** Memory-efficient Excel generation using OpenPyXL write-only mode.
-- **Architecture:** Service Layer and custom QuerySets for separation of business logic and database operations.
-
-### Backend Tech Stack
-
-| Category | Technologies |
+| Area | Technologies |
 |---|---|
-| Language | Python |
+| Language | Python 3.14 |
 | Framework | Django 5.2 |
-| API Framework | Django REST Framework |
-| Database | PostgreSQL |
-| Caching | Redis |
-| Task Processing | Celery, Celery Beat |
+| API | Django REST Framework |
+| Database | PostgreSQL 17 |
+| Cache | Redis |
+| Background jobs | Celery 5.6, Celery Beat |
 | Authentication | Simple JWT |
-| API Documentation | drf-spectacular, Swagger, OpenAPI |
-| Excel Reports | OpenPyXL |
-| SMS Provider | Kavenegar |
-| Environment Configuration | python-decouple |
+| API documentation | drf-spectacular, Swagger UI, ReDoc |
+| Excel export | OpenPyXL |
+| SMS integration | Kavenegar (with a mock backend for development) |
+| WSGI server | Gunicorn |
+| Configuration | python-decouple |
 
-### Backend Architecture
+### Frontend
 
-The backend follows a layered architecture to keep responsibilities separated and maintainable.
-
-- **Views:** Handle HTTP requests and responses.
-- **Serializers:** Validate input data and transform API responses.
-- **Services:** Handle business logic and application workflows.
-- **QuerySets:** Provide reusable and optimized database queries.
-- **Cache Layer:** Manage frequently accessed data using Redis.
-- **Tasks:** Handle asynchronous and scheduled operations using Celery.
-
----
-
-## 🎨 Frontend
-
-The frontend is built with React and TypeScript, providing an interactive interface for users, guards, and managers.
-
-### Key Features
-
-- OTP-based authentication and registration.
-- Role-based dashboards.
-- User profile and vehicle management.
-- Parking reservation and guest request management.
-- Manager panel for managing users, vehicles, parking spaces, and requests.
-- Guard panel for vehicle entry and exit tracking.
-- Notifications and reporting interfaces.
-- JWT-based API integration with automatic token refresh.
-- Responsive interface with Persian language support.
-- Light and dark theme support.
-
-### Frontend Tech Stack
-
-| Category | Technologies |
+| Area | Technologies |
 |---|---|
-| Framework | React 19 |
+| Library | React 19 |
 | Language | TypeScript |
-| Build Tool | Vite |
+| Build tool | Vite 8 |
 | Styling | Tailwind CSS 4 |
-| Routing | React Router |
-| API Requests | Axios |
-| Server State | TanStack Query |
+| Routing | React Router 7 |
+| HTTP client | Axios |
+| Server state | TanStack Query |
 | Forms | React Hook Form |
 | Validation | Zod |
 | Charts | Recharts |
 | Icons | Lucide React |
-| Date Picker | React Multi Date Picker |
-| Fonts | Vazirmatn |
+| Date picker | React Multi Date Picker |
+| Font | Vazirmatn |
 
----
+## 🏗️ Backend Architecture
 
-## 📂 Project Structure
+The backend separates request handling, validation, business workflows, and reusable database queries:
+
+- **Views:** Handle HTTP requests and responses.
+- **Serializers:** Validate incoming data and serialize API responses.
+- **Services:** Encapsulate application workflows and business rules.
+- **Custom QuerySets:** Keep reusable database query logic close to the relevant models.
+- **Cache modules:** Handle Redis-backed cached data.
+- **Celery tasks:** Run asynchronous and scheduled work.
+- **Signals:** Handle model-related events where required.
+
+### Engineering considerations
+
+- `select_related()` and `prefetch_related()` to reduce unnecessary database queries.
+- QuerySet-level filtering and database aggregations for list and dashboard operations.
+- Redis caching with configurable TTL values.
+- Atomic transactions and row-level locking for sensitive reservation workflows.
+- Database indexes for frequently filtered and joined fields.
+- OpenPyXL write-only mode for memory-conscious Excel report generation.
+
+## 📁 Project Structure
 
 ```text
 parking_slot_allocation_drf/
-│
 ├── accounts/
-│   ├── cache.py
 │   ├── managers.py
-│   ├── querysets.py
+│   ├── models.py
+│   ├── serializers.py
 │   ├── services.py
+│   ├── querysets.py
+│   ├── cache.py
 │   ├── tasks.py
 │   ├── throttles.py
 │   └── ...
-│
 ├── profiles/
 │   ├── models.py
 │   ├── serializers.py
 │   ├── views.py
 │   └── ...
-│
 ├── vehicles/
-│   ├── permissions.py
-│   ├── services.py
+│   ├── models.py
 │   ├── serializers.py
+│   ├── services.py
 │   ├── views.py
 │   └── ...
-│
 ├── parkings/
-│   ├── cache.py
-│   ├── permissions.py
-│   ├── querysets.py
+│   ├── models.py
+│   ├── serializers.py
 │   ├── services.py
-│   ├── signals.py
+│   ├── querysets.py
+│   ├── cache.py
 │   ├── tasks.py
-│   ├── serializers.py
+│   ├── signals.py
+│   ├── permissions.py
 │   ├── views.py
 │   └── ...
-│
 ├── notifications/
+│   ├── models.py
+│   ├── serializers.py
 │   ├── querysets.py
 │   ├── tasks.py
-│   ├── serializers.py
 │   ├── views.py
 │   └── ...
-│
 ├── core/
 │   ├── settings.py
 │   ├── urls.py
-│   ├── celery.py
-│   └── ...
-│
+│   └── celery.py
 ├── frontend/
 │   ├── src/
 │   │   ├── app/
@@ -161,89 +144,48 @@ parking_slot_allocation_drf/
 │   │   ├── features/
 │   │   ├── layouts/
 │   │   ├── lib/
-│   │   ├── types/
-│   │   └── ...
+│   │   └── types/
 │   ├── public/
-│   ├── package.json
-│   └── vite.config.ts
-│
+│   ├── Dockerfile
+│   └── package.json
+├── compose.yaml
+├── Dockerfile
 ├── requirements.txt
 ├── manage.py
-├── utils.py
 └── README.md
 ```
 
----
-
 ## 🚀 Getting Started
 
-### Prerequisites
+### Option 1: Run with Docker Compose
 
-Make sure the following are installed:
+**Prerequisites:** Docker Desktop (or Docker Engine) with the Docker Compose plugin.
 
-- Python 3.10+
-- Node.js and npm
-- PostgreSQL
-- Redis
-- Git
-
-### 1. Clone the Repository
+1. Clone the repository:
 
 ```bash
 git clone https://github.com/amirdvn/parking_slot_allocation_drf.git
-
 cd parking_slot_allocation_drf
 ```
 
-### 2. Backend Setup
-
-Create a virtual environment:
-
-```bash
-python -m venv venv
-```
-
-Activate the virtual environment:
-
-**macOS / Linux**
-
-```bash
-source venv/bin/activate
-```
-
-**Windows**
-
-```bash
-venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Configure Environment Variables
-
-Create a `.env` file in the project root:
+2. Create a `.env` file in the project root:
 
 ```env
 # Django
-SECRET_KEY=your_secret_key
+SECRET_KEY=replace_with_a_secure_secret_key
 DEBUG=True
-ALLOWED_HOSTS=127.0.0.1,localhost
+ALLOWED_HOSTS=localhost,127.0.0.1
 
 # PostgreSQL
 DB_NAME=parking_db
 DB_USER=postgres
-DB_PASSWORD=your_password
-DB_HOST=localhost
+DB_PASSWORD=change_this_password
 DB_PORT=5432
 
-# Redis
+# Redis-backed cache
 REDIS_URL=redis://127.0.0.1:6379/1
 
-# OTP and Cache
+# Cache and OTP settings
 OTP_TTL=120
 REGISTRATION_TTL=300
 ALLOWED_PARKING_SPACE_CACHE_TTL=300
@@ -253,191 +195,235 @@ DASHBOARD_CACHE_TTL=60
 CELERY_BROKER_URL=redis://127.0.0.1:6379/2
 CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/2
 
-# SMS Configuration
+# SMS
 SMS_BACKEND=mock
 KAVENEGAR_API_KEY=your_kavenegar_api_key
 SENDER_NUMBER=your_sender_number
+
+# Parking requests
+PARKING_REQUEST_EXPIRY_MINUTES=3
 ```
 
-**Note:**
-- `SECRET_KEY`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` are required.
-- `SMS_BACKEND=mock` uses the mock SMS backend for local development.
-- Set `SMS_BACKEND=kavenegar` and configure your API key to enable Kavenegar SMS delivery.
-- Never commit your actual `.env` file or secret credentials.
+`DB_HOST` is set to the `db` service by Docker Compose. Redis and Celery URLs are also overridden inside the containers to use the `redis` service.
 
-### 4. Database Migrations
-
-Apply the existing migrations:
+3. Build and start the services:
 
 ```bash
+docker compose up --build -d
+```
+
+4. Apply database migrations:
+
+```bash
+docker compose exec web python manage.py migrate
+```
+
+5. Create an administrator account:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+6. Open the application:
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:8000 |
+| Django Admin | http://localhost:8000/admin/ |
+| Swagger UI | http://localhost:8000/api/schema/swagger_ui/ |
+| ReDoc | http://localhost:8000/api/schema/redoc/ |
+
+The Compose setup starts PostgreSQL, Redis, the Django/Gunicorn application, a Celery worker, Celery Beat, and the frontend.
+
+Useful commands:
+
+```bash
+# Follow service logs
+docker compose logs -f
+
+# Follow a specific service
+docker compose logs -f web
+docker compose logs -f celery_worker
+
+# Stop containers
+docker compose down
+
+# Stop containers and remove named volumes (deletes persisted database/cache data)
+docker compose down -v
+```
+
+### Option 2: Run Backend and Frontend Locally
+
+**Prerequisites:** Python 3.14, Node.js/npm, PostgreSQL, and Redis.
+
+#### 1. Clone the repository
+
+```bash
+git clone https://github.com/amirdvn/parking_slot_allocation_drf.git
+cd parking_slot_allocation_drf
+```
+
+#### 2. Configure the backend environment
+
+Create a `.env` file in the project root. Use the environment-variable template from the Docker section, and set:
+
+```env
+DB_HOST=127.0.0.1
+REDIS_URL=redis://127.0.0.1:6379/1
+CELERY_BROKER_URL=redis://127.0.0.1:6379/2
+CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/2
+```
+
+#### 3. Install backend dependencies
+
+```bash
+python -m venv venv
+```
+
+Activate the virtual environment:
+
+```bash
+# macOS / Linux
+source venv/bin/activate
+
+# Windows
+venv\Scripts\activate
+```
+
+Install packages and prepare the database:
+
+```bash
+pip install -r requirements.txt
 python manage.py migrate
-```
-
-Create a superuser:
-
-```bash
 python manage.py createsuperuser
 ```
 
-### 5. Run the Backend Server
+#### 4. Start the backend
 
 ```bash
 python manage.py runserver
 ```
 
-The backend will be available at:
+#### 5. Start Celery worker and Beat
 
-```text
-http://127.0.0.1:8000/
-```
-
-### 6. Run Celery Worker
-
-Open a new terminal, activate the virtual environment, and run:
+Run each command in a separate terminal with the virtual environment activated:
 
 ```bash
 celery -A core worker --loglevel=info
 ```
 
-For macOS:
+```bash
+celery -A core beat --loglevel=info
+```
+
+On macOS, the worker can be started with the solo pool:
 
 ```bash
 celery -A core worker --loglevel=info --pool=solo
 ```
 
-### 7. Run Celery Beat
+Celery Beat schedules the pending parking-request expiration task. OTP delivery is also dispatched through Celery.
 
-Open another terminal and run:
-
-```bash
-celery -A core beat --loglevel=info
-```
-
-Celery Beat handles scheduled tasks, including automatic expiration of pending parking requests.
-
----
-
-## 🖥️ Frontend Setup
-
-### 1. Navigate to the Frontend Directory
+#### 6. Install and run the frontend
 
 ```bash
 cd frontend
-```
-
-### 2. Install Dependencies
-
-```bash
 npm install
 ```
 
-### 3. Configure Environment Variables
-
-Create a `.env` file inside the `frontend` directory:
+Create `frontend/.env`:
 
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-### 4. Run the Development Server
+Start the Vite development server:
 
 ```bash
 npm run dev
 ```
 
-The frontend will be available at:
+The frontend is available at http://localhost:5173.
 
-```text
-http://localhost:5173/
-```
-
-### 5. Build for Production
+Create a production build with:
 
 ```bash
 npm run build
 ```
 
----
+## 🔐 Authentication Flow
+
+1. The client requests an OTP for a phone number.
+2. The OTP is sent through the configured SMS backend.
+3. The client submits the OTP for verification.
+4. For an existing active account, the API returns JWT access and refresh tokens.
+5. For a phone number that is not registered, the verification flow marks the phone as verified so the user can continue registration.
+6. Logout blacklists the submitted refresh token.
+
+For local development, `SMS_BACKEND=mock` logs the OTP to the backend application logs instead of sending a real SMS. To use Kavenegar, set `SMS_BACKEND=kavenegar` and provide valid `KAVENEGAR_API_KEY` and `SENDER_NUMBER` values.
+
+## 👥 Roles
+
+| Role | Main responsibilities |
+|---|---|
+| **User** | Manage a profile and vehicles, submit and manage parking requests, and view a personal dashboard. |
+| **Guard** | Search vehicles, review approved parking requests, record vehicle entry and exit, and view the guard dashboard. |
+| **Manager** | Manage parking spaces, review requests, manage users and vehicles, block spaces, view dashboards, and export reports. |
 
 ## 📚 API Documentation
 
-Interactive API documentation is available through Swagger UI.
+The API schema and interactive documentation are generated with **drf-spectacular**:
 
-**Swagger UI**
+- **Swagger UI:** http://127.0.0.1:8000/api/schema/swagger_ui/
+- **ReDoc:** http://127.0.0.1:8000/api/schema/redoc/
+- **OpenAPI schema:** http://127.0.0.1:8000/api/schema/
 
-```text
-http://127.0.0.1:8000/api/schema/swagger_ui/
-```
+### Main API route groups
 
-**ReDoc**
+| Area | Base path |
+|---|---|
+| Authentication | `/api/auth/` |
+| JWT refresh | `/api/token/refresh/` |
+| Profile | `/api/profile/` |
+| Vehicles | `/api/vehicle/` |
+| Parking spaces, requests, blocks, entry/exit, dashboards, reports | `/api/parking/` |
+| Notifications | `/api/notifications/` |
 
-```text
-http://127.0.0.1:8000/api/schema/redoc/
-```
-
-**OpenAPI Schema**
-
-```text
-http://127.0.0.1:8000/api/schema/
-```
-
----
-
-## 🔑 Authentication Endpoints
+### Selected authentication endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/auth/register/` | User registration |
-| POST | `/api/auth/login/send_otp/` | Send login OTP |
-| POST | `/api/auth/login/verify_otp/` | Verify OTP and obtain JWT tokens |
-| POST | `/api/token/refresh/` | Refresh access token |
-| POST | `/api/auth/logout/` | Logout and blacklist refresh token |
-| POST | `/api/auth/change_phone/send_otp/` | Send phone change OTP |
-| POST | `/api/auth/change_phone/verify_otp/` | Verify phone change OTP |
+| POST | `/api/auth/register/` | Register after phone verification |
+| POST | `/api/auth/login/send_otp/` | Request a login OTP |
+| POST | `/api/auth/login/verify_otp/` | Verify OTP and continue login/registration flow |
+| POST | `/api/token/refresh/` | Refresh an access token |
+| POST | `/api/auth/logout/` | Blacklist the refresh token |
+| POST | `/api/auth/change_phone/send_otp/` | Request phone-number change verification |
+| POST | `/api/auth/change_phone/verify_otp/` | Verify and update the phone number |
 
----
+For the complete list of endpoints, request schemas, and response formats, use Swagger UI or ReDoc.
 
-## 👥 User Roles
+## 🧪 Development
 
-| Role | Responsibilities |
-|---|---|
-| **User** | Manage personal vehicles, submit parking requests, manage reservations, and access personal dashboard. |
-| **Guard** | Search vehicles, record vehicle entry and exit, and monitor parking activity. |
-| **Manager** | Manage parking spaces, users, vehicles, reservations, and reports. |
+Run the Django test suite with:
 
----
+```bash
+python manage.py test
+```
 
-## 🧠 Engineering Highlights
+Run frontend linting from the `frontend/` directory:
 
-This project focuses on practical backend and full-stack engineering concepts:
-
-- Service Layer architecture and separation of concerns.
-- PostgreSQL query optimization and N+1 prevention.
-- Database-level aggregations.
-- Redis caching and cache invalidation.
-- Celery asynchronous and scheduled processing.
-- Atomic transactions and row-level locking.
-- JWT and OTP-based authentication.
-- Role-based access control.
-- Memory-efficient data processing.
-- Excel report generation.
-- React and TypeScript frontend architecture.
-- REST API integration and client-side state management.
-
----
+```bash
+npm run lint
+```
 
 ## 📄 License
 
-This project is licensed under the MIT License.
-
----
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ## 👨‍💻 Author
 
 **Amir Daviran**
 
 [GitHub Profile](https://github.com/amirdvn)
-
----
-
-*Built with Python, curiosity, and a passion for software engineering.* q
