@@ -1,19 +1,19 @@
 from django.contrib.auth.base_user import BaseUserManager
-
+from accounts.translations.fa import MESSAGES
 
 class UserManager(BaseUserManager):
 
     def create_user(self, phone_number, email, full_name, role, department):
         if not phone_number:
-            raise ValueError('کاربر باید شماره تلفن داشته باشد')
+            raise ValueError(MESSAGES['user']['phone_required'])
         if not email:
-            raise ValueError('کاربر باید ایمیل داشته باشد')
+            raise ValueError(MESSAGES['user']['email_required'])
         if not full_name:
-            raise ValueError('کاربر باید نام و نام خانوادگی داشته باشد')
+            raise ValueError(MESSAGES['user']['full_name_required'])
         if not role:
-            raise ValueError('کاربر باید نقش داشته باشد')
+            raise ValueError(MESSAGES['user']['role_required'])
         if not department:
-            raise ValueError('کاربر باید بخش کاری داشته باشد')
+            raise ValueError(MESSAGES['user']['department_required'])
 
         user = self.model(
             phone_number=phone_number,

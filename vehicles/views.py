@@ -15,6 +15,8 @@ from io import BytesIO
 from openpyxl import Workbook
 from django.http import HttpResponse
 
+from vehicles.translations.fa import MESSAGES
+
 
 @extend_schema_view(
     list=extend_schema(responses=VehicleSerializer(many=True)),
@@ -44,7 +46,7 @@ class VehicleDetailView(RetrieveUpdateDestroyAPIView):
             return  super().destroy(request, *args, **kwargs)
         except ProtectedError:
             return Response(
-                {'detail': 'این خودرو دارای درخواست یا لاگ پارکینگ است و قابل حذف نیست؛ ابتدا آن‌ها را لغو کنید.'},
+                {'detail': MESSAGES['vehicle']['delete_protected']},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

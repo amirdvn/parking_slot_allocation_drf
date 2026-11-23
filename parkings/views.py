@@ -1,4 +1,5 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView, CreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView, ListAPIView, \
+    CreateAPIView, RetrieveUpdateAPIView
 from rest_framework.views import APIView
 from .models import ParkingSpace, ParkingRequest, ParkingSpaceBlock, EntryExitLog
 from rest_framework.exceptions import ValidationError
@@ -21,8 +22,10 @@ from rest_framework.response import Response
 from vehicles.models import Vehicle
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from .services import ParkingRequestService, EntryExitLogService, DashboardService, ParkingSpaceBlockService, EntryExitReportService
+from .services import ParkingRequestService, EntryExitLogService, DashboardService, ParkingSpaceBlockService, \
+    EntryExitReportService
 from django.db import transaction
+from parkings.translations.fa import MESSAGES
 
 from datetime import datetime
 from django.utils import timezone as dj_tz
@@ -32,7 +35,8 @@ from django.http import HttpResponse
 
 User = get_user_model()
 
-#Manager
+
+# Manager
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_space_list"),
     post=extend_schema(operation_id="manager_parking_space_create")
@@ -53,7 +57,6 @@ class ParkingSpaceListCreateView(ListCreateAPIView):
                 vehicle = Vehicle.objects.filter(id=vehicle_id).first()
 
             if vehicle:
-
                 return ParkingSpace.objects.get_allowed_parking_spaces(
                     vehicle=vehicle,
                     user=None
@@ -61,6 +64,7 @@ class ParkingSpaceListCreateView(ListCreateAPIView):
             return ParkingSpace.objects.none()
 
         return ParkingSpace.objects.all()
+
 
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_space_detail"),
@@ -73,6 +77,7 @@ class ParkingSpaceDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = ParkingSpaceSerializer
     permission_classes = [IsManagerUserOrReadOnly]
 
+
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_space_block_list"),
     post=extend_schema(operation_id="manager_parking_space_block_create")
@@ -83,12 +88,14 @@ class ParkingSpaceBlockListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         return ParkingSpaceBlock.objects.all()
+
     def perform_create(self, serializer):
         try:
             block = ParkingSpaceBlockService.create(serializer.validated_data, created_by=self.request.user)
         except ValueError as e:
             raise ValidationError({'parking_space': str(e)})
         serializer.instance = block
+
 
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_space_block_retrieve"),
@@ -116,23 +123,22 @@ class ParkingSpaceBlockDetailView(RetrieveUpdateDestroyAPIView):
 
         return Response(self.get_serializer(block).data)
 
+
 @extend_schema_view(
     put=extend_schema(operation_id="manager_parking_request_review_put"),
     patch=extend_schema(operation_id="manager_parking_request_review_patch")
 )
-class ParkingRequestReviewView(UpdateAPIView): 
-
-    serializer_class = ParkingRequestReviewSerializer 
-    permission_classes = [IsManagerUser] 
+class ParkingRequestReviewView(UpdateAPIView):
+    serializer_class = ParkingRequestReviewSerializer
+    permission_classes = [IsManagerUser]
 
     def get_queryset(self):
         return ParkingRequest.objects.select_related('parking_space')
 
-
-    def update(self, request, *args, **kwargs): 
+    def update(self, request, *args, **kwargs):
         parking_request = self.get_object()
         serializer = self.get_serializer(data=request.data)
-        
+
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -151,7 +157,7 @@ class ParkingRequestReviewView(UpdateAPIView):
 
         return Response(
             {
-                'detail': 'وضعیت درخواست با موفقیت تغییر کرد', 
+                'detail': MESSAGES['success']['review_changed'],
                 'status': updated.status
             },
             status=status.HTTP_200_OK,
@@ -163,29 +169,31 @@ class ApprovedParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUser]
 
-    def get_queryset(self): 
-
+    def get_queryset(self):
         return ParkingRequest.objects.with_relations().filter(status=ParkingRequest.RequestStatus.APPROVED)
+
 
 @extend_schema(operation_id="manager_parking_request_needs_review_list")
 class NeedsReviewParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUser]
 
-    def get_queryset(self): 
-
+    def get_queryset(self):
         return ParkingRequest.objects.with_relations().pending_or_review()
+
+
 @extend_schema(operation_id="manager_parking_request_cancel_list")
 class CanceledParkingRequestListView(ListAPIView):
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerUser]
 
     def get_queryset(self):
-        return ParkingRequest.objects.with_relations().filter(status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED])
+        return ParkingRequest.objects.with_relations().filter(
+            status__in=[ParkingRequest.RequestStatus.CANCELED, ParkingRequest.RequestStatus.REJECTED])
+
 
 @extend_schema(operation_id="manager_dashboard")
 class ManagerDashboardView(APIView):
-
     permission_classes = [IsManagerUser]
 
     def get(self, request):
@@ -197,8 +205,10 @@ class ManagerDashboardView(APIView):
 class ParkingManagerUserListView(ListAPIView):
     serializer_class = ParkingManagerUserSerializer
     permission_classes = [IsManagerUser]
+
     def get_queryset(self):
         return User.objects.all().order_by('-created_date')
+
 
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_user_retrieve"),
@@ -216,22 +226,20 @@ class ParkingManagerUserDetailView(RetrieveUpdateAPIView):
         return ParkingManagerUserSerializer
 
 
-
 @extend_schema(operation_id="manager_parking_vehicle_list")
 class ParkingManagerVehicleListView(ListAPIView):
-
     serializer_class = ParkingManagerVehicleSerializer
     permission_classes = [IsManagerUser]
 
     def get_queryset(self):
         return Vehicle.objects.all().order_by('-created_at')
 
+
 @extend_schema_view(
     get=extend_schema(operation_id="manager_parking_vehicle_retrieve"),
     patch=extend_schema(operation_id="manager_parking_vehicle_activate_or_deactivate")
 )
 class ParkingManagerVehicleDetailView(RetrieveUpdateAPIView):
-
     serializer_class = ParkingManagerVehicleSerializer
     permission_classes = [IsManagerUser]
 
@@ -239,39 +247,40 @@ class ParkingManagerVehicleDetailView(RetrieveUpdateAPIView):
         return Vehicle.objects.all()
 
 
-
-
-#User
+# User
 @extend_schema_view(
     get=extend_schema(operation_id="user_parking_request_list"),
     post=extend_schema(operation_id="user_parking_request_create")
 )
 class ParkingRequestListCreateView(ListCreateAPIView):
-     serializer_class = ParkingRequestSerializer
-     permission_classes = [IsAuthenticated]
-     def get_queryset(self):
+    serializer_class = ParkingRequestSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
 
         return ParkingRequest.objects.filter(user=self.request.user)
 
-     def perform_create(self, serializer):
-         try:
-             parking_request = ParkingRequestService.create(
-                 user=self.request.user,
-                 validated_data=serializer.validated_data,
-             )
-         except ValueError as e:
-             raise ValidationError({'parking_space': str(e)})
+    def perform_create(self, serializer):
+        try:
+            parking_request = ParkingRequestService.create(
+                user=self.request.user,
+                validated_data=serializer.validated_data,
+            )
+        except ValueError as e:
+            raise ValidationError({'parking_space': str(e)})
 
-         serializer.instance = parking_request
+        serializer.instance = parking_request
+
 
 @extend_schema_view(
     get=extend_schema(operation_id="user_parking_request_retrieve"),
     put=extend_schema(operation_id="user_parking_request_put"),
     patch=extend_schema(operation_id="user_parking_request_patch")
 )
-class ParkingRequestDetailView(RetrieveUpdateAPIView): 
+class ParkingRequestDetailView(RetrieveUpdateAPIView):
     serializer_class = ParkingRequestSerializer
     permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
         return ParkingRequest.objects.with_relations().filter(user=self.request.user)
 
@@ -287,6 +296,7 @@ class ParkingRequestDetailView(RetrieveUpdateAPIView):
 
         return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
 
+
 @extend_schema(operation_id="user_parking_request_cancel")
 class ParkingRequestCancelView(UpdateAPIView):
     serializer_class = ParkingRequestCancelSerializer
@@ -298,7 +308,7 @@ class ParkingRequestCancelView(UpdateAPIView):
     def update(self, request, *args, **kwargs):
         parking_request = self.get_object()
         serializer = self.get_serializer(data=request.data)
-        
+
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -311,22 +321,21 @@ class ParkingRequestCancelView(UpdateAPIView):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
-            {'detail': 'درخواست با موفقیت لغو شد'},
+            {'detail': MESSAGES['success']['canceled']},
             status=status.HTTP_200_OK,
         )
 
 
-
 @extend_schema(operation_id="user_dashboard")
 class UserDashboardView(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         data = DashboardService.get_user_dashboard(request.user)
         return Response(data)
 
-#Guard
+
+# Guard
 @extend_schema_view(
     get=extend_schema(operation_id="guard_entry_exit_log_list"),
     post=extend_schema(operation_id="guard_entry_exit_log_create")
@@ -353,7 +362,6 @@ class EntryExitLogListCreateView(ListCreateAPIView):
     patch=extend_schema(operation_id="guard_vehicle_exit_patch")
 )
 class VehicleExitView(UpdateAPIView):
-
     serializer_class = EntryExitLogSerializer
     permission_classes = [IsManagerOrGuard]
 
@@ -366,16 +374,16 @@ class VehicleExitView(UpdateAPIView):
 
         try:
             updated_log = EntryExitLogService.record_exit(log)
-        
+
         except ValueError as e:
-            
+
             return Response(
                 {
                     'detail': str(e)
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         return Response(
             EntryExitLogSerializer(updated_log).data,
             status=status.HTTP_200_OK
@@ -390,23 +398,22 @@ class ApprovedParkingRequestGuardListView(ListAPIView):
     def get_queryset(self):
         return ParkingRequest.objects.with_relations().filter(status=ParkingRequest.RequestStatus.APPROVED)
 
+
 @extend_schema(operation_id="guard_inuse_parking_space_list")
 class InUseParkingListView(ListAPIView):
-
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerOrGuard]
 
     def get_queryset(self):
         return ParkingRequest.objects.with_relations().filter(status=ParkingRequest.RequestStatus.IN_USE)
 
+
 @extend_schema(operation_id="guard_vehicle_search")
 class GuardVehicleSearchView(ListAPIView):
-
     serializer_class = ParkingRequestManagerSerializer
     permission_classes = [IsManagerOrGuard]
 
     def get_queryset(self):
-
         plate_number = self.request.query_params.get('plate_number')
 
         if not plate_number:
@@ -416,6 +423,7 @@ class GuardVehicleSearchView(ListAPIView):
             vehicle__plate_number=plate_number,
             status__in=[ParkingRequest.RequestStatus.APPROVED, ParkingRequest.RequestStatus.IN_USE])
 
+
 @extend_schema(operation_id="guard_dashboard")
 class GuardDashboardView(APIView):
     permission_classes = [IsManagerOrGuard]
@@ -424,16 +432,18 @@ class GuardDashboardView(APIView):
         data = DashboardService.get_guard_dashboard()
         return Response(data)
 
-#guest
+
+# guest
 @extend_schema_view(
     get=extend_schema(operation_id="guest_parking_request_list"),
     post=extend_schema(operation_id="guest_parking_request_create")
 )
 class GuestParkingRequestListCreateView(ListCreateAPIView):
     permission_classes = [IsManagerForGetOrAuthenticatedForPost]
+
     def get_serializer_class(self):
         if self.request.method == 'POST':
-             return GuestParkingRequestSerializer
+            return GuestParkingRequestSerializer
         return GuestParkingRequestListSerializer
 
     def get_queryset(self):
@@ -451,11 +461,10 @@ class GuestParkingRequestListCreateView(ListCreateAPIView):
         serializer.instance = parking_request
 
 
-
-
 class _Echo:
     def write(self, value):
         return value
+
 
 class EntryExitXlsxReportView(APIView):
     permission_classes = [IsManagerUser]
@@ -467,10 +476,10 @@ class EntryExitXlsxReportView(APIView):
             end = dj_tz.make_aware(datetime.fromisoformat(request.query_params['end']))
 
         except (KeyError, ValueError):
-            return Response({'detail': 'start و end (YYYY-MM-DD) الزامی هستند'}, status=400)
+            return Response({'detail': MESSAGES['report']['dates_required']}, status=400)
 
         if start >= end:
-            return Response({'detail': 'بازه نامعتبر است'}, status=400)
+            return Response({'detail': MESSAGES['report']['invalid_range']}, status=400)
 
         wb = Workbook(write_only=True)
         ws = wb.create_sheet('entry_exit')

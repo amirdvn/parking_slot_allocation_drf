@@ -1,4 +1,3 @@
-# parkings/services.py
 from datetime import timedelta
 from django.utils import timezone
 from notifications.models import Notification
@@ -10,13 +9,12 @@ from vehicles.models import Vehicle
 from .cache import DashboardCache
 from django.db import transaction
 from django.conf import settings
-
+from parkings.translations.fa import MESSAGES
 
 User = get_user_model()
 
 
 class ParkingRequestService:
-
 
     @staticmethod
     def _notify_managers(parking_request):
@@ -32,24 +30,22 @@ class ParkingRequestService:
         space_code = parking_request.parking_space.code if parking_request.parking_space else '---'
 
         if parking_request.status == ParkingRequest.RequestStatus.NEEDS_REVIEW:
-            title = 'درخواست اضطراری نیازمند بررسی'
-            message = (
-                f'درخواست #{parking_request.id} (اضطراری) نیازمند بررسی دستی شماست. '
-                f'جایگاه: {space_code}'
+            title = MESSAGES['notifications']['titles']['emergency']
+            message = MESSAGES['notifications']['messages']['emergency'].format(
+                id=parking_request.id, code=space_code
             )
         elif parking_request.is_guest:
-            title = 'درخواست مهمان جدید'
-            message = (
-                f'درخواست مهمان #{parking_request.id} در انتظار تایید شماست. '
-                f'مهمان: {parking_request.guest_name or "---"} · '
-                f'پلاک: {parking_request.guest_plate_number or "---"}'
+            title = MESSAGES['notifications']['titles']['guest']
+            message = MESSAGES['notifications']['messages']['guest'].format(
+                id=parking_request.id,
+                name=parking_request.guest_name or "---",
+                plate=parking_request.guest_plate_number or "---"
             )
         else:
             plate = parking_request.vehicle.plate_number if parking_request.vehicle else '---'
-            title = 'درخواست جدید پارکینگ'
-            message = (
-                f'درخواست #{parking_request.id} در انتظار تایید شماست. '
-                f'پلاک: {plate} · جایگاه: {space_code}'
+            title = MESSAGES['notifications']['titles']['new_request']
+            message = MESSAGES['notifications']['messages']['new_request'].format(
+                id=parking_request.id, plate=plate, code=space_code
             )
 
         def send():
@@ -63,12 +59,9 @@ class ParkingRequestService:
                 )
         transaction.on_commit(send)
 
-
     @staticmethod
     def expire_pending_requests():
-
         RequestStatus = ParkingRequest.RequestStatus
-
         time_expire = timezone.now() - timedelta(minutes=settings.PARKING_REQUEST_EXPIRY_MINUTES)
 
         with transaction.atomic():
@@ -80,7 +73,6 @@ class ParkingRequestService:
             )
 
             expired_requests = list(request_expired.values_list('id', 'user_id'))
-
             ids = [req_id for req_id, _ in expired_requests]
 
             updated_count = 0
@@ -93,23 +85,20 @@ class ParkingRequestService:
             DashboardCache.invalidate()
 
         for req_id, user_id in expired_requests:
-
             def send_notification(req_id=req_id, user_id=user_id):
                 create_notification_task.delay(
                     user_id=user_id,
                     notification_type=Notification.Type.REQUEST_STATUS,
-                    title='درخواست پارکینگ منقضی شد',
-                    message=f'درخواست #{req_id} به دلیل عدم بررسی به‌موقع منقضی شد',
+                    title=MESSAGES['notifications']['titles']['expired'],
+                    message=MESSAGES['notifications']['messages']['expired'].format(id=req_id),
                     link=f'/api/parking/requests/detail/{req_id}/',
                 )
             transaction.on_commit(send_notification)
 
         return updated_count
 
-
     @staticmethod
     def create(user, validated_data):
-
         with transaction.atomic():
             space = ParkingSpace.objects.select_for_update().get(pk=validated_data['parking_space'].pk)
 
@@ -118,14 +107,14 @@ class ParkingRequestService:
                     validated_data['start_time'],
                     validated_data['end_time']
             ).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخابی قبلاً رزرو شده است')
+                raise ValueError(MESSAGES['errors']['space_reserved'])
 
             if ParkingSpaceBlock.objects.overlapping(
                     space,
                     validated_data['start_time'],
                     validated_data['end_time'],
             ).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخابی مسدود است')
+                raise ValueError(MESSAGES['errors']['space_blocked'])
 
             parking_request = ParkingRequest.objects.create(user=user, **validated_data)
 
@@ -137,16 +126,13 @@ class ParkingRequestService:
 
         return parking_request
 
-
     @staticmethod
     def check_editable(parking_request):
         if parking_request.status != ParkingRequest.RequestStatus.PENDING:
-            raise ValueError('فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند')
-
+            raise ValueError(MESSAGES['validation']['edit_not_pending'])
 
     @staticmethod
     def cancel(parking_request, reason):
-
         RequestStatus = ParkingRequest.RequestStatus
 
         with transaction.atomic():
@@ -161,12 +147,11 @@ class ParkingRequestService:
                 RequestStatus.PENDING,
                 RequestStatus.APPROVED,
             ]:
-                raise ValueError('این درخواست در وضعیت فعلی قابل لغو نیست')
+                raise ValueError(MESSAGES['errors']['cancel_invalid_status'])
 
             locked.status = RequestStatus.CANCELED
             locked.cancellation_reason = reason
             locked.save(update_fields=['status', 'cancellation_reason', 'updated_date'])
-
 
             def notify_managers_on_cancel():
                 manager_ids = list(
@@ -178,10 +163,9 @@ class ParkingRequestService:
                     create_notification_task.delay(
                         user_id=manager_id,
                         notification_type=Notification.Type.REQUEST_STATUS,
-                        title='درخواست لغو شد',
-                        message=(
-                            f'درخواست #{locked.id} توسط کاربر لغو شد. '
-                            f'دلیل: {reason}'
+                        title=MESSAGES['notifications']['titles']['canceled'],
+                        message=MESSAGES['notifications']['messages']['canceled'].format(
+                            id=locked.id, reason=reason
                         ),
                         link='/manage-requests',
                     )
@@ -189,18 +173,16 @@ class ParkingRequestService:
 
         return locked
 
-
-    #manager
+    # manager
     @staticmethod
     def review(parking_request, status, rejection_reason=None):
-
         RequestStatus = ParkingRequest.RequestStatus
 
         if status not in [
             RequestStatus.APPROVED,
             RequestStatus.REJECTED,
         ]:
-            raise ValueError('وضعیت جدید باید تایید یا رد باشد')
+            raise ValueError(MESSAGES['errors']['review_invalid_status'])
 
         with transaction.atomic():
             locked = (
@@ -214,7 +196,7 @@ class ParkingRequestService:
                 RequestStatus.PENDING,
                 RequestStatus.NEEDS_REVIEW,
             ]:
-                raise ValueError('این درخواست در وضعیت فعلی قابل بررسی نیست')
+                raise ValueError(MESSAGES['errors']['review_not_allowed'])
 
             locked.status = status
             if status == RequestStatus.REJECTED:
@@ -222,13 +204,16 @@ class ParkingRequestService:
 
             locked.save(update_fields=['status', 'updated_date', 'rejection_reason'])
 
-
             if locked.status == RequestStatus.APPROVED:
-                title = 'تایید درخواست پارکینگ'
-                message = f'درخواست شما برای جایگاه {locked.parking_space.code if locked.parking_space else "تعیین‌شده"} تایید شد'
+                title = MESSAGES['notifications']['titles']['approved']
+                message = MESSAGES['notifications']['messages']['approved'].format(
+                    code=locked.parking_space.code if locked.parking_space else MESSAGES['notifications']['defaults']['space_code']
+                )
             else:
-                title = 'رد درخواست پارکینگ'
-                message = f'درخواست شما رد شد؛ دلیل: {locked.rejection_reason or "تعیین نشده"}'
+                title = MESSAGES['notifications']['titles']['rejected']
+                message = MESSAGES['notifications']['messages']['rejected'].format(
+                    reason=locked.rejection_reason or MESSAGES['notifications']['defaults']['reason']
+                )
 
             def send_notification():
                 create_notification_task.delay(
@@ -251,10 +236,9 @@ class ParkingRequestService:
                     plate = locked.vehicle.plate_number if locked.vehicle else '---'
                     space_code = locked.parking_space.code if locked.parking_space else '---'
 
-                    guard_title = 'درخواست جدید آماده ورود'
-                    guard_message = (
-                        f'درخواست #{locked.id} تایید شد. '
-                        f'پلاک: {plate} · جایگاه: {space_code}'
+                    guard_title = MESSAGES['notifications']['titles']['ready_for_entry']
+                    guard_message = MESSAGES['notifications']['messages']['ready_for_entry'].format(
+                        id=locked.id, plate=plate, code=space_code
                     )
 
                     def send_guard_notifications():
@@ -271,17 +255,14 @@ class ParkingRequestService:
 
         return locked
 
-
     @staticmethod
     def update(parking_request, validated_data):
-
         RequestStatus = ParkingRequest.RequestStatus
 
         with transaction.atomic():
-
             target_space = validated_data.get('parking_space') or parking_request.parking_space
             if target_space is None:
-                raise ValueError('جایگاه نامعتبر است')
+                raise ValueError(MESSAGES['errors']['invalid_space'])
 
             space = ParkingSpace.objects.select_for_update().get(
                 pk=validated_data.get(
@@ -291,19 +272,19 @@ class ParkingRequestService:
             locked = ParkingRequest.objects.select_for_update().get(pk=parking_request.id)
 
             if locked.status != RequestStatus.PENDING:
-                raise ValueError('فقط درخواست‌های در وضعیت «در انتظار بررسی» قابل ویرایش هستند')
+                raise ValueError(MESSAGES['validation']['edit_not_pending'])
 
             start = validated_data.get('start_time', locked.start_time)
             end = validated_data.get('end_time', locked.end_time)
 
             if start >= end:
-                raise ValueError('زمان پایان باید بعد از زمان شروع باشد')
+                raise ValueError(MESSAGES['validation']['end_before_start'])
 
             if ParkingRequest.objects.overlapping(space, start, end).exclude(pk=locked.id).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخابی قبلاً رزرو شده است')
+                raise ValueError(MESSAGES['errors']['space_reserved'])
 
             if ParkingSpaceBlock.objects.overlapping(space, start, end).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخابی مسدود است')
+                raise ValueError(MESSAGES['errors']['space_blocked'])
 
             locked.parking_space = space
             locked.start_time = start
@@ -315,7 +296,6 @@ class ParkingRequestService:
 
         return locked
 
-
     @staticmethod
     def create_guest(user, validated_data):
         with transaction.atomic():
@@ -326,19 +306,18 @@ class ParkingRequestService:
                     validated_data['start_time'],
                     validated_data['end_time']
             ).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخابی قبلاً رزرو شده است')
+                raise ValueError(MESSAGES['errors']['space_reserved'])
 
             if ParkingSpaceBlock.objects.overlapping(
                     space,
                     validated_data['start_time'],
                     validated_data['end_time'],
             ).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخابی مسدود است')
+                raise ValueError(MESSAGES['errors']['space_blocked'])
 
             parking_request = ParkingRequest.objects.create(
                 user=user, vehicle=None, is_guest=True, **validated_data
             )
-
 
             ParkingRequestService._notify_managers(parking_request)
 
@@ -350,7 +329,6 @@ class EntryExitLogService:
     @staticmethod
     @transaction.atomic
     def record_entry(log):
-
         RequestStatus = ParkingRequest.RequestStatus
 
         if log.parking_request_id:
@@ -359,19 +337,19 @@ class EntryExitLogService:
             ).get(pk=log.parking_request_id)
 
             if parking_request.status != ParkingRequest.RequestStatus.APPROVED:
-                raise ValueError('فقط درخواست‌های تاییدشده امکان ثبت ورود دارند')
+                raise ValueError(MESSAGES['errors']['entry_not_approved'])
 
             now = timezone.now()
             if now < parking_request.start_time:
-                raise ValueError('هنوز زمان شروع این درخواست نرسیده است')
+                raise ValueError(MESSAGES['errors']['entry_too_early'])
             if now > parking_request.end_time:
-                raise ValueError('زمان این درخواست به پایان رسیده است')
+                raise ValueError(MESSAGES['errors']['entry_too_late'])
 
             if not parking_request.is_guest and log.vehicle_id and parking_request.vehicle_id != log.vehicle_id:
-                raise ValueError('این خودرو با خودروی درخواست پارک یکسان نیست')
+                raise ValueError(MESSAGES['validation']['vehicle_mismatch'])
 
             if EntryExitLog.objects.for_request(parking_request).active().exclude(pk=log.id).exists():
-                raise ValueError('برای این درخواست قبلاً ورود ثبت شده است')
+                raise ValueError(MESSAGES['errors']['entry_already_recorded'])
 
             parking_request.status = ParkingRequest.RequestStatus.IN_USE
             parking_request.save(update_fields=['status', 'updated_date'])
@@ -383,32 +361,30 @@ class EntryExitLogService:
                 create_notification_task.delay(
                     user_id=user_id,
                     notification_type=Notification.Type.REQUEST_STATUS,
-                    title='ورود خودرو ثبت شد',
-                    message=f'ورود خودرو برای درخواست #{request_id} ثبت شد',
+                    title=MESSAGES['notifications']['titles']['entry_logged'],
+                    message=MESSAGES['notifications']['messages']['entry_logged'].format(id=request_id),
                     link=f'/api/parking/requests/detail/{request_id}/',
                 )
             transaction.on_commit(send_notification)
 
         else:
             if not log.vehicle_id:
-                raise ValueError('وسیله نقلیه الزامی است')
+                raise ValueError(MESSAGES['errors']['vehicle_required'])
 
             Vehicle.objects.select_for_update(of=('self',)).get(pk=log.vehicle_id)
 
             if EntryExitLog.objects.for_vehicle(log.vehicle_id).active().exclude(pk=log.pk).exists():
-                raise ValueError('این خودرو قبلاً وارد شده و هنوز خارج نشده است')
+                raise ValueError(MESSAGES['errors']['vehicle_already_inside'])
 
         return log
-
 
     @staticmethod
     @transaction.atomic
     def record_exit(log):
-
         log = EntryExitLog.objects.select_for_update().get(pk=log.id)
 
         if log.exit_time:
-            raise ValueError('خروج این خودرو قبلاً ثبت شده است')
+            raise ValueError(MESSAGES['errors']['exit_already_recorded'])
 
         parking_request = None
 
@@ -416,7 +392,7 @@ class EntryExitLogService:
             parking_request = ParkingRequest.objects.select_for_update().get(pk=log.parking_request_id)
 
             if parking_request.status != ParkingRequest.RequestStatus.IN_USE:
-                raise ValueError('این درخواست در وضعیت «در حال استفاده» نیست')
+                raise ValueError(MESSAGES['errors']['exit_invalid_status'])
 
             parking_request.status = ParkingRequest.RequestStatus.COMPLETED
             parking_request.save(update_fields=['status'])
@@ -432,8 +408,8 @@ class EntryExitLogService:
                 create_notification_task.delay(
                     user_id=user_id,
                     notification_type=Notification.Type.REQUEST_STATUS,
-                    title='خروج خودرو ثبت شد',
-                    message=f'خروج خودرو برای درخواست #{request_id} ثبت شد',
+                    title=MESSAGES['notifications']['titles']['exit_logged'],
+                    message=MESSAGES['notifications']['messages']['exit_logged'].format(id=request_id),
                     link=f'/api/parking/requests/detail/{request_id}/',
                 )
             transaction.on_commit(send_notification)
@@ -470,7 +446,6 @@ class DashboardService:
 
     @staticmethod
     def get_manager_dashboard():
-
         cached = DashboardCache.get(DashboardCache.MANAGER_KEY)
 
         if cached is not None:
@@ -510,12 +485,10 @@ class DashboardService:
 
         data = {
             'parking_spaces': DashboardService._space_availability(now),
-
             'requests': {
                 'pending': request_stats['pending'],
                 'needs_review': request_stats['needs_review'],
             },
-
             'top_parking_spaces': [
                 {
                     'id': space.id,
@@ -524,7 +497,6 @@ class DashboardService:
                 }
                 for space in top_parking_spaces
             ],
-
             'top_users': [
                 {
                     'id': user.id,
@@ -606,17 +578,16 @@ class ParkingSpaceBlockService:
             start, end = validated_data['start_time'], validated_data['end_time']
 
             if ParkingSpaceBlock.objects.overlapping(space, start, end).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است')
+                raise ValueError(MESSAGES['errors']['block_already_exists'])
 
             if ParkingRequest.objects.overlapping(space, start, end).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است و نمی‌توان آن را مسدود کرد')
+                raise ValueError(MESSAGES['errors']['space_has_active_requests'])
 
             return ParkingSpaceBlock.objects.create(created_by=created_by, **validated_data)
 
     @staticmethod
     def update(instance, validated_data):
         with transaction.atomic():
-
             locked_instance = ParkingSpaceBlock.objects.select_for_update().get(pk=instance.pk)
 
             parking_space = validated_data.get('parking_space', locked_instance.parking_space)
@@ -626,10 +597,10 @@ class ParkingSpaceBlockService:
             end_time = validated_data.get('end_time', locked_instance.end_time)
 
             if ParkingSpaceBlock.objects.overlapping(parking_space, start_time, end_time).exclude(pk=locked_instance.pk).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده قبلاً مسدود شده است')
+                raise ValueError(MESSAGES['errors']['block_already_exists'])
 
             if ParkingRequest.objects.overlapping(parking_space, start_time, end_time).exists():
-                raise ValueError('این جایگاه در بازه زمانی انتخاب‌شده دارای درخواست یا رزرو فعال است')
+                raise ValueError(MESSAGES['errors']['space_has_active_requests_short'])
 
             locked_instance.parking_space = parking_space
             locked_instance.start_time = start_time
@@ -645,14 +616,14 @@ class ParkingSpaceBlockService:
 
 class EntryExitReportService:
     COLUMNS = [
-        ('user_id', 'شناسه کاربر'),
-        ('full_name', 'نام و نام خانوادگی'),
-        ('plate_number', 'پلاک'),
-        ('parking_space', 'جایگاه'),
-        ('entry_time', 'زمان ورود'),
-        ('exit_time', 'زمان خروج'),
-        ('duration', 'مدت توقف'),
-        ('still_inside', 'هنوز داخل است'),
+        ('user_id', MESSAGES['report']['headers']['user_id']),
+        ('full_name', MESSAGES['report']['headers']['full_name']),
+        ('plate_number', MESSAGES['report']['headers']['plate_number']),
+        ('parking_space', MESSAGES['report']['headers']['parking_space']),
+        ('entry_time', MESSAGES['report']['headers']['entry_time']),
+        ('exit_time', MESSAGES['report']['headers']['exit_time']),
+        ('duration', MESSAGES['report']['headers']['duration']),
+        ('still_inside', MESSAGES['report']['headers']['still_inside']),
     ]
 
     HEADERS = [key for key, _ in COLUMNS]

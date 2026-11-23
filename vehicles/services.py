@@ -1,17 +1,18 @@
 from .models import Vehicle
+from vehicles.translations.fa import MESSAGES
 
 class VehicleReportService:
 
     COLUMNS = [
-        ('user_id', 'شناسه کاربر'),
-        ('full_name', 'نام و نام خانوادگی'),
-        ('phone_number', 'شماره تلفن'),
-        ('plate_number', 'پلاک'),
-        ('vehicle_type', 'نوع وسیله'),
-        ('sub_type', 'نوع سوخت / حالت'),
-        ('color', 'رنگ'),
-        ('is_active', 'فعال'),
-        ('user_vehicle_count', 'تعداد خودروی کاربر'),
+        ('user_id', MESSAGES['vehicle']['report']['headers']['user_id']),
+        ('full_name', MESSAGES['vehicle']['report']['headers']['full_name']),
+        ('phone_number', MESSAGES['vehicle']['report']['headers']['phone_number']),
+        ('plate_number', MESSAGES['vehicle']['report']['headers']['plate_number']),
+        ('vehicle_type', MESSAGES['vehicle']['report']['headers']['vehicle_type']),
+        ('sub_type', MESSAGES['vehicle']['report']['headers']['sub_type']),
+        ('color', MESSAGES['vehicle']['report']['headers']['color']),
+        ('is_active', MESSAGES['vehicle']['report']['headers']['is_active']),
+        ('user_vehicle_count', MESSAGES['vehicle']['report']['headers']['user_vehicle_count']),
     ]
 
     HEADERS = [key for key, _ in COLUMNS]
@@ -35,6 +36,6 @@ class VehicleReportService:
                 'vehicle_type': v.get_vehicle_type_display(),
                 'sub_type': v.get_sub_type_display(),
                 'color': v.get_color_display(),
-                'is_active': 'بله' if v.is_active else 'خیر',
+                'is_active': MESSAGES['vehicle']['report']['yes'] if v.is_active else MESSAGES['vehicle']['report']['no'],
                 'user_vehicle_count': counts.get(v.user_id, 0),
             }

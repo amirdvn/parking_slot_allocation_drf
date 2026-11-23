@@ -13,6 +13,7 @@ from .throttles import (
     ChangePhoneSendOtpThrottle,
     ChangePhoneVerifyOtpThrottle,
 )
+from accounts.translations.fa import MESSAGES
 
 
 @extend_schema(auth=[],  request=RegisterSerializer)
@@ -28,7 +29,7 @@ class RegisterView(APIView):
             UserService.register(serializer.validated_data)
             return Response(
                 {
-                    'messages': 'ثبت نام با موفقیت انجام شد'
+                    'messages': MESSAGES['success']['registration']
                 }, 
                 status=status.HTTP_201_CREATED
             )
@@ -56,7 +57,7 @@ class SendLoginOtpView(APIView):
             OtpService.send_otp(phone_number)
             return Response(
                 {
-                    'messages':'کد تایید ارسال شد'
+                    'messages': MESSAGES['success']['otp_sent']
                 },
                 status=status.HTTP_200_OK)
        
@@ -111,7 +112,7 @@ class LogoutView(APIView):
             
             return Response(
                 {
-                    'message': 'خروج با موفقیت انجام شد'
+                    'message': MESSAGES['success']['logout']
                 },
                 status=status.HTTP_205_RESET_CONTENT)
         
@@ -140,7 +141,7 @@ class SendChangePhoneOtpView(APIView):
             
             return Response(
                 {
-                    'messages':'کد تایید ارسال شد'
+                    'messages': MESSAGES['success']['otp_sent']
                 },
                 status=status.HTTP_200_OK
             )
@@ -175,7 +176,7 @@ class VerifyChangePhoneOtpView(APIView):
             )
             return Response(
                 {
-                    'message': 'شماره تلفن با موفقیت تغییر کرد',
+                    'message': MESSAGES['success']['phone_changed'],
                     'user':ProfileSerializer(user).data
                 },
                 status=status.HTTP_200_OK

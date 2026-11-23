@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Vehicle
+from vehicles.translations.fa import MESSAGES
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -22,7 +23,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             queryset = queryset.exclude(pk=self.instance.pk)
 
         if queryset.exists():
-            raise serializers.ValidationError('این پلاک قبلاً برای وسیله نقلیه دیگری ثبت شده است')
+            raise serializers.ValidationError(MESSAGES['vehicle']['plate_exists'])
 
         return value
 
@@ -35,7 +36,7 @@ class VehicleSerializer(serializers.ModelSerializer):
 
         if vehicle_type in [Vehicle.VehicleType.BICYCLE, Vehicle.VehicleType.MOTORCYCLE] and sub_type in[Vehicle.SubType.CARGO, Vehicle.SubType.DISABLED]:
             raise serializers.ValidationError(
-                {'sub_type': 'دوچرخه/موتورسیکلت نمی‌تواند دارای حالت غیرمجاز باشد'})
+                {'sub_type': MESSAGES['vehicle']['invalid_sub_type']})
         return attrs
 
 class ParkingManagerVehicleSerializer(serializers.ModelSerializer):
